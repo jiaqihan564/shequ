@@ -43,6 +43,11 @@ export interface RegisterForm {
   captcha?: string
 }
 
+export interface RegisterResponse {
+  token: string
+  user: User
+}
+
 export interface LoginResponse {
   user: User
   token: string
@@ -112,6 +117,14 @@ export interface ValidationRule {
 
 export interface ValidationRules {
   [key: string]: ValidationRule[]
+}
+
+// 更严格的表单字段类型
+export type FormField = 'username' | 'email' | 'password' | 'confirmPassword' | 'agreeToTerms'
+
+// 表单验证错误类型
+export type FormValidationErrors = {
+  [K in FormField]?: string
 }
 
 // 路由相关类型

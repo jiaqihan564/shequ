@@ -4,6 +4,7 @@ import type {
   LoginResponse, 
   LoginForm, 
   RegisterForm, 
+  RegisterResponse,
   RefreshTokenResponse,
   User,
   AppError
@@ -15,8 +16,17 @@ const api: AxiosInstance = axios.create({
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  // 性能优化配置
+  maxRedirects: 3,
+  validateStatus: (status) => status < 500, // 只对5xx错误抛出异常
+  maxContentLength: 10 * 1024 * 1024, // 10MB
+  maxBodyLength: 10 * 1024 * 1024 // 10MB
 })
+
+// 请求缓存
+const requestCache = new Map<string, { data: any; timestamp: number }>()
+const CACHE_DURATION = 5 * 60 * 1000 // 5分钟缓存
 
 // 请求拦截器
 api.interceptors.request.use(
@@ -30,6 +40,13 @@ api.interceptors.request.use(
     // 添加请求ID用于追踪
     config.headers['X-Request-ID'] = generateRequestId()
     
+    // 添加时间戳防止缓存
+    if (config.method === 'get' && !config.params) {
+      config.params = { _t: Date.now() }
+    }
+    
+    // 缓存检查在响应拦截器中处理，这里只做请求配置
+    
     return config
   },
   (error) => {
@@ -40,6 +57,15 @@ api.interceptors.request.use(
 // 响应拦截器
 api.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
+    // 缓存GET请求的响应
+    if (response.config.method === 'get' && response.status === 200) {
+      const cacheKey = `${response.config.url}?${JSON.stringify(response.config.params || {})}`
+      requestCache.set(cacheKey, {
+        data: response.data,
+        timestamp: Date.now()
+      })
+    }
+    
     return response
   },
   async (error) => {
@@ -111,6 +137,24 @@ function createAppError(code: string, message: string, details?: any): AppError 
   }
 }
 
+// 清理过期缓存
+function clearExpiredCache(): void {
+  const now = Date.now()
+  for (const [key, value] of requestCache.entries()) {
+    if (now - value.timestamp > CACHE_DURATION) {
+      requestCache.delete(key)
+    }
+  }
+}
+
+// 定期清理缓存
+setInterval(clearExpiredCache, CACHE_DURATION)
+
+// 清除所有缓存
+export function clearApiCache(): void {
+  requestCache.clear()
+}
+
 // 认证相关API
 /**
  * 用户登录
@@ -134,20 +178,25 @@ export async function login(loginData: LoginForm): Promise<LoginResponse> {
 /**
  * 用户注册
  */
-export async function register(registerData: RegisterForm): Promise<LoginResponse> {
-  const response = await api.post<ApiResponse<LoginResponse>>('/auth/register', registerData)
-  
-  if (response.data.code === 200 && response.data.data) {
-    const { token, user } = response.data.data
+export async function register(registerData: RegisterForm): Promise<RegisterResponse> {
+  try {
+    const response = await api.post<ApiResponse<RegisterResponse>>('/auth/register', registerData)
     
-    // 存储认证信息
-    setAuthTokens(token, '') // 新API可能没有refreshToken
-    localStorage.setItem('user_info', JSON.stringify(user))
+    if (response.data.code === 201 && response.data.data) {
+      const { token, user } = response.data.data
+      
+      // 存储认证信息
+      setAuthTokens(token, '') // 新API可能没有refreshToken
+      localStorage.setItem('user_info', JSON.stringify(user))
+      
+      return response.data.data
+    }
     
-    return response.data.data
+    throw createAppError('REGISTER_FAILED', response.data.message || '注册失败')
+  } catch (error) {
+    console.error('API: 注册请求失败:', error)
+    throw error
   }
-  
-  throw createAppError('REGISTER_FAILED', response.data.message || '注册失败')
 }
 
 /**

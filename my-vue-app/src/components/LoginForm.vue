@@ -1,12 +1,12 @@
 <template>
-  <div class="login-container" @click="clearErrors" @keydown.esc="clearErrors">
-    <div class="login-card" @click.stop>
+  <div class="auth-container" @click="clearErrors" @keydown.esc="clearErrors">
+    <div class="auth-card" @click.stop>
       <div class="login-header">
         <h1 class="login-title">技术交流社区</h1>
         <p class="login-subtitle">欢迎回来，让我们一起交流技术</p>
       </div>
       
-      <form @submit.prevent="handleLogin" class="login-form" novalidate>
+      <form @submit.prevent="handleLogin" class="auth-form" novalidate>
         <div class="form-group">
           <label for="username" class="form-label">用户名或邮箱</label>
           <div class="input-wrapper">
@@ -96,7 +96,7 @@
 
         <button
           type="submit"
-          class="login-button"
+          class="auth-button"
           :disabled="!canSubmit"
           :aria-label="isLoading ? '正在登录' : '登录'"
         >
@@ -134,6 +134,13 @@ import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
 import NotificationToast from '@/components/ui/NotificationToast.vue'
+
+// 定义事件
+const emit = defineEmits<{
+  success: [data: any]
+  error: [error: any]
+  switchToRegister: []
+}>()
 
 // 响应式数据
 const form = reactive<LoginForm>({
@@ -261,7 +268,7 @@ const handleForgotPassword = () => {
 }
 
 const handleSignup = () => {
-  showNotification('注册功能正在开发中...', 'info')
+  emit('switchToRegister')
 }
 
 const handleLogin = async () => {
@@ -290,18 +297,13 @@ const handleLogin = async () => {
       localStorage.removeItem('remembered_username')
     }
     
-    // 这里可以跳转到主页面或触发路由跳转
-    console.log('登录成功:', response)
-    
-    // 模拟跳转延迟
-    setTimeout(() => {
-      // router.push('/dashboard') // 实际项目中应该使用路由跳转
-      showNotification('正在跳转到主页面...', 'success')
-    }, 1000)
+    // 发出成功事件
+    emit('success', response)
     
   } catch (error: any) {
     console.error('登录失败:', error)
     showNotification(error.message || '登录失败，请重试', 'error')
+    emit('error', error)
   } finally {
     isLoading.value = false
   }
@@ -319,99 +321,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.login-container {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 50%, var(--color-secondary) 100%);
-  padding: var(--spacing-5);
-  position: relative;
-  overflow: hidden;
-}
-
-.login-container::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
-  animation: backgroundShift 20s ease-in-out infinite;
-}
-
-.login-container::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: 
-    linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.1) 50%, transparent 70%);
-  animation: shimmer 15s linear infinite;
-}
-
-@keyframes backgroundShift {
-  0%, 100% {
-    transform: translateX(0) translateY(0);
-  }
-  25% {
-    transform: translateX(-20px) translateY(-10px);
-  }
-  50% {
-    transform: translateX(20px) translateY(10px);
-  }
-  75% {
-    transform: translateX(-10px) translateY(20px);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%) translateY(-100%) rotate(45deg);
-  }
-  100% {
-    transform: translateX(100%) translateY(100%) rotate(45deg);
-  }
-}
-
-.login-card {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-2xl);
-  box-shadow: var(--shadow-xl);
-  padding: var(--spacing-10);
-  width: 100%;
-  max-width: 400px;
-  position: relative;
-  overflow: hidden;
-  z-index: 10;
-  transition: all var(--transition-slow);
-}
-
-.login-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 
-    0 35px 60px rgba(0, 0, 0, 0.2),
-    0 0 0 1px rgba(255, 255, 255, 0.2);
-}
-
-.login-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark));
-}
-
 .login-header {
   text-align: center;
   margin-bottom: var(--spacing-8);
@@ -432,81 +341,6 @@ onMounted(() => {
   color: var(--color-gray-500);
   font-size: var(--font-size-sm);
   margin: 0;
-}
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-5);
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-}
-
-.form-label {
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--color-gray-700);
-}
-
-.input-wrapper {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.form-input {
-  width: 100%;
-  padding: var(--spacing-3) var(--spacing-4) var(--spacing-3) 48px;
-  border: 2px solid var(--color-gray-200);
-  border-radius: var(--radius-lg);
-  font-size: var(--font-size-base);
-  transition: all var(--transition-normal);
-  background: var(--color-gray-50);
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: var(--color-primary);
-  background: var(--color-white);
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.form-input.error {
-  border-color: var(--color-error);
-  background: rgba(239, 68, 68, 0.05);
-}
-
-.input-icon {
-  position: absolute;
-  left: var(--spacing-4);
-  color: var(--color-gray-400);
-  pointer-events: none;
-}
-
-.password-toggle {
-  position: absolute;
-  right: var(--spacing-4);
-  background: none;
-  border: none;
-  color: var(--color-gray-400);
-  cursor: pointer;
-  padding: var(--spacing-1);
-  border-radius: var(--radius-sm);
-  transition: color var(--transition-normal);
-}
-
-.password-toggle:hover {
-  color: var(--color-primary);
-}
-
-.error-message {
-  color: var(--color-error);
-  font-size: var(--font-size-xs);
-  margin-top: var(--spacing-1);
 }
 
 /* 密码强度提示样式 */
@@ -612,22 +446,10 @@ onMounted(() => {
   margin: var(--spacing-2) 0;
 }
 
-.checkbox-wrapper {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  cursor: pointer;
-}
-
 .checkbox {
   width: 16px;
   height: 16px;
   accent-color: var(--color-primary);
-}
-
-.checkbox-label {
-  font-size: var(--font-size-sm);
-  color: var(--color-gray-600);
 }
 
 .forgot-password {
@@ -639,35 +461,6 @@ onMounted(() => {
 
 .forgot-password:hover {
   color: var(--color-primary-dark);
-}
-
-.login-button {
-  width: 100%;
-  padding: var(--spacing-4);
-  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
-  color: var(--color-white);
-  border: none;
-  border-radius: var(--radius-lg);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-normal);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: var(--spacing-2);
-  margin-top: var(--spacing-2);
-}
-
-.login-button:hover:not(:disabled) {
-  transform: translateY(-1px);
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-}
-
-.login-button:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-  transform: none;
 }
 
 .login-footer {
@@ -692,54 +485,5 @@ onMounted(() => {
 
 .signup-link:hover {
   color: var(--color-primary-dark);
-}
-
-/* 响应式设计 */
-@media (max-width: 480px) {
-  .login-container {
-    padding: var(--spacing-4);
-  }
-  
-  .login-card {
-    padding: var(--spacing-6);
-  }
-  
-  .login-title {
-    font-size: var(--font-size-2xl);
-  }
-}
-
-/* 高对比度模式支持 */
-@media (prefers-contrast: high) {
-  .login-card {
-    background: var(--color-white);
-    border: 2px solid var(--color-gray-900);
-  }
-  
-  .form-input {
-    border: 2px solid var(--color-gray-900);
-    background: var(--color-white);
-  }
-  
-  .form-input:focus {
-    border-color: var(--color-primary);
-    box-shadow: 0 0 0 3px var(--color-primary);
-  }
-}
-
-/* 减少动画模式支持 */
-@media (prefers-reduced-motion: reduce) {
-  .login-container::before,
-  .login-container::after {
-    animation: none;
-  }
-  
-  .login-card:hover {
-    transform: none;
-  }
-  
-  .login-button:hover:not(:disabled) {
-    transform: none;
-  }
 }
 </style>

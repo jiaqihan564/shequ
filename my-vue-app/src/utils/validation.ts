@@ -34,6 +34,13 @@ export const VALIDATION_RULES: ValidationRules = {
   phone: [
     { required: true, message: '请输入手机号' },
     { pattern: REGEX_PATTERNS.phone, message: '请输入有效的手机号' }
+  ],
+  agreeToTerms: [
+    { 
+      required: true, 
+      custom: (value: boolean) => !value ? '请同意用户协议和隐私政策' : null,
+      message: '请同意用户协议和隐私政策'
+    }
   ]
 }
 
@@ -264,84 +271,3 @@ export function throttle<T extends (...args: any[]) => any>(
   }
 }
 
-/**
- * 格式化文件大小
- */
-export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 Bytes'
-  
-  const k = 1024
-  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-}
-
-/**
- * 生成随机字符串
- */
-export function generateRandomString(length: number = 8): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-  let result = ''
-  
-  for (let i = 0; i < length; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length))
-  }
-  
-  return result
-}
-
-/**
- * 深拷贝对象
- */
-export function deepClone<T>(obj: T): T {
-  if (obj === null || typeof obj !== 'object') {
-    return obj
-  }
-  
-  if (obj instanceof Date) {
-    return new Date(obj.getTime()) as unknown as T
-  }
-  
-  if (obj instanceof Array) {
-    return obj.map(item => deepClone(item)) as unknown as T
-  }
-  
-  if (typeof obj === 'object') {
-    const clonedObj = {} as T
-    for (const key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        clonedObj[key] = deepClone(obj[key])
-      }
-    }
-    return clonedObj
-  }
-  
-  return obj
-}
-
-/**
- * 检查是否为有效的URL
- */
-export function isValidUrl(url: string): boolean {
-  try {
-    new URL(url)
-    return true
-  } catch {
-    return false
-  }
-}
-
-/**
- * 检查是否为有效的邮箱
- */
-export function isValidEmail(email: string): boolean {
-  return REGEX_PATTERNS.email.test(email)
-}
-
-/**
- * 检查是否为有效的手机号
- */
-export function isValidPhone(phone: string): boolean {
-  return REGEX_PATTERNS.phone.test(phone)
-}

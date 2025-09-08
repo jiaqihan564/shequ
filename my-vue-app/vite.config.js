@@ -64,6 +64,13 @@ export default defineConfig({
     assetsDir: 'assets',
     sourcemap: false,
     minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+        pure_funcs: ['console.log', 'console.info', 'console.debug']
+      }
+    },
     rollupOptions: {
       output: {
         chunkFileNames: 'assets/js/[name]-[hash].js',
@@ -71,11 +78,16 @@ export default defineConfig({
         assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
         manualChunks: {
           vendor: ['vue', 'vue-router', 'pinia'],
-          utils: ['axios', '@vueuse/core']
+          utils: ['axios', '@vueuse/core'],
+          ui: ['src/components/ui']
         }
       }
     },
-    chunkSizeWarningLimit: 1000
+    chunkSizeWarningLimit: 1000,
+    // 启用CSS代码分割
+    cssCodeSplit: true,
+    // 启用资源内联阈值
+    assetsInlineLimit: 4096
   },
   css: {
     devSourcemap: true
