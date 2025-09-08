@@ -25,23 +25,8 @@ export const VALIDATION_RULES: ValidationRules = {
   ],
   password: [
     { required: true, message: '请输入密码' },
-    { minLength: 8, message: '密码至少8个字符' },
-    { maxLength: 128, message: '密码不能超过128个字符' },
-    { 
-      custom: (value: string) => {
-        const hasUpperCase = /[A-Z]/.test(value)
-        const hasLowerCase = /[a-z]/.test(value)
-        const hasNumbers = /\d/.test(value)
-        const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(value)
-        
-        const strengthCount = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean).length
-        
-        if (strengthCount < 2) {
-          return '密码强度较弱，建议包含大小写字母、数字或特殊字符'
-        }
-        return null
-      }
-    }
+    { minLength: 6, message: '密码至少6个字符' },
+    { maxLength: 128, message: '密码不能超过128个字符' }
   ],
   confirmPassword: [
     { required: true, message: '请确认密码' }
@@ -100,6 +85,57 @@ export function validateEmail(email: string): string | null {
  */
 export function validatePassword(password: string): string | null {
   return validateField(password, VALIDATION_RULES.password)
+}
+
+/**
+ * 检查密码强度（仅提供建议，不阻止验证）
+ */
+export function checkPasswordStrength(password: string): {
+  strength: 'weak' | 'medium' | 'strong'
+  suggestions: string[]
+} {
+  if (!password) {
+    return { strength: 'weak', suggestions: [] }
+  }
+
+  const hasUpperCase = /[A-Z]/.test(password)
+  const hasLowerCase = /[a-z]/.test(password)
+  const hasNumbers = /\d/.test(password)
+  const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+  const hasMinLength = password.length >= 8
+
+  const suggestions: string[] = []
+  let strength: 'weak' | 'medium' | 'strong' = 'weak'
+
+  // 收集建议
+  if (!hasMinLength) {
+    suggestions.push('建议密码至少8个字符')
+  }
+  if (!hasUpperCase) {
+    suggestions.push('建议包含大写字母')
+  }
+  if (!hasLowerCase) {
+    suggestions.push('建议包含小写字母')
+  }
+  if (!hasNumbers) {
+    suggestions.push('建议包含数字')
+  }
+  if (!hasSpecialChar) {
+    suggestions.push('建议包含特殊字符')
+  }
+
+  // 计算强度（只考虑字符类型，不包括长度）
+  const strengthCount = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean).length
+  
+  if (strengthCount >= 4) {
+    strength = 'strong'
+  } else if (strengthCount >= 2) {
+    strength = 'medium'
+  } else {
+    strength = 'weak'
+  }
+
+  return { strength, suggestions }
 }
 
 /**

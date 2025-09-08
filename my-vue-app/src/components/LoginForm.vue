@@ -55,6 +55,31 @@
             </button>
           </div>
           <span v-if="errors.password" class="error-message">{{ errors.password }}</span>
+          
+          <!-- 密码强度提示 -->
+          <div v-if="passwordStrength.showSuggestions && form.password && !errors.password" class="password-strength">
+            <div class="strength-indicator">
+              <span class="strength-label">密码强度：</span>
+              <div class="strength-bar">
+                <div 
+                  class="strength-fill" 
+                  :class="`strength-${passwordStrength.strength}`"
+                  :style="{ width: passwordStrength.strength === 'weak' ? '33%' : passwordStrength.strength === 'medium' ? '66%' : '100%' }"
+                ></div>
+              </div>
+              <span class="strength-text" :class="`strength-${passwordStrength.strength}`">
+                {{ passwordStrength.strength === 'weak' ? '弱' : passwordStrength.strength === 'medium' ? '中等' : '强' }}
+              </span>
+            </div>
+            <div class="strength-suggestions">
+              <span class="suggestions-label">建议：</span>
+              <ul class="suggestions-list">
+                <li v-for="suggestion in passwordStrength.suggestions" :key="suggestion" class="suggestion-item">
+                  {{ suggestion }}
+                </li>
+              </ul>
+            </div>
+          </div>
         </div>
 
         <div class="form-options">
@@ -102,7 +127,7 @@
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import type { LoginForm, FormErrors, NotificationType } from '@/types'
-import { validateUsernameOrEmail, validatePassword as validatePasswordUtil, debounce } from '@/utils/validation'
+import { validateUsernameOrEmail, validatePassword as validatePasswordUtil, checkPasswordStrength, debounce } from '@/utils/validation'
 import { login } from '@/utils/api'
 import UserIcon from '@/components/icons/UserIcon.vue'
 import EyeIcon from '@/components/icons/EyeIcon.vue'
@@ -125,6 +150,13 @@ const errors = reactive<FormErrors>({
 const showPassword = ref(false)
 const isLoading = ref(false)
 const isFormValid = ref(false)
+
+// 密码强度状态
+const passwordStrength = reactive({
+  strength: 'weak' as 'weak' | 'medium' | 'strong',
+  suggestions: [] as string[],
+  showSuggestions: false
+})
 
 // 通知状态
 const notification = reactive({
@@ -165,6 +197,18 @@ const validateUsernameField = () => {
 const validatePasswordField = () => {
   const error = validatePasswordUtil(form.password)
   errors.password = error || ''
+  
+  // 检查密码强度（仅提供建议）
+  if (form.password && !error) {
+    const strengthInfo = checkPasswordStrength(form.password)
+    passwordStrength.strength = strengthInfo.strength
+    passwordStrength.suggestions = strengthInfo.suggestions
+    passwordStrength.showSuggestions = strengthInfo.suggestions.length > 0
+  } else {
+    passwordStrength.showSuggestions = false
+    passwordStrength.suggestions = []
+  }
+  
   updateFormValidity()
 }
 
@@ -463,6 +507,102 @@ onMounted(() => {
   color: var(--color-error);
   font-size: var(--font-size-xs);
   margin-top: var(--spacing-1);
+}
+
+/* 密码强度提示样式 */
+.password-strength {
+  margin-top: var(--spacing-2);
+  padding: var(--spacing-3);
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+}
+
+.strength-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+}
+
+.strength-label {
+  color: var(--color-gray-600);
+  font-weight: 500;
+}
+
+.strength-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--color-gray-200);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.strength-fill {
+  height: 100%;
+  transition: all var(--transition-normal);
+  border-radius: 2px;
+}
+
+.strength-fill.strength-weak {
+  background: var(--color-error);
+}
+
+.strength-fill.strength-medium {
+  background: #f59e0b;
+}
+
+.strength-fill.strength-strong {
+  background: #10b981;
+}
+
+.strength-text {
+  font-weight: 600;
+  min-width: 30px;
+}
+
+.strength-text.strength-weak {
+  color: var(--color-error);
+}
+
+.strength-text.strength-medium {
+  color: #f59e0b;
+}
+
+.strength-text.strength-strong {
+  color: #10b981;
+}
+
+.strength-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+
+.suggestions-label {
+  color: var(--color-gray-600);
+  font-weight: 500;
+}
+
+.suggestions-list {
+  margin: 0;
+  padding-left: var(--spacing-4);
+  list-style: none;
+}
+
+.suggestion-item {
+  color: var(--color-gray-500);
+  position: relative;
+  margin-bottom: var(--spacing-1);
+}
+
+.suggestion-item::before {
+  content: '•';
+  color: var(--color-primary);
+  font-weight: bold;
+  position: absolute;
+  left: -var(--spacing-4);
 }
 
 .form-options {

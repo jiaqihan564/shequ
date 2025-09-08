@@ -11,7 +11,7 @@ import type {
 
 // 创建axios实例
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api',
+  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
@@ -49,6 +49,16 @@ api.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
       
+      // 如果是登录请求，直接返回错误，不尝试刷新token
+      if (originalRequest.url?.includes('/auth/login')) {
+        const appError = createAppError(
+          error.response?.data?.code?.toString() || 'LOGIN_FAILED',
+          error.response?.data?.message || '用户名或密码错误',
+          error.response?.data
+        )
+        return Promise.reject(appError)
+      }
+      
       try {
         const newToken = await refreshToken()
         originalRequest.headers.Authorization = `Bearer ${newToken}`
@@ -63,7 +73,7 @@ api.interceptors.response.use(
     
     // 处理其他错误
     const appError = createAppError(
-      error.response?.data?.code || 'API_ERROR',
+      error.response?.data?.code?.toString() || 'API_ERROR',
       error.response?.data?.message || '请求失败',
       error.response?.data
     )
@@ -108,11 +118,11 @@ function createAppError(code: string, message: string, details?: any): AppError 
 export async function login(loginData: LoginForm): Promise<LoginResponse> {
   const response = await api.post<ApiResponse<LoginResponse>>('/auth/login', loginData)
   
-  if (response.data.success && response.data.data) {
-    const { token, refreshToken, user } = response.data.data
+  if (response.data.code === 200 && response.data.data) {
+    const { token, user } = response.data.data
     
     // 存储认证信息
-    setAuthTokens(token, refreshToken)
+    setAuthTokens(token, '') // 新API可能没有refreshToken
     localStorage.setItem('user_info', JSON.stringify(user))
     
     return response.data.data
@@ -127,11 +137,11 @@ export async function login(loginData: LoginForm): Promise<LoginResponse> {
 export async function register(registerData: RegisterForm): Promise<LoginResponse> {
   const response = await api.post<ApiResponse<LoginResponse>>('/auth/register', registerData)
   
-  if (response.data.success && response.data.data) {
-    const { token, refreshToken, user } = response.data.data
+  if (response.data.code === 200 && response.data.data) {
+    const { token, user } = response.data.data
     
     // 存储认证信息
-    setAuthTokens(token, refreshToken)
+    setAuthTokens(token, '') // 新API可能没有refreshToken
     localStorage.setItem('user_info', JSON.stringify(user))
     
     return response.data.data
@@ -166,7 +176,7 @@ export async function refreshToken(): Promise<string> {
     refreshToken: refreshTokenValue
   })
   
-  if (response.data.success && response.data.data) {
+  if (response.data.code === 200 && response.data.data) {
     const { token } = response.data.data
     localStorage.setItem('auth_token', token)
     return token
@@ -181,7 +191,7 @@ export async function refreshToken(): Promise<string> {
 export async function getCurrentUser(): Promise<User> {
   const response = await api.get<ApiResponse<User>>('/auth/me')
   
-  if (response.data.success && response.data.data) {
+  if (response.data.code === 200 && response.data.data) {
     localStorage.setItem('user_info', JSON.stringify(response.data.data))
     return response.data.data
   }
@@ -195,7 +205,7 @@ export async function getCurrentUser(): Promise<User> {
 export async function updateUser(userData: Partial<User>): Promise<User> {
   const response = await api.put<ApiResponse<User>>('/auth/me', userData)
   
-  if (response.data.success && response.data.data) {
+  if (response.data.code === 200 && response.data.data) {
     localStorage.setItem('user_info', JSON.stringify(response.data.data))
     return response.data.data
   }
@@ -212,7 +222,7 @@ export async function changePassword(data: {
 }): Promise<void> {
   const response = await api.post<ApiResponse>('/auth/change-password', data)
   
-  if (!response.data.success) {
+  if (response.data.code !== 200) {
     throw createAppError('CHANGE_PASSWORD_FAILED', response.data.message || '修改密码失败')
   }
 }
@@ -223,7 +233,7 @@ export async function changePassword(data: {
 export async function forgotPassword(email: string): Promise<void> {
   const response = await api.post<ApiResponse>('/auth/forgot-password', { email })
   
-  if (!response.data.success) {
+  if (response.data.code !== 200) {
     throw createAppError('FORGOT_PASSWORD_FAILED', response.data.message || '发送重置邮件失败')
   }
 }
@@ -237,7 +247,7 @@ export async function resetPassword(data: {
 }): Promise<void> {
   const response = await api.post<ApiResponse>('/auth/reset-password', data)
   
-  if (!response.data.success) {
+  if (response.data.code !== 200) {
     throw createAppError('RESET_PASSWORD_FAILED', response.data.message || '重置密码失败')
   }
 }
@@ -249,7 +259,7 @@ export async function resetPassword(data: {
 export async function get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
   const response = await api.get<ApiResponse<T>>(url, config)
   
-  if (response.data.success && response.data.data !== undefined) {
+  if (response.data.code === 200 && response.data.data !== undefined) {
     return response.data.data
   }
   
@@ -262,7 +272,7 @@ export async function get<T>(url: string, config?: AxiosRequestConfig): Promise<
 export async function post<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
   const response = await api.post<ApiResponse<T>>(url, data, config)
   
-  if (response.data.success && response.data.data !== undefined) {
+  if (response.data.code === 200 && response.data.data !== undefined) {
     return response.data.data
   }
   
@@ -275,7 +285,7 @@ export async function post<T>(url: string, data?: any, config?: AxiosRequestConf
 export async function put<T>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T> {
   const response = await api.put<ApiResponse<T>>(url, data, config)
   
-  if (response.data.success && response.data.data !== undefined) {
+  if (response.data.code === 200 && response.data.data !== undefined) {
     return response.data.data
   }
   
@@ -288,7 +298,7 @@ export async function put<T>(url: string, data?: any, config?: AxiosRequestConfi
 export async function del<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
   const response = await api.delete<ApiResponse<T>>(url, config)
   
-  if (response.data.success && response.data.data !== undefined) {
+  if (response.data.code === 200 && response.data.data !== undefined) {
     return response.data.data
   }
   

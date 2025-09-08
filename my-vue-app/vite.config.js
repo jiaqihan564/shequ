@@ -49,7 +49,14 @@ export default defineConfig({
     port: 3000,
     open: true,
     cors: true,
-    host: true
+    host: true,
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false
+      }
+    }
   },
   build: {
     target: 'es2015',

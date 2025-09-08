@@ -1,14 +1,16 @@
 // 用户相关类型
 export interface User {
-  id: string
+  id: number
   username: string
   email: string
+  auth_status: number
+  account_status: number
   avatar?: string
-  role: UserRole
-  status: UserStatus
+  role?: UserRole
+  status?: UserStatus
   profile?: UserProfile
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
 }
 
 export type UserRole = 'user' | 'admin' | 'moderator'
@@ -44,8 +46,8 @@ export interface RegisterForm {
 export interface LoginResponse {
   user: User
   token: string
-  refreshToken: string
-  expiresIn: number
+  refreshToken?: string
+  expiresIn?: number
 }
 
 export interface RefreshTokenResponse {
@@ -60,9 +62,9 @@ export interface FormErrors {
 
 // API响应类型
 export interface ApiResponse<T = any> {
-  success: boolean
+  code: number
+  message: string
   data?: T
-  message?: string
   errors?: Record<string, string[]>
   meta?: PaginationMeta
 }
