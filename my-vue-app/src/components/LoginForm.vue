@@ -113,27 +113,18 @@
       </div>
     </div>
     
-    <!-- 通知提示 -->
-    <NotificationToast 
-      v-if="notification.show" 
-      :message="notification.message"
-      :type="notification.type"
-      :show="notification.show"
-      @close="notification.show = false"
-    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
-import type { LoginForm, FormErrors, NotificationType } from '@/types'
+import type { LoginForm, FormErrors } from '@/types'
 import { validateUsernameOrEmail, validatePassword as validatePasswordUtil, checkPasswordStrength, debounce } from '@/utils/validation'
 import { login } from '@/utils/api'
 import UserIcon from '@/components/icons/UserIcon.vue'
 import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
-import NotificationToast from '@/components/ui/NotificationToast.vue'
 
 // 定义事件
 const emit = defineEmits<{
@@ -165,12 +156,6 @@ const passwordStrength = reactive({
   showSuggestions: false
 })
 
-// 通知状态
-const notification = reactive({
-  show: false,
-  message: '',
-  type: 'info' as NotificationType
-})
 
 // 计算属性
 const hasErrors = computed(() => {
@@ -250,21 +235,11 @@ const clearErrors = () => {
   errors.password = ''
 }
 
-// 通知方法
-const showNotification = (message: string, type: NotificationType = 'info') => {
-  notification.message = message
-  notification.type = type
-  notification.show = true
-  
-  // 自动隐藏通知
-  setTimeout(() => {
-    notification.show = false
-  }, 3000)
-}
 
 // 事件处理方法
 const handleForgotPassword = () => {
-  showNotification('忘记密码功能正在开发中...', 'info')
+  // 通过emit发送事件到父组件处理通知
+  emit('error', { message: '忘记密码功能正在开发中...' })
 }
 
 const handleSignup = () => {
@@ -277,7 +252,7 @@ const handleLogin = async () => {
   validatePassword()
   
   if (hasErrors.value) {
-    showNotification('请检查输入信息', 'error')
+    emit('error', { message: '请检查输入信息' })
     return
   }
   
@@ -288,7 +263,7 @@ const handleLogin = async () => {
     const response = await login(form)
     
     // 登录成功
-    showNotification('登录成功！', 'success')
+    // 成功通知由父组件App.vue处理
     
     // 如果选择了记住我，保存到localStorage
     if (form.rememberMe) {
@@ -302,7 +277,7 @@ const handleLogin = async () => {
     
   } catch (error: any) {
     console.error('登录失败:', error)
-    showNotification(error.message || '登录失败，请重试', 'error')
+    // 错误通知由父组件App.vue处理
     emit('error', error)
   } finally {
     isLoading.value = false
