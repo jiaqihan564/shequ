@@ -1,6 +1,6 @@
 <template>
-  <div class="auth-container">
-    <div class="auth-card">
+  <div class="auth-container" @click="clearErrors" @keydown.esc="clearErrors">
+    <div class="auth-card" @click.stop>
       <div class="form-header">
         <div class="logo-section">
           <div class="logo-icon">🚀</div>
@@ -264,6 +264,15 @@ const validateField = (field: keyof RegisterForm) => {
 // 清除错误
 const clearError = (field: keyof RegisterForm) => {
   errors[field] = ''
+}
+
+// 清除所有错误
+const clearErrors = () => {
+  errors.username = ''
+  errors.email = ''
+  errors.password = ''
+  errors.confirmPassword = ''
+  errors.agreeToTerms = ''
 }
 
 // 获取密码强度宽度
