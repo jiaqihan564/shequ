@@ -6,6 +6,7 @@ export interface User {
   auth_status: number
   account_status: number
   avatar?: string
+  avatar_url?: string
   role?: UserRole
   status?: UserStatus
   profile?: UserProfile

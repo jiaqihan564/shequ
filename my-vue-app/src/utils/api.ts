@@ -110,18 +110,32 @@ api.interceptors.response.use(
 
 // 工具函数
 function getAuthToken(): string | null {
-  return localStorage.getItem('auth_token')
+  return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
 }
 
-function setAuthTokens(token: string, refreshToken: string): void {
-  localStorage.setItem('auth_token', token)
-  localStorage.setItem('refresh_token', refreshToken)
+function getActiveStorage(): Storage {
+  if (localStorage.getItem('auth_token')) return localStorage
+  if (sessionStorage.getItem('auth_token')) return sessionStorage
+  return localStorage
+}
+
+function setAuthTokens(token: string, refreshToken: string, scope: 'local' | 'session' = 'local'): void {
+  const store = scope === 'local' ? localStorage : sessionStorage
+  store.setItem('auth_token', token)
+  store.setItem('refresh_token', refreshToken)
+}
+
+function setUserInfo(user: User, scope: 'local' | 'session' = 'local'): void {
+  const store = scope === 'local' ? localStorage : sessionStorage
+  store.setItem('user_info', JSON.stringify(user))
 }
 
 function clearAuthTokens(): void {
-  localStorage.removeItem('auth_token')
-  localStorage.removeItem('refresh_token')
-  localStorage.removeItem('user_info')
+  for (const store of [localStorage, sessionStorage]) {
+    store.removeItem('auth_token')
+    store.removeItem('refresh_token')
+    store.removeItem('user_info')
+  }
 }
 
 function generateRequestId(): string {
@@ -164,12 +178,15 @@ export async function login(loginData: LoginForm): Promise<LoginResponse> {
   
   if (response.data.code === 200 && response.data.data) {
     const { token, user } = response.data.data
+    // 头像字段归一化：后端可能返回 avatar_url
+    const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url }
     
     // 存储认证信息
-    setAuthTokens(token, '') // 新API可能没有refreshToken
-    localStorage.setItem('user_info', JSON.stringify(user))
+    const scope = loginData.rememberMe ? 'local' : 'session'
+    setAuthTokens(token, '', scope) // 新API可能没有refreshToken
+    setUserInfo(normalizedUser, scope)
     
-    return response.data.data
+    return { ...response.data.data, user: normalizedUser }
   }
   
   throw createAppError('LOGIN_FAILED', response.data.message || '登录失败')
@@ -184,12 +201,13 @@ export async function register(registerData: RegisterForm): Promise<RegisterResp
     
     if (response.data.code === 201 && response.data.data) {
       const { token, user } = response.data.data
+      const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url }
       
       // 存储认证信息
       setAuthTokens(token, '') // 新API可能没有refreshToken
-      localStorage.setItem('user_info', JSON.stringify(user))
+      localStorage.setItem('user_info', JSON.stringify(normalizedUser))
       
-      return response.data.data
+      return { ...response.data.data, user: normalizedUser }
     }
     
     throw createAppError('REGISTER_FAILED', response.data.message || '注册失败')
@@ -216,7 +234,7 @@ export async function logout(): Promise<void> {
  * 刷新访问令牌
  */
 export async function refreshToken(): Promise<string> {
-  const refreshTokenValue = localStorage.getItem('refresh_token')
+  const refreshTokenValue = localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token')
   if (!refreshTokenValue) {
     throw createAppError('NO_REFRESH_TOKEN', '没有刷新令牌')
   }
@@ -227,7 +245,8 @@ export async function refreshToken(): Promise<string> {
   
   if (response.data.code === 200 && response.data.data) {
     const { token } = response.data.data
-    localStorage.setItem('auth_token', token)
+    const store = getActiveStorage()
+    store.setItem('auth_token', token)
     return token
   }
   
@@ -241,8 +260,11 @@ export async function getCurrentUser(): Promise<User> {
   const response = await api.get<ApiResponse<User>>('/auth/me')
   
   if (response.data.code === 200 && response.data.data) {
-    localStorage.setItem('user_info', JSON.stringify(response.data.data))
-    return response.data.data
+    const user = response.data.data
+    const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url }
+    const store = getActiveStorage()
+    store.setItem('user_info', JSON.stringify(normalizedUser))
+    return normalizedUser
   }
   
   throw createAppError('GET_USER_FAILED', '获取用户信息失败')
@@ -255,8 +277,11 @@ export async function updateUser(userData: Partial<User>): Promise<User> {
   const response = await api.put<ApiResponse<User>>('/auth/me', userData)
   
   if (response.data.code === 200 && response.data.data) {
-    localStorage.setItem('user_info', JSON.stringify(response.data.data))
-    return response.data.data
+    const user = response.data.data
+    const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url }
+    const store = getActiveStorage()
+    store.setItem('user_info', JSON.stringify(normalizedUser))
+    return normalizedUser
   }
   
   throw createAppError('UPDATE_USER_FAILED', '更新用户信息失败')

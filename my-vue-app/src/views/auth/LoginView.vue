@@ -35,7 +35,8 @@ function showToast(message: string, type: NotificationType) {
 
 function onSuccess() {
   showToast('登录成功！', 'success')
-  router.push('/')
+  const redirect = (router.currentRoute.value.query.redirect as string) || '/home'
+  router.push(redirect)
 }
 
 function onError(error: any) {
