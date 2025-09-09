@@ -1,9 +1,9 @@
 <template>
   <div v-if="show" class="user-menu" role="menu" @keydown.esc="$emit('close')">
     <div class="menu-header">
-      <button class="avatar-btn" @click="openPreview" :disabled="!user?.avatar">
-        <img v-if="user?.avatar" :src="user.avatar" alt="avatar" class="avatar" @error="onAvatarError" />
-        <div v-else class="avatar-fallback">{{ avatarInitial }}</div>
+      <button class="avatar-btn" @click="openPreview">
+        <img v-if="user?.avatar && showAvatar" :src="user.avatar" alt="avatar" class="avatar" @error="onAvatarError" />
+        <div v-else class="avatar-fallback" aria-label="avatar-fallback">{{ avatarInitial }}</div>
       </button>
       <div class="info">
         <div class="name" :title="displayName">{{ displayName }}</div>
@@ -13,7 +13,7 @@
     <div class="menu-list">
       <button class="menu-item danger" @click="$emit('logout')">退出登录</button>
     </div>
-    <ImagePreview :show="previewOpen" :src="user?.avatar || null" @close="previewOpen = false" />
+    <ImagePreview :show="previewOpen" :src="user?.avatar || null" :initial="avatarInitial" @close="previewOpen = false" />
   </div>
   
 </template>
@@ -37,7 +37,6 @@ function onAvatarError() {
 }
 
 function openPreview() {
-  if (!props.user?.avatar) return
   previewOpen.value = true
 }
 </script>
