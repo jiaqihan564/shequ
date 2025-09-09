@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import { createHead } from '@vueuse/head'
+import router from './router'
 import './style.css'
 import App from './App.vue'
 
@@ -11,6 +12,7 @@ const head = createHead()
 // 使用插件
 app.use(pinia)
 app.use(head)
+app.use(router)
 
 // 全局错误处理
 app.config.errorHandler = (err, instance, info) => {

@@ -124,16 +124,14 @@ import { login } from '@/utils/api'
 import UserIcon from '@/components/icons/UserIcon.vue'
 import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
-import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'
+import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 
-// 定义事件
 const emit = defineEmits<{
   success: [data: any]
   error: [error: any]
   switchToRegister: []
 }>()
 
-// 响应式数据
 const form = reactive<LoginForm>({
   username: '',
   password: '',
@@ -149,15 +147,12 @@ const showPassword = ref(false)
 const isLoading = ref(false)
 const isFormValid = ref(false)
 
-// 密码强度状态
 const passwordStrength = reactive({
   strength: 'weak' as 'weak' | 'medium' | 'strong',
   suggestions: [] as string[],
   showSuggestions: false
 })
 
-
-// 计算属性
 const hasErrors = computed(() => {
   return Object.values(errors).some(error => error && error.trim() !== '')
 })
@@ -166,7 +161,6 @@ const canSubmit = computed(() => {
   return !isLoading.value && !hasErrors.value && form.username.trim() && form.password.trim()
 })
 
-// 防抖验证函数
 const debouncedValidateUsername = debounce(() => {
   if (form.username) {
     validateUsernameField()
@@ -179,7 +173,6 @@ const debouncedValidatePassword = debounce(() => {
   }
 }, 300)
 
-// 验证方法
 const validateUsernameField = () => {
   const error = validateUsernameOrEmail(form.username)
   errors.username = error || ''
@@ -190,7 +183,6 @@ const validatePasswordField = () => {
   const error = validatePasswordUtil(form.password)
   errors.password = error || ''
   
-  // 检查密码强度（仅提供建议）
   if (form.password && !error) {
     const strengthInfo = checkPasswordStrength(form.password)
     passwordStrength.strength = strengthInfo.strength
@@ -216,12 +208,10 @@ const updateFormValidity = () => {
   isFormValid.value = !hasErrors.value && !!form.username.trim() && !!form.password.trim()
 }
 
-// 监听表单变化
 watch([() => form.username, () => form.password], () => {
   updateFormValidity()
 })
 
-// UI交互方法
 const togglePassword = () => {
   showPassword.value = !showPassword.value
 }
@@ -235,10 +225,7 @@ const clearErrors = () => {
   errors.password = ''
 }
 
-
-// 事件处理方法
 const handleForgotPassword = () => {
-  // 通过emit发送事件到父组件处理通知
   emit('error', { message: '忘记密码功能正在开发中...' })
 }
 
@@ -247,7 +234,6 @@ const handleSignup = () => {
 }
 
 const handleLogin = async () => {
-  // 验证表单
   validateUsername()
   validatePassword()
   
@@ -259,34 +245,22 @@ const handleLogin = async () => {
   isLoading.value = true
   
   try {
-    // 调用登录API
     const response = await login(form)
-    
-    // 登录成功
-    // 成功通知由父组件App.vue处理
-    
-    // 如果选择了记住我，保存到localStorage
     if (form.rememberMe) {
       localStorage.setItem('remembered_username', form.username)
     } else {
       localStorage.removeItem('remembered_username')
     }
-    
-    // 发出成功事件
     emit('success', response)
-    
   } catch (error: any) {
     console.error('登录失败:', error)
-    // 错误通知由父组件App.vue处理
     emit('error', error)
   } finally {
     isLoading.value = false
   }
 }
 
-// 生命周期
 onMounted(() => {
-  // 恢复记住的用户名
   const rememberedUsername = localStorage.getItem('remembered_username')
   if (rememberedUsername) {
     form.username = rememberedUsername
@@ -296,6 +270,7 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* 复制原组件样式（保持一致） */
 .login-header {
   text-align: center;
   margin-bottom: var(--spacing-8);
@@ -318,147 +293,30 @@ onMounted(() => {
   margin: 0;
 }
 
-/* 密码强度提示样式 */
-.password-strength {
-  margin-top: var(--spacing-2);
-  padding: var(--spacing-3);
-  background: rgba(59, 130, 246, 0.05);
-  border: 1px solid rgba(59, 130, 246, 0.2);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-xs);
-}
-
-.strength-indicator {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  margin-bottom: var(--spacing-2);
-}
-
-.strength-label {
-  color: var(--color-gray-600);
-  font-weight: 500;
-}
-
-.strength-bar {
-  flex: 1;
-  height: 4px;
-  background: var(--color-gray-200);
-  border-radius: 2px;
-  overflow: hidden;
-}
-
-.strength-fill {
-  height: 100%;
-  transition: all var(--transition-normal);
-  border-radius: 2px;
-}
-
-.strength-fill.strength-weak {
-  background: var(--color-error);
-}
-
-.strength-fill.strength-medium {
-  background: #f59e0b;
-}
-
-.strength-fill.strength-strong {
-  background: #10b981;
-}
-
-.strength-text {
-  font-weight: 600;
-  min-width: 30px;
-}
-
-.strength-text.strength-weak {
-  color: var(--color-error);
-}
-
-.strength-text.strength-medium {
-  color: #f59e0b;
-}
-
-.strength-text.strength-strong {
-  color: #10b981;
-}
-
-.strength-suggestions {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-1);
-}
-
-.suggestions-label {
-  color: var(--color-gray-600);
-  font-weight: 500;
-}
-
-.suggestions-list {
-  margin: 0;
-  padding-left: var(--spacing-4);
-  list-style: none;
-}
-
-.suggestion-item {
-  color: var(--color-gray-500);
-  position: relative;
-  margin-bottom: var(--spacing-1);
-}
-
-.suggestion-item::before {
-  content: '•';
-  color: var(--color-primary);
-  font-weight: bold;
-  position: absolute;
-  left: -var(--spacing-4);
-}
-
-.form-options {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin: var(--spacing-2) 0;
-}
-
-.checkbox {
-  width: 16px;
-  height: 16px;
-  accent-color: var(--color-primary);
-}
-
-.forgot-password {
-  font-size: var(--font-size-sm);
-  color: var(--color-primary);
-  text-decoration: none;
-  transition: color var(--transition-normal);
-}
-
-.forgot-password:hover {
-  color: var(--color-primary-dark);
-}
-
-.login-footer {
-  text-align: center;
-  margin-top: var(--spacing-6);
-  padding-top: var(--spacing-6);
-  border-top: 1px solid var(--color-gray-200);
-}
-
-.signup-text {
-  color: var(--color-gray-500);
-  font-size: var(--font-size-sm);
-  margin: 0;
-}
-
-.signup-link {
-  color: var(--color-primary);
-  text-decoration: none;
-  font-weight: 600;
-  transition: color var(--transition-normal);
-}
-
-.signup-link:hover {
-  color: var(--color-primary-dark);
-}
+.password-strength {  margin-top: var(--spacing-2);  padding: var(--spacing-3);  background: rgba(59, 130, 246, 0.05);  border: 1px solid rgba(59, 130, 246, 0.2);  border-radius: var(--radius-md);  font-size: var(--font-size-xs); }
+.strength-indicator { display: flex; align-items: center; gap: var(--spacing-2); margin-bottom: var(--spacing-2); }
+.strength-label { color: var(--color-gray-600); font-weight: 500; }
+.strength-bar { flex: 1; height: 4px; background: var(--color-gray-200); border-radius: 2px; overflow: hidden; }
+.strength-fill { height: 100%; transition: all var(--transition-normal); border-radius: 2px; }
+.strength-fill.strength-weak { background: var(--color-error); }
+.strength-fill.strength-medium { background: #f59e0b; }
+.strength-fill.strength-strong { background: #10b981; }
+.strength-text { font-weight: 600; min-width: 30px; }
+.strength-text.strength-weak { color: var(--color-error); }
+.strength-text.strength-medium { color: #f59e0b; }
+.strength-text.strength-strong { color: #10b981; }
+.strength-suggestions { display: flex; flex-direction: column; gap: var(--spacing-1); }
+.suggestions-label { color: var(--color-gray-600); font-weight: 500; }
+.suggestions-list { margin: 0; padding-left: var(--spacing-4); list-style: none; }
+.suggestion-item { color: var(--color-gray-500); position: relative; margin-bottom: var(--spacing-1); }
+.suggestion-item::before { content: '•'; color: var(--color-primary); font-weight: bold; position: absolute; left: -var(--spacing-4); }
+.form-options { display: flex; justify-content: space-between; align-items: center; margin: var(--spacing-2) 0; }
+.checkbox { width: 16px; height: 16px; accent-color: var(--color-primary); }
+.forgot-password { font-size: var(--font-size-sm); color: var(--color-primary); text-decoration: none; transition: color var(--transition-normal); }
+.forgot-password:hover { color: var(--color-primary-dark); }
+.login-footer { text-align: center; margin-top: var(--spacing-6); padding-top: var(--spacing-6); border-top: 1px solid var(--color-gray-200); }
+.signup-text { color: var(--color-gray-500); font-size: var(--font-size-sm); margin: 0; }
+.signup-link { color: var(--color-primary); text-decoration: none; font-weight: 600; transition: color var(--transition-normal); }
+.signup-link:hover { color: var(--color-primary-dark); }
 </style>
+

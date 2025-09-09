@@ -38,6 +38,8 @@ export default defineConfig({
     alias: {
       '@': resolve(__dirname, 'src'),
       '@components': resolve(__dirname, 'src/components'),
+      '@shared': resolve(__dirname, 'src/shared'),
+      '@features': resolve(__dirname, 'src/features'),
       '@views': resolve(__dirname, 'src/views'),
       '@stores': resolve(__dirname, 'src/stores'),
       '@utils': resolve(__dirname, 'src/utils'),
