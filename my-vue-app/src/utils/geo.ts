@@ -28,7 +28,7 @@ function normalizeProvince(name: string): string {
 function normalizeCity(name: string): string {
   if (!name) return ''
   const s = toSimplified(name)
-  return s.replace(/市$/u, '').replace(/区$/u, '')
+  return s.replace(/市$/u, '').replace(/区$/u, '').replace(/县$/u, '')
 }
 
 function readCachedRegion(): DetectedRegion | null {
@@ -61,25 +61,79 @@ async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit, ti
 }
 
 async function reverseGeocode(lat: number, lon: number, timeoutMs = 5000): Promise<DetectedRegion> {
-  // 使用 zh-CN，尽量返回简体中文
-  const url = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh-CN`
-  const res = await fetchWithTimeout(url, undefined, timeoutMs)
-  const data = await res.json()
-  let province = normalizeProvince(data.principalSubdivision || '')
-  let city = normalizeCity(data.city || data.locality || '')
+  // 并行请求 BigDataCloud 与 Nominatim，提高准确度与鲁棒性
+  const bdcUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh-CN`
+  const nomiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=zh-CN`
 
-  // 如果缺失或不准确，使用 Nominatim 作为兜底更精确（基于 OpenStreetMap）
-  if (!province || !city) {
-    try {
-      const nomiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=zh-CN`
-      const r2 = await fetchWithTimeout(nomiUrl, { headers: { 'User-Agent': 'shequ-app/1.0' } }, timeoutMs)
-      const j2 = await r2.json()
-      const addr = j2.address || {}
-      province = province || normalizeProvince(addr.state || addr.region || '')
-      city = city || normalizeCity(addr.city || addr.county || addr.town || addr.village || '')
-    } catch {}
+  const [bdcRes, nomiRes] = await Promise.allSettled([
+    fetchWithTimeout(bdcUrl, undefined, timeoutMs).then(r => r.json()).catch(() => null),
+    fetchWithTimeout(nomiUrl, { headers: { 'User-Agent': 'shequ-app/1.0' } }, timeoutMs).then(r => r.json()).catch(() => null)
+  ])
+
+  const bdc = (bdcRes.status === 'fulfilled' ? bdcRes.value : null) as any
+  const nomi = (nomiRes.status === 'fulfilled' ? nomiRes.value : null) as any
+
+  const bdcProvince = normalizeProvince(bdc?.principalSubdivision || '')
+  const bdcCity = normalizeCity(bdc?.city || bdc?.locality || '')
+
+  const addr = nomi?.address || {}
+  const nomiProvince = normalizeProvince(addr.state || addr.region || '')
+  const nomiCityPrimary = normalizeCity(
+    addr.city || addr.town || addr.municipality || addr.county || addr.village || ''
+  )
+  const nomiCounty = normalizeCity(addr.county || '')
+
+  // 省份优先取 Nominatim（更精细），否则取 BDC
+  let province = nomiProvince || bdcProvince
+  // 城市优先取 Nominatim 的 city/town/municipality；若无则回退 BDC
+  let city = nomiCityPrimary || bdcCity
+
+  // 针对山东威海下辖县级市的纠偏：乳山/荣成/文登 -> 威海
+  const inferred = inferPrefectureFromCounty(province, nomiCounty)
+  if (inferred) {
+    city = inferred
   }
+
+  // 若误判为青岛但经度明显在威海以东，则纠偏为威海
+  const correctedByGeo = fixQingdaoWeihaiByCoords(province, city, lon)
+  if (correctedByGeo) {
+    city = correctedByGeo
+  }
+
   return { province, city, source: 'geolocation' }
+}
+
+function inferPrefectureFromCounty(province: string, county: string): string {
+  if (!province || !county) return ''
+  // 目前仅在实际反馈异常的区域做精确纠偏，可按需扩展
+  if (province === '山东') {
+    const weihaiCounties = new Set(['乳山', '荣成', '文登'])
+    if (weihaiCounties.has(county)) return '威海'
+  }
+  return ''
+}
+
+function fixQingdaoWeihaiByCoords(province: string, city: string, lon: number): string {
+  if (province !== '山东') return ''
+  // 经验规则：青岛经度一般 < 121；若判为青岛但经度 >= 121，则更可能是威海方向
+  if (city === '青岛' && lon >= 121) return '威海'
+  return ''
+}
+
+function getUrlLatLonOverride(): { lat: number; lon: number } | null {
+  try {
+    const params = new URLSearchParams(window.location.search)
+    const latStr = params.get('lat')
+    const lonStr = params.get('lon') || params.get('lng')
+    if (!latStr || !lonStr) return null
+    const lat = Number(latStr)
+    const lon = Number(lonStr)
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null
+    if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return null
+    return { lat, lon }
+  } catch {
+    return null
+  }
 }
 
 async function geolocate(): Promise<GeolocationPosition> {
@@ -146,8 +200,10 @@ export async function detectCurrentRegion(force = false, options?: DetectOptions
 
   async function detectGeo(): Promise<DetectedRegion | null> {
     try {
-      const pos = await geolocate()
-      const { latitude, longitude } = pos.coords
+      // URL 覆盖优先（便于调试/纠错）
+      const override = getUrlLatLonOverride()
+      const coords = override ? { latitude: override.lat, longitude: override.lon } : (await geolocate()).coords
+      const { latitude, longitude } = coords
       if (provider === 'amap' || provider === 'auto') {
         const a = await amapReverseGeocode(latitude, longitude, timeoutMs)
         if (a) return a
