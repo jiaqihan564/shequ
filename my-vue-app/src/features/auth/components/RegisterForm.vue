@@ -96,8 +96,8 @@
         <!-- 密码强度指示器 -->
         <div v-if="formData.password" class="password-strength">
           <div class="strength-bar">
-            <div 
-              class="strength-fill" 
+            <div
+              class="strength-fill"
               :class="passwordStrength.strength"
               :style="{ width: getStrengthWidth() }"
             ></div>
@@ -182,7 +182,7 @@
         @click="handleButtonClick"
       >
         <LoadingSpinner v-if="isSubmitting" class="button-spinner" />
-        {{ isSubmitting ? '注册中...' : '创建账户' }}
+        {{ isSubmitting ? '注册中…' : '创建账户' }}
       </button>
     </form>
 
@@ -194,7 +194,7 @@
         </p>
       </div>
     </div>
-    
+
     <!-- 背景装饰 -->
     <div class="background-decoration">
       <div class="decoration-circle circle-1"></div>
@@ -207,8 +207,8 @@
 <script setup lang="ts">
 import { ref, reactive, computed, watch } from 'vue'
 import { register } from '@/utils/api'
-import { 
-  validateField as validateSingleField, 
+import {
+  validateField as validateSingleField,
   checkPasswordStrength,
   validateConfirmPassword,
   VALIDATION_RULES
@@ -272,7 +272,7 @@ const getStrengthWidth = () => {
 }
 
 const getStrengthText = () => {
-  const textMap = { weak: '弱', medium: '中等', strong: '强' }
+  const textMap: Record<string, string> = { weak: '弱', medium: '中等', strong: '强' }
   return textMap[passwordStrength.value.strength]
 }
 

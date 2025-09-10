@@ -25,7 +25,7 @@ const fallbackLabel = computed(() => `头像预览占位：${initialChar.value}`
 </script>
 
 <style scoped>
-.preview-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: grid; place-items: center; z-index: 100; }
+.preview-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: grid; place-items: center; z-index: 1000; }
 .preview-wrapper { position: relative; max-width: 90vw; max-height: 90vh; }
 .preview-img { width: 100%; height: auto; max-height: 90vh; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
 .preview-fallback { width: min(60vw, 360px); height: min(60vw, 360px); display: grid; place-items: center; background: #e5e7eb; color: #374151; border-radius: 50%; font-size: 96px; font-weight: 800; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }

@@ -1,11 +1,13 @@
 <script setup lang="ts">
+import ToastContainer from '@/shared/ui/ToastContainer.vue'
 </script>
 
 <template>
   <div id="app">
     <router-view />
+    <ToastContainer position="top-right" />
   </div>
-  
+
 </template>
 
 <style>
@@ -23,7 +25,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-#app {
+html, body, #app {
   min-height: 100vh;
 }
 </style>

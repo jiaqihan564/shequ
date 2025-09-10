@@ -65,6 +65,13 @@
   --transition-fast: 150ms ease-in-out;
   --transition-normal: 300ms ease-in-out;
   --transition-slow: 500ms ease-in-out;
+
+  /* 应用层级与布局变量 */
+  --app-header-height: 64px;
+  --z-base: 0;
+  --z-dropdown: 1000;
+  --z-toast: 1200;
+  --z-modal: 1300;
 }
 
 /* 重置样式 */

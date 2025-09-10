@@ -101,7 +101,7 @@
           :aria-label="isLoading ? '正在登录' : '登录'"
         >
           <LoadingSpinner v-if="isLoading" />
-          {{ isLoading ? '登录中...' : '登录' }}
+          {{ isLoading ? '登录中…' : '登录' }}
         </button>
       </form>
 
@@ -228,7 +228,7 @@ const clearErrors = () => {
 }
 
 const handleForgotPassword = () => {
-  emit('error', { message: '忘记密码功能正在开发中...' })
+  emit('error', { message: '忘记密码功能正在开发中…' })
 }
 
 const handleSignup = () => {
@@ -236,7 +236,7 @@ const handleSignup = () => {
 }
 
 const handleLogin = async () => {
-  // 防重复提交：如正在请求中则直接返回
+  // 防止重复提交：如正在请求中则直接返回
   if (isLoading.value || props.locked) return
   validateUsername()
   validatePassword()

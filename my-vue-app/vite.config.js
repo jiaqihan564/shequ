@@ -80,13 +80,12 @@ export default defineConfig({
         assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
         manualChunks: {
           vendor: ['vue', 'vue-router', 'pinia'],
-          utils: ['axios', '@vueuse/core'],
-          ui: ['src/components/ui']
+          utils: ['axios', '@vueuse/core']
         }
       }
     },
     chunkSizeWarningLimit: 1000,
-    // 启用CSS代码分割
+    // 启用CSS代码拆分
     cssCodeSplit: true,
     // 启用资源内联阈值
     assetsInlineLimit: 4096

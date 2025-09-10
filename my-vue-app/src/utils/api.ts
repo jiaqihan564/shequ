@@ -127,7 +127,12 @@ function setAuthTokens(token: string, refreshToken: string, scope: 'local' | 'se
 
 function setUserInfo(user: User, scope: 'local' | 'session' = 'local'): void {
   const store = scope === 'local' ? localStorage : sessionStorage
-  store.setItem('user_info', JSON.stringify(user))
+  const withVersion = { ...user } as any
+  if (!withVersion.avatar_version) {
+    // 初次写入或无版本时初始化
+    withVersion.avatar_version = Date.now()
+  }
+  store.setItem('user_info', JSON.stringify(withVersion))
 }
 
 function clearAuthTokens(): void {
@@ -149,6 +154,13 @@ function createAppError(code: string, message: string, details?: any): AppError 
     details,
     stack: new Error().stack
   }
+}
+
+// 全局事件：用户信息更新
+function emitUserUpdated(user: User): void {
+  try {
+    window.dispatchEvent(new CustomEvent('user:updated', { detail: user }))
+  } catch {}
 }
 
 // 清理过期缓存
@@ -185,6 +197,7 @@ export async function login(loginData: LoginForm): Promise<LoginResponse> {
     const scope = loginData.rememberMe ? 'local' : 'session'
     setAuthTokens(token, '', scope) // 新API可能没有refreshToken
     setUserInfo(normalizedUser, scope)
+    emitUserUpdated(normalizedUser)
     
     return { ...response.data.data, user: normalizedUser }
   }
@@ -206,6 +219,7 @@ export async function register(registerData: RegisterForm): Promise<RegisterResp
       // 存储认证信息
       setAuthTokens(token, '') // 新API可能没有refreshToken
       localStorage.setItem('user_info', JSON.stringify(normalizedUser))
+      emitUserUpdated(normalizedUser)
       
       return { ...response.data.data, user: normalizedUser }
     }
@@ -261,9 +275,11 @@ export async function getCurrentUser(): Promise<User> {
   
   if (response.data.code === 200 && response.data.data) {
     const user = response.data.data
-    const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url }
+    const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url } as any
+    if (!normalizedUser.avatar_version) normalizedUser.avatar_version = Date.now()
     const store = getActiveStorage()
     store.setItem('user_info', JSON.stringify(normalizedUser))
+    emitUserUpdated(normalizedUser)
     return normalizedUser
   }
   
@@ -278,9 +294,11 @@ export async function updateUser(userData: Partial<User>): Promise<User> {
   
   if (response.data.code === 200 && response.data.data) {
     const user = response.data.data
-    const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url }
+    const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url } as any
+    if (!normalizedUser.avatar_version) normalizedUser.avatar_version = Date.now()
     const store = getActiveStorage()
     store.setItem('user_info', JSON.stringify(normalizedUser))
+    emitUserUpdated(normalizedUser)
     return normalizedUser
   }
   
@@ -323,6 +341,66 @@ export async function resetPassword(data: {
   
   if (response.data.code !== 200) {
     throw createAppError('RESET_PASSWORD_FAILED', response.data.message || '重置密码失败')
+  }
+}
+
+/**
+ * 上传图片（通用）
+ * 返回图片的可访问 URL
+ */
+export async function uploadImage(file: File): Promise<string> {
+  const form = new FormData()
+  form.append('file', file)
+  // 优先尝试 /upload，其次 /files/upload
+  try {
+    const res = await api.post<ApiResponse<{ url?: string; path?: string }>>('/upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    if (res.data.code === 200 && res.data.data) {
+      return res.data.data.url || (res.data.data.path as string)
+    }
+    throw new Error(res.data.message || '上传失败')
+  } catch (e) {
+    const fallback = await api.post<ApiResponse<{ url?: string; path?: string }>>('/files/upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    if (fallback.data.code === 200 && fallback.data.data) {
+      return fallback.data.data.url || (fallback.data.data.path as string)
+    }
+    throw createAppError('UPLOAD_FAILED', fallback.data.message || '上传失败')
+  }
+}
+
+/**
+ * 更新用户头像
+ */
+export async function updateUserAvatar(avatarUrl: string): Promise<User> {
+  try {
+    const res = await api.put<ApiResponse<User>>('/auth/me/avatar', { avatar: avatarUrl })
+    if (res.data.code === 200 && res.data.data) {
+      const user = res.data.data
+      const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url } as any
+      // 头像更新成功，刷新版本号以破缓存
+      normalizedUser.avatar_version = Date.now()
+      const store = getActiveStorage()
+      store.setItem('user_info', JSON.stringify(normalizedUser))
+      emitUserUpdated(normalizedUser)
+      return normalizedUser
+    }
+    throw new Error(res.data.message || '更新头像失败')
+  } catch (e) {
+    // 兼容没有独立头像接口的后端
+    const res = await api.put<ApiResponse<User>>('/auth/me', { avatar: avatarUrl })
+    if (res.data.code === 200 && res.data.data) {
+      const user = res.data.data
+      const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url } as any
+      normalizedUser.avatar_version = Date.now()
+      const store = getActiveStorage()
+      store.setItem('user_info', JSON.stringify(normalizedUser))
+      emitUserUpdated(normalizedUser)
+      return normalizedUser
+    }
+    throw createAppError('UPDATE_AVATAR_FAILED', res.data.message || '更新头像失败')
   }
 }
 

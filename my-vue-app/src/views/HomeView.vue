@@ -1,19 +1,30 @@
 <template>
-  <div class="page page-home">
-    <section class="welcome">
-      <h2 class="title">欢迎来到社区</h2>
-      <p class="subtitle">这里可以浏览帖子、关注话题、与伙伴交流</p>
+  <div class="page page-home container">
+    <section class="welcome hero">
+      <div class="hero-body">
+        <div class="hero-text">
+          <h2 class="title gradient-text">欢迎来到社区</h2>
+          <p class="subtitle">浏览精彩内容 · 关注热门话题 · 与伙伴高效交流</p>
+        </div>
+        <div class="hero-actions">
+          <button class="btn primary" @click="$emit('create-post')">发布帖子</button>
+          <button class="btn ghost" @click="$emit('explore-topics')">探索话题</button>
+        </div>
+      </div>
     </section>
 
-    <section class="quick-actions">
-      <button class="btn" @click="$emit('create-post')">发布帖子</button>
-      <button class="btn outline" @click="$emit('explore-topics')">探索话题</button>
-    </section>
-
-    <section class="stats" v-if="user?.role">
-      <div class="stat">
-        <span class="label">角色</span>
-        <span class="value">{{ user.role }}</span>
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">当前身份</div>
+        <div class="stat-value">{{ user?.role || '用户' }}</div>
+      </div>
+      <div class="stat-card soft">
+        <div class="stat-label">活跃社区</div>
+        <div class="stat-value">优质内容等你发现</div>
+      </div>
+      <div class="stat-card soft">
+        <div class="stat-label">快捷操作</div>
+        <div class="stat-value">发布、探索、互动</div>
       </div>
     </section>
   </div>
@@ -35,17 +46,30 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.page-home { padding: 24px; }
-.welcome { margin-bottom: 16px; }
-.title { font-size: 20px; font-weight: 700; }
-.subtitle { color: #6b7280; margin-top: 4px; }
-.quick-actions { display: flex; gap: 12px; margin: 16px 0; }
-.btn { padding: 8px 14px; background: var(--color-primary, #3b82f6); color: #fff; border: none; border-radius: 6px; cursor: pointer; }
-.btn.outline { background: transparent; color: var(--color-primary, #3b82f6); border: 1px solid var(--color-primary, #3b82f6); }
-.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; }
-.stat { background: #f9fafb; border: 1px solid #eef2f7; border-radius: 8px; padding: 12px; }
-.label { color: #6b7280; font-size: 12px; }
-.value { display: block; font-weight: 600; margin-top: 6px; }
+.page-home { padding: 24px; display: grid; gap: 16px; }
+.hero { background: linear-gradient(135deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.12)); border: 1px solid rgba(102,126,234,0.2); border-radius: 16px; box-shadow: 0 8px 20px rgba(17,24,39,0.04); }
+.hero-body { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 18px; }
+.hero-text { display: grid; gap: 6px; }
+.title { font-size: 22px; font-weight: 800; color: #111827; letter-spacing: 0.2px; }
+.gradient-text { background: linear-gradient(90deg, var(--color-primary), var(--color-primary-dark)); -webkit-background-clip: text; background-clip: text; color: transparent; }
+.subtitle { color: #6b7280; margin-top: 2px; }
+.hero-actions { display: flex; gap: 10px; }
+.btn { padding: 10px 16px; border-radius: 10px; font-weight: 600; transition: all var(--transition-normal, 300ms ease-in-out); }
+.btn.primary { background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark)); color: #fff; box-shadow: 0 10px 20px rgba(102,126,234,0.25); }
+.btn.primary:hover { transform: translateY(-1px); box-shadow: 0 14px 24px rgba(102,126,234,0.3); }
+.btn.ghost { background: #fff; color: var(--color-primary); border: 1px solid #e5e7eb; }
+.btn.ghost:hover { background: #f9fafb; }
+
+.stats-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.stat-card { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; box-shadow: 0 4px 12px rgba(17,24,39,0.04); }
+.stat-card.soft { background: #f9fafb; border-style: dashed; }
+.stat-label { font-size: 12px; color: #6b7280; }
+.stat-value { margin-top: 6px; font-weight: 700; color: #111827; }
+
+@media (max-width: 768px) {
+  .hero-body { flex-direction: column; align-items: flex-start; }
+  .stats-grid { grid-template-columns: 1fr; }
+}
 
 </style>
 
