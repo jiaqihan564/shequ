@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 const LoginView = () => import('@/views/auth/LoginView.vue')
 const RegisterView = () => import('@/views/auth/RegisterView.vue')
 const HomeView = () => import('@/views/HomeView.vue')
+const ProfileView = () => import('@/views/ProfileView.vue')
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/home' },
@@ -14,7 +15,8 @@ const routes: RouteRecordRaw[] = [
     component: AppLayout,
     meta: { requiresAuth: true },
     children: [
-      { path: 'home', name: 'home', component: HomeView, meta: { title: '首页', requiresAuth: true } }
+      { path: 'home', name: 'home', component: HomeView, meta: { title: '首页', requiresAuth: true } },
+      { path: 'profile', name: 'profile', component: ProfileView, meta: { title: '个人资料', requiresAuth: true } }
     ]
   }
 ]

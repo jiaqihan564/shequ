@@ -4,6 +4,7 @@
       <slot name="sidebar">
         <nav class="nav">
           <RouterLink to="/home" class="nav-item" active-class="active">首页</RouterLink>
+          <RouterLink to="/profile" class="nav-item" active-class="active">个人资料</RouterLink>
         </nav>
       </slot>
     </aside>

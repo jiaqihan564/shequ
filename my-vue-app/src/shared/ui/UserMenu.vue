@@ -11,6 +11,7 @@
       </div>
     </div>
     <div class="menu-list">
+      <RouterLink to="/profile" class="menu-item" @click="$emit('close')">个人资料</RouterLink>
       <button class="menu-item danger" @click="$emit('logout')">退出登录</button>
     </div>
     <ImagePreview :show="previewOpen" :src="user?.avatar || null" :initial="avatarInitial" @close="previewOpen = false" />
@@ -20,6 +21,7 @@
 
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { RouterLink } from 'vue-router'
 import type { User } from '@/types'
 import ImagePreview from '@/shared/ui/ImagePreview.vue'
 

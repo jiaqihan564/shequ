@@ -4,7 +4,8 @@ import type { ValidationRule, ValidationRules } from '@/types'
 export const REGEX_PATTERNS = {
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   username: /^[a-zA-Z0-9_]{3,20}$/,
-  password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d@$!%*?&]{8,}$/,
+  // 密码需为 6-50 位，且至少包含一个字母与一个数字；不强制特殊字符与大小写
+  password: /^(?=.*[A-Za-z])(?=.*\d).{6,50}$/,
   phone: /^1[3-9]\d{9}$/,
   url: /^https?:\/\/.+/,
   chinese: /^[\u4e00-\u9fa5]+$/,
@@ -26,7 +27,8 @@ export const VALIDATION_RULES: ValidationRules = {
   password: [
     { required: true, message: '请输入密码' },
     { minLength: 6, message: '密码至少6个字符' },
-    { maxLength: 128, message: '密码不能超过128个字符' }
+    { maxLength: 50, message: '密码不能超过50个字符' },
+    { pattern: REGEX_PATTERNS.password, message: '密码需为6-50个字符，且至少包含字母和数字' }
   ],
   confirmPassword: [
     { required: true, message: '请确认密码' }

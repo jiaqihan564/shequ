@@ -126,6 +126,8 @@ import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 
+const props = withDefaults(defineProps<{ locked?: boolean }>(), { locked: false })
+
 const emit = defineEmits<{
   success: [data: any]
   error: [error: any]
@@ -158,7 +160,7 @@ const hasErrors = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  return !isLoading.value && !hasErrors.value && form.username.trim() && form.password.trim()
+  return !isLoading.value && !props.locked && !hasErrors.value && form.username.trim() && form.password.trim()
 })
 
 const debouncedValidateUsername = debounce(() => {
@@ -234,6 +236,8 @@ const handleSignup = () => {
 }
 
 const handleLogin = async () => {
+  // 防重复提交：如正在请求中则直接返回
+  if (isLoading.value || props.locked) return
   validateUsername()
   validatePassword()
   

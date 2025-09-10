@@ -18,11 +18,14 @@ export type UserRole = 'user' | 'admin' | 'moderator'
 export type UserStatus = 'active' | 'inactive' | 'banned' | 'pending'
 
 export interface UserProfile {
+  nickname?: string
   firstName?: string
   lastName?: string
   bio?: string
   website?: string
   location?: string
+  province?: string
+  city?: string
   birthDate?: string
   socialLinks?: Record<string, string>
 }
