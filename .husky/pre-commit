@@ -1,9 +1,3 @@
-#!/usr/bin/env sh
-
-# ??? husky.sh ??
-if [ -f "/_/husky.sh" ]; then
-  . "/_/husky.sh"
-fi
-
-# ??????? lint-staged
-npx --yes lint-staged --cwd my-vue-app
+#!/bin/sh
+cd "my-vue-app" || exit 1
+npx --yes lint-staged
