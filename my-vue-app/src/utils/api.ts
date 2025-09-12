@@ -307,6 +307,22 @@ export async function updateUser(userData: Partial<User>): Promise<User> {
   if (response.data.code === 200 && response.data.data) {
     const user = response.data.data
     const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url } as any
+    // 若后端未回传头像，保留本地已存的头像与版本，避免被清空
+    try {
+      const store = getActiveStorage()
+      const raw = store.getItem('user_info')
+      if (raw) {
+        const prev = JSON.parse(raw)
+        if (!normalizedUser.avatar && prev?.avatar) {
+          normalizedUser.avatar = prev.avatar
+        }
+        if (!normalizedUser.avatar_version && prev?.avatar_version) {
+          normalizedUser.avatar_version = prev.avatar_version
+        }
+      }
+    } catch {
+      /* no-op */
+    }
     if (!normalizedUser.avatar_version) normalizedUser.avatar_version = Date.now()
     const store = getActiveStorage()
     store.setItem('user_info', JSON.stringify(normalizedUser))

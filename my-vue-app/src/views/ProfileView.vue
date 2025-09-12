@@ -69,7 +69,8 @@
                 v-model.trim="form.username"
                 type="text"
                 placeholder="请输入用户名"
-                :disabled="!isEditing || saving"
+                disabled
+                title="用户名由系统管理，暂不支持在线修改。如需变更请联系管理员"
               />
             </div>
             <div class="field">
@@ -79,7 +80,8 @@
                 v-model.trim="form.email"
                 type="email"
                 placeholder="name@example.com"
-                :disabled="!isEditing || saving"
+                disabled
+                title="邮箱用于登录与通知，暂不支持在此修改。如需变更请联系管理员"
               />
             </div>
             <div class="field">
@@ -450,8 +452,7 @@ function buildPayload(): Partial<User> {
   const payload: Partial<User> = {}
   if (!initialUser.value) return payload
   const u = initialUser.value
-  if (form.username !== u.username) payload.username = form.username
-  if (form.email !== u.email) payload.email = form.email
+  // 用户名与邮箱不允许在此页面修改
   // 头像地址由独立入口维护，这里不更新
 
   const profilePayload: any = {}
@@ -518,6 +519,7 @@ async function onSubmit() {
     fillForm(updated)
     showAvatar.value = true
     showToast('success', '已保存更改')
+    isEditing.value = false
   } catch (error: any) {
     showToast('error', error?.message || '保存失败')
   } finally {
