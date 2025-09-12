@@ -1,3 +1,0 @@
-#!/bin/sh
-cd "my-vue-app" || exit 1
-npx --yes lint-staged
