@@ -1,0 +1,9 @@
+dist/
+node_modules/
+*.d.ts
+*.min.*
+*.map
+*.log
+coverage/
+.vite/
+
