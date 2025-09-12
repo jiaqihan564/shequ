@@ -164,6 +164,55 @@ function createAppError(code: string, message: string, details?: any): AppError 
   }
 }
 
+// 统一规范化与深合并后端返回的用户数据
+function normalizeUserData(user: any): User {
+  const store = getActiveStorage()
+  let prev: any = null
+  try {
+    const raw = store.getItem('user_info')
+    prev = raw ? JSON.parse(raw) : null
+  } catch {
+    prev = null
+  }
+
+  const merged: any = {
+    ...(prev || {}),
+    ...(user || {})
+  }
+
+  const mergedProfile: any = {
+    ...((prev && prev.profile) || {}),
+    ...((user && user.profile) || {})
+  }
+
+  // 将根级 nickname/bio 映射进 profile（后端新返回格式）
+  if (user && Object.prototype.hasOwnProperty.call(user, 'nickname') && mergedProfile.nickname === undefined) {
+    mergedProfile.nickname = user.nickname
+  }
+  if (user && Object.prototype.hasOwnProperty.call(user, 'bio') && mergedProfile.bio === undefined) {
+    mergedProfile.bio = user.bio
+  }
+
+  // 关键资料字段空值不覆盖（地址相关前端自治）
+  const preferPrev = (nextVal: any, prevVal: any) =>
+    nextVal === undefined || nextVal === null || nextVal === '' ? (prevVal ?? '') : nextVal
+  mergedProfile.province = preferPrev(mergedProfile.province, prev?.profile?.province)
+  mergedProfile.city = preferPrev(mergedProfile.city, prev?.profile?.city)
+  mergedProfile.location = preferPrev(mergedProfile.location, prev?.profile?.location)
+
+  merged.profile = mergedProfile
+
+  // 头像归一化与保留策略
+  const normalized: any = {
+    ...merged,
+    avatar: merged.avatar || (merged as any).avatar_url
+  }
+  if (!normalized.avatar) normalized.avatar = prev?.avatar || ''
+  if (!normalized.avatar_version) normalized.avatar_version = prev?.avatar_version || Date.now()
+
+  return normalized as User
+}
+
 // 全局事件：用户信息更新
 function emitUserUpdated(user: User): void {
   try {
@@ -201,8 +250,8 @@ export async function login(loginData: LoginForm): Promise<LoginResponse> {
 
   if (response.data.code === 200 && response.data.data) {
     const { token, user } = response.data.data
-    // 头像字段归一化：后端可能返回 avatar_url
-    const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url }
+    // 统一规范化用户数据（含 nickname/bio 映射到 profile）
+    const normalizedUser = normalizeUserData(user)
 
     // 存储认证信息
     const scope = loginData.rememberMe ? 'local' : 'session'
@@ -225,7 +274,7 @@ export async function register(registerData: RegisterForm): Promise<RegisterResp
 
     if (response.data.code === 201 && response.data.data) {
       const { token, user } = response.data.data
-      const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url }
+      const normalizedUser = normalizeUserData(user)
 
       // 存储认证信息
       setAuthTokens(token, '') // 新API可能没有refreshToken
@@ -287,8 +336,7 @@ export async function getCurrentUser(): Promise<User> {
 
   if (response.data.code === 200 && response.data.data) {
     const user = response.data.data
-    const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url } as any
-    if (!normalizedUser.avatar_version) normalizedUser.avatar_version = Date.now()
+    const normalizedUser = normalizeUserData(user) as any
     const store = getActiveStorage()
     store.setItem('user_info', JSON.stringify(normalizedUser))
     emitUserUpdated(normalizedUser)
@@ -306,24 +354,7 @@ export async function updateUser(userData: Partial<User>): Promise<User> {
 
   if (response.data.code === 200 && response.data.data) {
     const user = response.data.data
-    const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url } as any
-    // 若后端未回传头像，保留本地已存的头像与版本，避免被清空
-    try {
-      const store = getActiveStorage()
-      const raw = store.getItem('user_info')
-      if (raw) {
-        const prev = JSON.parse(raw)
-        if (!normalizedUser.avatar && prev?.avatar) {
-          normalizedUser.avatar = prev.avatar
-        }
-        if (!normalizedUser.avatar_version && prev?.avatar_version) {
-          normalizedUser.avatar_version = prev.avatar_version
-        }
-      }
-    } catch {
-      /* no-op */
-    }
-    if (!normalizedUser.avatar_version) normalizedUser.avatar_version = Date.now()
+    const normalizedUser: any = normalizeUserData(user)
     const store = getActiveStorage()
     store.setItem('user_info', JSON.stringify(normalizedUser))
     emitUserUpdated(normalizedUser)
@@ -409,7 +440,7 @@ export async function updateUserAvatar(avatarUrl: string): Promise<User> {
     const res = await api.put<ApiResponse<User>>('/auth/me/avatar', { avatar: avatarUrl })
     if (res.data.code === 200 && res.data.data) {
       const user = res.data.data
-      const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url } as any
+      const normalizedUser: any = normalizeUserData(user)
       // 头像更新成功，刷新版本号以破缓存
       normalizedUser.avatar_version = Date.now()
       const store = getActiveStorage()
@@ -424,7 +455,7 @@ export async function updateUserAvatar(avatarUrl: string): Promise<User> {
     const res = await api.put<ApiResponse<User>>('/auth/me', { avatar: avatarUrl })
     if (res.data.code === 200 && res.data.data) {
       const user = res.data.data
-      const normalizedUser = { ...user, avatar: user.avatar || (user as any).avatar_url } as any
+      const normalizedUser: any = normalizeUserData(user)
       normalizedUser.avatar_version = Date.now()
       const store = getActiveStorage()
       store.setItem('user_info', JSON.stringify(normalizedUser))

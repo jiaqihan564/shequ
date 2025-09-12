@@ -216,7 +216,6 @@ const isEditing = ref(false)
 const uploading = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
 const { municipalities } = useRegions()
-const isMunicipality = computed(() => municipalities.value.has(form.profile.province || ''))
 const addressValue = ref('')
 const addressDisplay = computed(() => {
   const prov = form.profile.province || ''
@@ -454,26 +453,13 @@ function buildPayload(): Partial<User> {
   const u = initialUser.value
   // 用户名与邮箱不允许在此页面修改
   // 头像地址由独立入口维护，这里不更新
-
+  // 仅允许修改昵称与个人简介
   const profilePayload: any = {}
   const p = u.profile || {}
   if ((form.profile?.nickname || '') !== (p.nickname || ''))
     profilePayload.nickname = form.profile?.nickname || ''
-  if ((form.profile?.bio || '') !== (p.bio || '')) profilePayload.bio = form.profile?.bio || ''
-  if ((form.profile?.province || '') !== (p.province || ''))
-    profilePayload.province = form.profile?.province || ''
-  if (!isMunicipality.value) {
-    if ((form.profile?.city || '') !== (p.city || ''))
-      profilePayload.city = form.profile?.city || ''
-  } else if (p.city) {
-    // 直辖市下清空 city
-    profilePayload.city = ''
-  }
-  // 兼容旧字段：location （直辖市为省名，其他为 省 市）
-  const newLocation = isMunicipality.value
-    ? form.profile?.province || ''
-    : [form.profile?.province || '', form.profile?.city || ''].filter(Boolean).join(' ')
-  if ((newLocation || '') !== (p.location || '')) profilePayload.location = newLocation
+  if ((form.profile?.bio || '') !== (p.bio || ''))
+    profilePayload.bio = form.profile?.bio || ''
   if (Object.keys(profilePayload).length > 0) payload.profile = profilePayload
   return payload
 }
@@ -514,9 +500,15 @@ async function onSubmit() {
   }
   saving.value = true
   try {
+    // 保留当前地址（与后端无关）
+    const prevProvince = form.profile.province
+    const prevCity = form.profile.city
     const updated = await updateUser(payload)
     initialUser.value = updated
     fillForm(updated)
+    // 恢复地址，避免被返回数据覆盖
+    form.profile.province = prevProvince
+    form.profile.city = prevCity
     showAvatar.value = true
     showToast('success', '已保存更改')
     isEditing.value = false
