@@ -1,5 +1,11 @@
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
-export type ToastPosition = 'top-right' | 'top-left' | 'bottom-right' | 'bottom-left' | 'top-center' | 'bottom-center'
+export type ToastPosition =
+  | 'top-right'
+  | 'top-left'
+  | 'bottom-right'
+  | 'bottom-left'
+  | 'top-center'
+  | 'bottom-center'
 
 export interface ToastItem {
   id: string
@@ -78,12 +84,18 @@ export function push(options: ToastOptions) {
 export const toast = {
   push,
   remove,
-  info(message: string, duration = 3000) { return push({ type: 'info', message, duration }) },
-  success(message: string, duration = 3000) { return push({ type: 'success', message, duration }) },
-  warning(message: string, duration = 3000) { return push({ type: 'warning', message, duration }) },
-  error(message: string, duration = 3000) { return push({ type: 'error', message, duration }) }
+  info(message: string, duration = 3000) {
+    return push({ type: 'info', message, duration })
+  },
+  success(message: string, duration = 3000) {
+    return push({ type: 'success', message, duration })
+  },
+  warning(message: string, duration = 3000) {
+    return push({ type: 'warning', message, duration })
+  },
+  error(message: string, duration = 3000) {
+    return push({ type: 'error', message, duration })
+  }
 }
 
 export default toast
-
-

@@ -217,3 +217,15 @@ export interface SelectOption {
   disabled?: boolean
   icon?: string
 }
+
+// 头像历史类型
+export interface AvatarHistoryItem {
+  key: string
+  url: string
+  size: number
+  last_modified: number
+}
+
+export interface AvatarHistoryList {
+  items: AvatarHistoryItem[]
+}

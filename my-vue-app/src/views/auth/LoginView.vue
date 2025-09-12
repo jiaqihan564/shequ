@@ -1,19 +1,16 @@
 <template>
   <div class="page page-auth">
-    <LoginForm 
-      @success="onSuccess"
-      @error="onError"
-      @switch-to-register="goRegister"
-    />
+    <LoginForm @success="onSuccess" @error="onError" @switch-to-register="goRegister" />
     <!-- 使用全局 ToastContainer 渲染，无需局部组件 -->
   </div>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+
 import LoginForm from '@/features/auth/components/LoginForm.vue'
-import { ensureRegionsLoaded } from '@/utils/regions'
 import { detectCurrentRegion } from '@/utils/geo'
+import { ensureRegionsLoaded } from '@/utils/regions'
 import { toast } from '@/utils/toast'
 
 const router = useRouter()
@@ -38,6 +35,7 @@ function goRegister() {
 </script>
 
 <style scoped>
-.page-auth { min-height: 100vh; }
+.page-auth {
+  min-height: 100vh;
+}
 </style>
-

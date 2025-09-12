@@ -7,7 +7,6 @@ import ToastContainer from '@/shared/ui/ToastContainer.vue'
     <router-view />
     <ToastContainer position="top-right" />
   </div>
-
 </template>
 
 <style>
@@ -18,14 +17,16 @@ import ToastContainer from '@/shared/ui/ToastContainer.vue'
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell',
+    'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-html, body, #app {
+html,
+body,
+#app {
   min-height: 100vh;
 }
 </style>

@@ -5,8 +5,8 @@
         <h1 class="login-title">技术交流社区</h1>
         <p class="login-subtitle">欢迎回来，让我们一起交流技术</p>
       </div>
-      
-      <form @submit.prevent="handleLogin" class="auth-form" novalidate>
+
+      <form class="auth-form" novalidate @submit.prevent="handleLogin">
         <div class="form-group">
           <label for="username" class="form-label">用户名或邮箱</label>
           <div class="input-wrapper">
@@ -15,7 +15,7 @@
               v-model="form.username"
               type="text"
               class="form-input"
-              :class="{ 'error': errors.username }"
+              :class="{ error: errors.username }"
               placeholder="请输入用户名或邮箱"
               autocomplete="username"
               @blur="validateUsername"
@@ -37,7 +37,7 @@
               v-model="form.password"
               :type="showPassword ? 'text' : 'password'"
               class="form-input"
-              :class="{ 'error': errors.password }"
+              :class="{ error: errors.password }"
               placeholder="请输入密码"
               autocomplete="current-password"
               @blur="validatePassword"
@@ -47,34 +47,54 @@
             <button
               type="button"
               class="password-toggle"
-              @click="togglePassword"
               :aria-label="showPassword ? '隐藏密码' : '显示密码'"
+              @click="togglePassword"
             >
               <EyeIcon v-if="!showPassword" />
               <EyeOffIcon v-else />
             </button>
           </div>
           <span v-if="errors.password" class="error-message">{{ errors.password }}</span>
-          
+
           <!-- 密码强度提示 -->
-          <div v-if="passwordStrength.showSuggestions && form.password && !errors.password" class="password-strength">
+          <div
+            v-if="passwordStrength.showSuggestions && form.password && !errors.password"
+            class="password-strength"
+          >
             <div class="strength-indicator">
               <span class="strength-label">密码强度：</span>
               <div class="strength-bar">
-                <div 
-                  class="strength-fill" 
+                <div
+                  class="strength-fill"
                   :class="`strength-${passwordStrength.strength}`"
-                  :style="{ width: passwordStrength.strength === 'weak' ? '33%' : passwordStrength.strength === 'medium' ? '66%' : '100%' }"
+                  :style="{
+                    width:
+                      passwordStrength.strength === 'weak'
+                        ? '33%'
+                        : passwordStrength.strength === 'medium'
+                          ? '66%'
+                          : '100%'
+                  }"
                 ></div>
               </div>
               <span class="strength-text" :class="`strength-${passwordStrength.strength}`">
-                {{ passwordStrength.strength === 'weak' ? '弱' : passwordStrength.strength === 'medium' ? '中等' : '强' }}
+                {{
+                  passwordStrength.strength === 'weak'
+                    ? '弱'
+                    : passwordStrength.strength === 'medium'
+                      ? '中等'
+                      : '强'
+                }}
               </span>
             </div>
             <div class="strength-suggestions">
               <span class="suggestions-label">建议：</span>
               <ul class="suggestions-list">
-                <li v-for="suggestion in passwordStrength.suggestions" :key="suggestion" class="suggestion-item">
+                <li
+                  v-for="suggestion in passwordStrength.suggestions"
+                  :key="suggestion"
+                  class="suggestion-item"
+                >
                   {{ suggestion }}
                 </li>
               </ul>
@@ -84,11 +104,7 @@
 
         <div class="form-options">
           <label class="checkbox-wrapper">
-            <input
-              v-model="form.rememberMe"
-              type="checkbox"
-              class="checkbox"
-            />
+            <input v-model="form.rememberMe" type="checkbox" class="checkbox" />
             <span class="checkbox-label">记住我</span>
           </label>
           <a href="#" class="forgot-password" @click.prevent="handleForgotPassword">忘记密码？</a>
@@ -112,19 +128,24 @@
         </p>
       </div>
     </div>
-    
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
-import type { LoginForm, FormErrors } from '@/types'
-import { validateUsernameOrEmail, validatePassword as validatePasswordUtil, checkPasswordStrength, debounce } from '@/utils/validation'
-import { login } from '@/utils/api'
-import UserIcon from '@/components/icons/UserIcon.vue'
+
 import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
+import UserIcon from '@/components/icons/UserIcon.vue'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
+import type { LoginForm, FormErrors } from '@/types'
+import { login } from '@/utils/api'
+import {
+  validateUsernameOrEmail,
+  validatePassword as validatePasswordUtil,
+  checkPasswordStrength,
+  debounce
+} from '@/utils/validation'
 
 const props = withDefaults(defineProps<{ locked?: boolean }>(), { locked: false })
 
@@ -160,7 +181,13 @@ const hasErrors = computed(() => {
 })
 
 const canSubmit = computed(() => {
-  return !isLoading.value && !props.locked && !hasErrors.value && form.username.trim() && form.password.trim()
+  return (
+    !isLoading.value &&
+    !props.locked &&
+    !hasErrors.value &&
+    form.username.trim() &&
+    form.password.trim()
+  )
 })
 
 const debouncedValidateUsername = debounce(() => {
@@ -184,7 +211,7 @@ const validateUsernameField = () => {
 const validatePasswordField = () => {
   const error = validatePasswordUtil(form.password)
   errors.password = error || ''
-  
+
   if (form.password && !error) {
     const strengthInfo = checkPasswordStrength(form.password)
     passwordStrength.strength = strengthInfo.strength
@@ -194,7 +221,7 @@ const validatePasswordField = () => {
     passwordStrength.showSuggestions = false
     passwordStrength.suggestions = []
   }
-  
+
   updateFormValidity()
 }
 
@@ -240,14 +267,14 @@ const handleLogin = async () => {
   if (isLoading.value || props.locked) return
   validateUsername()
   validatePassword()
-  
+
   if (hasErrors.value) {
     emit('error', { message: '请检查输入信息' })
     return
   }
-  
+
   isLoading.value = true
-  
+
   try {
     const response = await login(form)
     if (form.rememberMe) {
@@ -297,30 +324,122 @@ onMounted(() => {
   margin: 0;
 }
 
-.password-strength {  margin-top: var(--spacing-2);  padding: var(--spacing-3);  background: rgba(59, 130, 246, 0.05);  border: 1px solid rgba(59, 130, 246, 0.2);  border-radius: var(--radius-md);  font-size: var(--font-size-xs); }
-.strength-indicator { display: flex; align-items: center; gap: var(--spacing-2); margin-bottom: var(--spacing-2); }
-.strength-label { color: var(--color-gray-600); font-weight: 500; }
-.strength-bar { flex: 1; height: 4px; background: var(--color-gray-200); border-radius: 2px; overflow: hidden; }
-.strength-fill { height: 100%; transition: all var(--transition-normal); border-radius: 2px; }
-.strength-fill.strength-weak { background: var(--color-error); }
-.strength-fill.strength-medium { background: #f59e0b; }
-.strength-fill.strength-strong { background: #10b981; }
-.strength-text { font-weight: 600; min-width: 30px; }
-.strength-text.strength-weak { color: var(--color-error); }
-.strength-text.strength-medium { color: #f59e0b; }
-.strength-text.strength-strong { color: #10b981; }
-.strength-suggestions { display: flex; flex-direction: column; gap: var(--spacing-1); }
-.suggestions-label { color: var(--color-gray-600); font-weight: 500; }
-.suggestions-list { margin: 0; padding-left: var(--spacing-4); list-style: none; }
-.suggestion-item { color: var(--color-gray-500); position: relative; margin-bottom: var(--spacing-1); }
-.suggestion-item::before { content: '•'; color: var(--color-primary); font-weight: bold; position: absolute; left: -var(--spacing-4); }
-.form-options { display: flex; justify-content: space-between; align-items: center; margin: var(--spacing-2) 0; }
-.checkbox { width: 16px; height: 16px; accent-color: var(--color-primary); }
-.forgot-password { font-size: var(--font-size-sm); color: var(--color-primary); text-decoration: none; transition: color var(--transition-normal); }
-.forgot-password:hover { color: var(--color-primary-dark); }
-.login-footer { text-align: center; margin-top: var(--spacing-6); padding-top: var(--spacing-6); border-top: 1px solid var(--color-gray-200); }
-.signup-text { color: var(--color-gray-500); font-size: var(--font-size-sm); margin: 0; }
-.signup-link { color: var(--color-primary); text-decoration: none; font-weight: 600; transition: color var(--transition-normal); }
-.signup-link:hover { color: var(--color-primary-dark); }
+.password-strength {
+  margin-top: var(--spacing-2);
+  padding: var(--spacing-3);
+  background: rgba(59, 130, 246, 0.05);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xs);
+}
+.strength-indicator {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+}
+.strength-label {
+  color: var(--color-gray-600);
+  font-weight: 500;
+}
+.strength-bar {
+  flex: 1;
+  height: 4px;
+  background: var(--color-gray-200);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.strength-fill {
+  height: 100%;
+  transition: all var(--transition-normal);
+  border-radius: 2px;
+}
+.strength-fill.strength-weak {
+  background: var(--color-error);
+}
+.strength-fill.strength-medium {
+  background: #f59e0b;
+}
+.strength-fill.strength-strong {
+  background: #10b981;
+}
+.strength-text {
+  font-weight: 600;
+  min-width: 30px;
+}
+.strength-text.strength-weak {
+  color: var(--color-error);
+}
+.strength-text.strength-medium {
+  color: #f59e0b;
+}
+.strength-text.strength-strong {
+  color: #10b981;
+}
+.strength-suggestions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+.suggestions-label {
+  color: var(--color-gray-600);
+  font-weight: 500;
+}
+.suggestions-list {
+  margin: 0;
+  padding-left: var(--spacing-4);
+  list-style: none;
+}
+.suggestion-item {
+  color: var(--color-gray-500);
+  position: relative;
+  margin-bottom: var(--spacing-1);
+}
+.suggestion-item::before {
+  content: '•';
+  color: var(--color-primary);
+  font-weight: bold;
+  position: absolute;
+  left: -var(--spacing-4);
+}
+.form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: var(--spacing-2) 0;
+}
+.checkbox {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-primary);
+}
+.forgot-password {
+  font-size: var(--font-size-sm);
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color var(--transition-normal);
+}
+.forgot-password:hover {
+  color: var(--color-primary-dark);
+}
+.login-footer {
+  text-align: center;
+  margin-top: var(--spacing-6);
+  padding-top: var(--spacing-6);
+  border-top: 1px solid var(--color-gray-200);
+}
+.signup-text {
+  color: var(--color-gray-500);
+  font-size: var(--font-size-sm);
+  margin: 0;
+}
+.signup-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: color var(--transition-normal);
+}
+.signup-link:hover {
+  color: var(--color-primary-dark);
+}
 </style>
-

@@ -30,17 +30,15 @@ export const VALIDATION_RULES: ValidationRules = {
     { maxLength: 50, message: '密码不能超过50个字符' },
     { pattern: REGEX_PATTERNS.password, message: '密码需为6-50个字符，且至少包含字母和数字' }
   ],
-  confirmPassword: [
-    { required: true, message: '请确认密码' }
-  ],
+  confirmPassword: [{ required: true, message: '请确认密码' }],
   phone: [
     { required: true, message: '请输入手机号' },
     { pattern: REGEX_PATTERNS.phone, message: '请输入有效的手机号' }
   ],
   agreeToTerms: [
-    { 
-      required: true, 
-      custom: (value: boolean) => !value ? '请同意用户协议和隐私政策' : null,
+    {
+      required: true,
+      custom: (value: boolean) => (!value ? '请同意用户协议和隐私政策' : null),
       message: '请同意用户协议和隐私政策'
     }
   ]
@@ -53,25 +51,25 @@ export function validateUsernameOrEmail(value: string): string | null {
   if (!value.trim()) {
     return '请输入用户名或邮箱'
   }
-  
+
   if (value.length < 3) {
     return '用户名至少3个字符'
   }
-  
+
   if (value.length > 50) {
     return '用户名不能超过50个字符'
   }
-  
+
   // 检查是否为邮箱格式
   if (REGEX_PATTERNS.email.test(value)) {
     return null
   }
-  
+
   // 检查是否为用户名格式
   if (REGEX_PATTERNS.username.test(value)) {
     return null
   }
-  
+
   return '请输入有效的用户名或邮箱地址'
 }
 
@@ -134,8 +132,10 @@ export function checkPasswordStrength(password: string): {
   }
 
   // 计算强度（只考虑字符类型，不包括长度）
-  const strengthCount = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(Boolean).length
-  
+  const strengthCount = [hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar].filter(
+    Boolean
+  ).length
+
   if (strengthCount >= 4) {
     strength = 'strong'
   } else if (strengthCount >= 2) {
@@ -154,11 +154,11 @@ export function validateConfirmPassword(password: string, confirmPassword: strin
   if (!confirmPassword) {
     return '请确认密码'
   }
-  
+
   if (password !== confirmPassword) {
     return '两次输入的密码不一致'
   }
-  
+
   return null
 }
 
@@ -178,28 +178,28 @@ export function validateField(value: any, rules: ValidationRule[]): string | nul
     if (rule.required && (!value || (typeof value === 'string' && !value.trim()))) {
       return rule.message || '此字段为必填项'
     }
-    
+
     // 如果值为空且不是必填，跳过其他验证
     if (!value && !rule.required) {
       continue
     }
-    
+
     // 字符串长度验证
     if (value && typeof value === 'string') {
       if (rule.minLength && value.length < rule.minLength) {
         return rule.message || `至少需要${rule.minLength}个字符`
       }
-      
+
       if (rule.maxLength && value.length > rule.maxLength) {
         return rule.message || `不能超过${rule.maxLength}个字符`
       }
-      
+
       // 正则表达式验证
       if (rule.pattern && !rule.pattern.test(value)) {
         return rule.message || '格式不正确'
       }
     }
-    
+
     // 自定义验证
     if (rule.custom) {
       const customError = rule.custom(value)
@@ -208,7 +208,7 @@ export function validateField(value: any, rules: ValidationRule[]): string | nul
       }
     }
   }
-  
+
   return null
 }
 
@@ -220,16 +220,16 @@ export function validateForm<T extends Record<string, any>>(
   rules: ValidationRules
 ): Record<keyof T, string> {
   const errors: Record<keyof T, string> = {} as Record<keyof T, string>
-  
+
   for (const [field, fieldRules] of Object.entries(rules)) {
     const value = formData[field as keyof T]
     const error = validateField(value, fieldRules)
-    
+
     if (error) {
       errors[field as keyof T] = error
     }
   }
-  
+
   return errors
 }
 
@@ -248,7 +248,7 @@ export function debounce<T extends (...args: any[]) => any>(
   delay: number
 ): (...args: Parameters<T>) => void {
   let timeoutId: number
-  
+
   return (...args: Parameters<T>) => {
     clearTimeout(timeoutId)
     timeoutId = setTimeout(() => func(...args), delay)
@@ -263,7 +263,7 @@ export function throttle<T extends (...args: any[]) => any>(
   delay: number
 ): (...args: Parameters<T>) => void {
   let lastCall = 0
-  
+
   return (...args: Parameters<T>) => {
     const now = Date.now()
     if (now - lastCall >= delay) {
@@ -272,4 +272,3 @@ export function throttle<T extends (...args: any[]) => any>(
     }
   }
 }
-

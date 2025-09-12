@@ -1,4 +1,5 @@
 import { reactive, computed } from 'vue'
+
 import { get } from '@/utils/api'
 
 export interface Province {
@@ -49,7 +50,10 @@ function readCache(): RegionsResponse | null {
 function writeCache(data: RegionsResponse) {
   try {
     localStorage.setItem(REGIONS_CACHE_KEY, JSON.stringify({ data, ts: Date.now() }))
-  } catch {}
+  } catch (e) {
+    void e
+    /* no-op: 缓存写入失败时忽略 */
+  }
 }
 
 async function fetchFromApi(): Promise<RegionsResponse> {
@@ -72,7 +76,9 @@ export async function ensureRegionsLoaded(): Promise<void> {
 
 export function useRegions() {
   const provinceNames = computed(() => state.provinces.map(p => p.name))
-  const municipalities = computed(() => new Set(state.provinces.filter(p => p.municipality).map(p => p.name)))
+  const municipalities = computed(
+    () => new Set(state.provinces.filter(p => p.municipality).map(p => p.name))
+  )
   const getCities = (provinceName: string): string[] => {
     const p = state.provinces.find(p => p.name === provinceName)
     return p?.cities || []
@@ -93,5 +99,3 @@ export function useRegions() {
 
   return { state, provinceNames, municipalities, getCities, addressOptions }
 }
-
-

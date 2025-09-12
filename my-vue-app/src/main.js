@@ -1,9 +1,10 @@
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
 import { createHead } from '@vueuse/head'
+import { createPinia } from 'pinia'
+import { createApp } from 'vue'
+
+import App from './App.vue'
 import router from './router'
 import './style.css'
-import App from './App.vue'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -17,7 +18,7 @@ app.use(router)
 // 全局错误处理
 app.config.errorHandler = (err, instance, info) => {
   console.error('全局错误:', err, info)
-  
+
   // 在生产环境中，可以将错误发送到错误监控服务
   if (import.meta.env.PROD) {
     // 这里可以集成错误监控服务，如 Sentry

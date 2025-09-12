@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+
 import AppLayout from '@/layouts/AppLayout.vue'
 
 const LoginView = () => import('@/views/auth/LoginView.vue')
@@ -15,8 +16,18 @@ const routes: RouteRecordRaw[] = [
     component: AppLayout,
     meta: { requiresAuth: true },
     children: [
-      { path: 'home', name: 'home', component: HomeView, meta: { title: '首页', requiresAuth: true } },
-      { path: 'profile', name: 'profile', component: ProfileView, meta: { title: '个人资料', requiresAuth: true } }
+      {
+        path: 'home',
+        name: 'home',
+        component: HomeView,
+        meta: { title: '首页', requiresAuth: true }
+      },
+      {
+        path: 'profile',
+        name: 'profile',
+        component: ProfileView,
+        meta: { title: '个人资料', requiresAuth: true }
+      }
     ]
   }
 ]
@@ -28,26 +39,27 @@ const router = createRouter({
 
 router.beforeEach((to, _from, next) => {
   const requiresAuth = to.matched.some(r => r.meta?.requiresAuth)
-  const isAuthenticated = !!(localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token'))
-  
+  const isAuthenticated = !!(
+    localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+  )
+
   if (requiresAuth && !isAuthenticated) {
     next({ path: '/login', query: { redirect: to.fullPath } })
     return
   }
-  
+
   if ((to.path === '/login' || to.path === '/register') && isAuthenticated) {
     next('/home')
     return
   }
-  
+
   next()
 })
 
-router.afterEach((to) => {
+router.afterEach(to => {
   if (to.meta?.title) {
     document.title = `社区 · ${to.meta.title as string}`
   }
 })
 
 export default router
-

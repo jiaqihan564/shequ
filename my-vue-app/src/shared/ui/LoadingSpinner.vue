@@ -1,6 +1,6 @@
 <template>
-  <div 
-    class="loading-spinner" 
+  <div
+    class="loading-spinner"
     :class="[`spinner-${size}`, { 'spinner-inline': inline }]"
     :aria-label="ariaLabel"
     role="status"
@@ -83,4 +83,3 @@ withDefaults(defineProps<Props>(), {
   }
 }
 </style>
-

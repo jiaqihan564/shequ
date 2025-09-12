@@ -46,10 +46,16 @@ function readCachedRegion(): DetectedRegion | null {
 function writeCachedRegion(region: DetectedRegion) {
   try {
     localStorage.setItem(GEO_REGION_KEY, JSON.stringify({ data: region, ts: Date.now() }))
-  } catch {}
+  } catch (e) {
+    void e
+  }
 }
 
-async function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit, timeoutMs = 5000): Promise<Response> {
+async function fetchWithTimeout(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+  timeoutMs = 5000
+): Promise<Response> {
   const controller = new AbortController()
   const id = setTimeout(() => controller.abort(), timeoutMs)
   try {
@@ -66,8 +72,12 @@ async function reverseGeocode(lat: number, lon: number, timeoutMs = 5000): Promi
   const nomiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=zh-CN`
 
   const [bdcRes, nomiRes] = await Promise.allSettled([
-    fetchWithTimeout(bdcUrl, undefined, timeoutMs).then(r => r.json()).catch(() => null),
-    fetchWithTimeout(nomiUrl, { headers: { 'User-Agent': 'shequ-app/1.0' } }, timeoutMs).then(r => r.json()).catch(() => null)
+    fetchWithTimeout(bdcUrl, undefined, timeoutMs)
+      .then(r => r.json())
+      .catch(() => null),
+    fetchWithTimeout(nomiUrl, { headers: { 'User-Agent': 'shequ-app/1.0' } }, timeoutMs)
+      .then(r => r.json())
+      .catch(() => null)
   ])
 
   const bdc = (bdcRes.status === 'fulfilled' ? bdcRes.value : null) as any
@@ -84,7 +94,7 @@ async function reverseGeocode(lat: number, lon: number, timeoutMs = 5000): Promi
   const nomiCounty = normalizeCity(addr.county || '')
 
   // 省份优先取 Nominatim（更精细），否则取 BDC
-  let province = nomiProvince || bdcProvince
+  const province = nomiProvince || bdcProvince
   // 城市优先取 Nominatim 的 city/town/municipality；若无则回退 BDC
   let city = nomiCityPrimary || bdcCity
 
@@ -151,16 +161,28 @@ async function geolocate(): Promise<GeolocationPosition> {
 }
 
 async function ipLocate(timeoutMs = 5000): Promise<DetectedRegion> {
-  const res = await fetchWithTimeout('https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=zh-CN', undefined, timeoutMs)
+  const res = await fetchWithTimeout(
+    'https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=zh-CN',
+    undefined,
+    timeoutMs
+  )
   const data = await res.json()
   const province = normalizeProvince(data.principalSubdivision || '')
   const city = normalizeCity(data.city || data.locality || '')
   return { province, city, source: 'ip' }
 }
 
-type DetectOptions = { timeoutMs?: number; method?: 'auto' | 'geo' | 'ip'; provider?: 'auto' | 'amap' | 'builtin' }
+type DetectOptions = {
+  timeoutMs?: number
+  method?: 'auto' | 'geo' | 'ip'
+  provider?: 'auto' | 'amap' | 'builtin'
+}
 
-async function amapReverseGeocode(lat: number, lon: number, timeoutMs = 5000): Promise<DetectedRegion | null> {
+async function amapReverseGeocode(
+  lat: number,
+  lon: number,
+  timeoutMs = 5000
+): Promise<DetectedRegion | null> {
   const key = (import.meta as any).env?.VITE_AMAP_KEY
   if (!key) return null
   const url = `https://restapi.amap.com/v3/geocode/regeo?key=${encodeURIComponent(key)}&location=${lon},${lat}&extensions=base&radius=3000&output=json`
@@ -171,7 +193,10 @@ async function amapReverseGeocode(lat: number, lon: number, timeoutMs = 5000): P
     const province = normalizeProvince(comp.province || '')
     const city = normalizeCity(comp.city || comp.district || '')
     if (province || city) return { province, city, source: 'geolocation' }
-  } catch {}
+  } catch (e) {
+    void e
+    /* no-op: amapReverseGeocode 失败时回退其他提供商 */
+  }
   return null
 }
 
@@ -185,11 +210,17 @@ async function amapIpLocate(timeoutMs = 5000): Promise<DetectedRegion | null> {
     const province = normalizeProvince(j?.province || '')
     const city = normalizeCity(j?.city || '')
     if (province || city) return { province, city, source: 'ip' }
-  } catch {}
+  } catch (e) {
+    void e
+    /* no-op: amapIpLocate 失败时回退其他提供商 */
+  }
   return null
 }
 
-export async function detectCurrentRegion(force = false, options?: DetectOptions): Promise<DetectedRegion | null> {
+export async function detectCurrentRegion(
+  force = false,
+  options?: DetectOptions
+): Promise<DetectedRegion | null> {
   if (!force) {
     const cached = readCachedRegion()
     if (cached) return cached
@@ -202,7 +233,9 @@ export async function detectCurrentRegion(force = false, options?: DetectOptions
     try {
       // URL 覆盖优先（便于调试/纠错）
       const override = getUrlLatLonOverride()
-      const coords = override ? { latitude: override.lat, longitude: override.lon } : (await geolocate()).coords
+      const coords = override
+        ? { latitude: override.lat, longitude: override.lon }
+        : (await geolocate()).coords
       const { latitude, longitude } = coords
       if (provider === 'amap' || provider === 'auto') {
         const a = await amapReverseGeocode(latitude, longitude, timeoutMs)
@@ -254,12 +287,51 @@ export function readDetectedRegion(): DetectedRegion | null {
 // 简繁转换（最小实现）：常见省市异体字映射
 function toSimplified(input: string): string {
   const map: Record<string, string> = {
-    '臺': '台', '灣': '湾', '廣': '广', '東': '东', '陝': '陕', '門': '门', '陰': '阴', '陽': '阳',
-    '雲': '云', '貴': '贵', '嶽': '岳', '連': '连', '遼': '辽', '黑龍江': '黑龙江', '齊': '齐', '濟': '济',
-    '蘇': '苏', '滬': '沪', '瀋': '沈', '晉': '晋', '浙': '浙', '粵': '粤', '寧': '宁', '渝': '渝', '甯': '宁',
-    '陝西': '陕西', '中國': '中国', '重慶': '重庆', '廣西': '广西', '內蒙古': '内蒙古', '新疆維吾爾自治區': '新疆维吾尔自治区',
-    '西藏自治區': '西藏自治区', '寧夏回族自治區': '宁夏回族自治区', '廣東': '广东', '山東': '山东', '貴州': '贵州', '雲南': '云南',
-    '濰': '潍', '濟南': '济南', '煙臺': '烟台', '威海': '威海', '青島': '青岛', '濰坊': '潍坊', '濟寧': '济宁', '臨沂': '临沂'
+    臺: '台',
+    灣: '湾',
+    廣: '广',
+    東: '东',
+    陝: '陕',
+    門: '门',
+    陰: '阴',
+    陽: '阳',
+    雲: '云',
+    貴: '贵',
+    嶽: '岳',
+    連: '连',
+    遼: '辽',
+    黑龍江: '黑龙江',
+    齊: '齐',
+    濟: '济',
+    蘇: '苏',
+    滬: '沪',
+    瀋: '沈',
+    晉: '晋',
+    浙: '浙',
+    粵: '粤',
+    寧: '宁',
+    渝: '渝',
+    甯: '宁',
+    陝西: '陕西',
+    中國: '中国',
+    重慶: '重庆',
+    廣西: '广西',
+    內蒙古: '内蒙古',
+    新疆維吾爾自治區: '新疆维吾尔自治区',
+    西藏自治區: '西藏自治区',
+    寧夏回族自治區: '宁夏回族自治区',
+    廣東: '广东',
+    山東: '山东',
+    貴州: '贵州',
+    雲南: '云南',
+    濰: '潍',
+    濟南: '济南',
+    煙臺: '烟台',
+    威海: '威海',
+    青島: '青岛',
+    濰坊: '潍坊',
+    濟寧: '济宁',
+    臨沂: '临沂'
   }
   let s = input
   for (const [k, v] of Object.entries(map)) {
@@ -267,5 +339,3 @@ function toSimplified(input: string): string {
   }
   return s
 }
-
-

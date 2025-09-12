@@ -1,16 +1,13 @@
 <template>
   <div class="page page-auth">
-    <RegisterForm 
-      @success="onSuccess"
-      @error="onError"
-      @switch-to-login="goLogin"
-    />
+    <RegisterForm @success="onSuccess" @error="onError" @switch-to-login="goLogin" />
     <!-- 使用全局 ToastContainer 渲染，无需局部组件 -->
   </div>
 </template>
 
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
+
 import RegisterForm from '@/features/auth/components/RegisterForm.vue'
 import { toast } from '@/utils/toast'
 
@@ -31,6 +28,7 @@ function goLogin() {
 </script>
 
 <style scoped>
-.page-auth { min-height: 100vh; }
+.page-auth {
+  min-height: 100vh;
+}
 </style>
-
