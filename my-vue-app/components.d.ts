@@ -13,6 +13,7 @@ declare module 'vue' {
     EyeIcon: typeof import('./src/components/icons/EyeIcon.vue')['default']
     EyeOffIcon: typeof import('./src/components/icons/EyeOffIcon.vue')['default']
     InfoIcon: typeof import('./src/components/icons/InfoIcon.vue')['default']
+    NewsCarousel: typeof import('./src/components/news/NewsCarousel.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     UserIcon: typeof import('./src/components/icons/UserIcon.vue')['default']

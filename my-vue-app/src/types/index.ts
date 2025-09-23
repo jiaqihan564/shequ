@@ -229,3 +229,21 @@ export interface AvatarHistoryItem {
 export interface AvatarHistoryList {
   items: AvatarHistoryItem[]
 }
+
+// 新闻相关类型
+export interface NewsItem {
+  id: string
+  title: string
+  source: string
+  url: string
+  imageUrl: string
+  publishedAt: string
+  summary?: string
+}
+
+export interface FetchNewsParams {
+  pageSize?: number
+  lang?: string
+  country?: string
+  category?: string
+}

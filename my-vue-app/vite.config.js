@@ -57,6 +57,13 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false
+      },
+      // 开发环境：将 /news 代理到本地 8787（Cloudflare Workers 开发端口）
+      '/news': {
+        target: 'http://127.0.0.1:8787',
+        changeOrigin: true,
+        secure: false,
+        rewrite: path => path.replace(/^\/news/, '')
       }
     }
   },

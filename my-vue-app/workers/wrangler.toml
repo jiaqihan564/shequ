@@ -1,0 +1,9 @@
+name = "news-proxy"
+main = "news-proxy.js"
+compatibility_date = "2023-09-01"
+
+[env.development]
+vars = { GNEWS_API_KEY = "请填入你的GNews_API_密钥" }
+
+[env.production]
+vars = { GNEWS_API_KEY = "请填入你的GNews_API_密钥" }

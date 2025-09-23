@@ -27,13 +27,22 @@
         <div class="stat-value">发布、探索、互动</div>
       </div>
     </section>
+
+    <section class="news-section">
+      <h3 class="section-title">热点新闻</h3>
+      <NewsCarousel :items="news" :isLoading="loadingNews" :intervalMs="5000" />
+    </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 
 import type { User } from '@/types'
+import type { NewsItem } from '@/types'
+import { fetchNews } from '@/utils/api'
+import NewsCarousel from '@/components/news/NewsCarousel.vue'
+import toast from '@/utils/toast'
 
 defineEmits<{
   (e: 'create-post'): void
@@ -41,6 +50,9 @@ defineEmits<{
 }>()
 
 const user = ref<User | null>(null)
+const news = ref<NewsItem[]>([])
+const loadingNews = ref<boolean>(false)
+let newsTimer: number | null = null
 
 onMounted(() => {
   try {
@@ -49,7 +61,55 @@ onMounted(() => {
   } catch (e) {
     if (import.meta.env.DEV) console.warn('读取用户信息失败', e)
   }
+
+  // 首屏预取新闻
+  void loadNews()
+  // 分钟级轮询（页面可见时）
+  startPolling()
+  document.addEventListener('visibilitychange', onVisibility)
 })
+
+onBeforeUnmount(() => {
+  stopPolling()
+  document.removeEventListener('visibilitychange', onVisibility)
+})
+
+async function loadNews() {
+  try {
+    loadingNews.value = true
+    const items = await fetchNews({ pageSize: 5, lang: 'zh', country: 'cn' })
+    news.value = items
+  } catch (e) {
+    toast.error('热点新闻获取失败，已显示上次数据')
+  } finally {
+    loadingNews.value = false
+  }
+}
+
+function startPolling() {
+  stopPolling()
+  if (!document.hidden) {
+    newsTimer = setInterval(() => {
+      if (!document.hidden) void loadNews()
+    }, 2 * 60 * 1000) as unknown as number // 2分钟刷新
+  }
+}
+
+function stopPolling() {
+  if (newsTimer) {
+    clearInterval(newsTimer)
+    newsTimer = null
+  }
+}
+
+function onVisibility() {
+  if (document.hidden) {
+    stopPolling()
+  } else {
+    startPolling()
+    void loadNews()
+  }
+}
 </script>
 
 <style scoped>
@@ -142,6 +202,18 @@ onMounted(() => {
 .stat-value {
   margin-top: 6px;
   font-weight: 700;
+  color: #111827;
+}
+
+.news-section {
+  background: transparent;
+  display: grid;
+  gap: 10px;
+}
+
+.section-title {
+  font-size: 16px;
+  font-weight: 800;
   color: #111827;
 }
 

@@ -12,6 +12,7 @@ import type {
   AvatarHistoryItem,
   AvatarHistoryList
 } from '@/types'
+import type { NewsItem, FetchNewsParams } from '@/types'
 
 // 创建axios实例
 const api: AxiosInstance = axios.create({
@@ -538,6 +539,224 @@ export async function del<T>(url: string, config?: AxiosRequestConfig): Promise<
   }
 
   throw createAppError('DELETE_FAILED', response.data.message || '删除数据失败')
+}
+
+// 新闻：基于本地 Mock 的 Top Headlines（全国热点优先，轮播用）
+export async function fetchNews(params: FetchNewsParams = {}): Promise<NewsItem[]> {
+  const pageSize = Math.max(1, Math.min(params.pageSize ?? 5, 10))
+
+  // 简单内存缓存（与全局 requestCache 一致的键格式）
+  const provider = (import.meta as any).env?.VITE_NEWS_PROVIDER || 'mock'
+  const proxyBase = (import.meta as any).env?.VITE_NEWS_PROXY_URL || '/news'
+  const cacheKey = `/${provider}/news?${JSON.stringify({ ...params, pageSize })}`
+  const cached = requestCache.get(cacheKey)
+  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+    return (cached.data as NewsItem[]).slice(0, pageSize)
+  }
+
+  // 本地持久缓存（localStorage），命中限速或离线时回退
+  const lsKey = `news_cache_v2_${provider}` // 版本号更新，强制清除旧缓存
+  
+  // 开发环境下清除旧版本缓存
+  if (import.meta.env.DEV) {
+    const oldKeys = ['news_cache_v1_mock', 'news_cache_v1_gnews']
+    oldKeys.forEach(key => {
+      if (localStorage.getItem(key)) {
+        localStorage.removeItem(key)
+        console.log(`已清除旧缓存: ${key}`)
+      }
+    })
+  }
+  
+  try {
+    const raw = localStorage.getItem(lsKey)
+    if (raw) {
+      const { data, ts } = JSON.parse(raw)
+      if (Date.now() - ts < CACHE_DURATION) {
+        requestCache.set(cacheKey, { data, timestamp: ts })
+        return (data as NewsItem[]).slice(0, pageSize)
+      }
+    }
+  } catch (e) {
+    void e
+  }
+
+  // 真实源（newsapi），失败回退到 mock
+  if (provider === 'newsapi') {
+    try {
+      // 使用免费的NewsAPI.org（需要API密钥）
+      const apiKey = (import.meta as any).env?.VITE_NEWSAPI_KEY
+      if (apiKey) {
+        const endpoint = 'https://newsapi.org/v2/top-headlines'
+        const query = new URLSearchParams({
+          country: params.country || 'cn',
+          pageSize: String(pageSize),
+          category: params.category || 'general',
+          apiKey: apiKey
+        }).toString()
+        const url = `${endpoint}?${query}`
+        const res = await axios.get(url)
+        
+        if (res.data?.articles && Array.isArray(res.data.articles)) {
+          const articles = res.data.articles.map((article: any, index: number) => ({
+            id: `news_${Date.now()}_${index}`,
+            title: article.title || '无标题',
+            source: article.source?.name || '未知来源',
+            url: article.url || '#',
+            imageUrl: article.urlToImage || 'https://images.unsplash.com/photo-1585829365295-ab7cd400c167?q=80&w=1200&auto=format&fit=crop',
+            publishedAt: article.publishedAt || new Date().toISOString(),
+            summary: article.description || ''
+          }))
+          
+          requestCache.set(cacheKey, { data: articles, timestamp: Date.now() })
+          try {
+            localStorage.setItem(lsKey, JSON.stringify({ data: articles, ts: Date.now() }))
+          } catch (e) {
+            void e
+          }
+          return articles.slice(0, pageSize)
+        }
+      }
+    } catch (e) {
+      console.log('NewsAPI请求失败，回退到模拟数据:', e)
+    }
+  }
+
+  // RSS新闻源（无需API密钥的免费方案）
+  if (provider === 'rss') {
+    try {
+      // 使用公开的RSS聚合服务
+      const rssUrls = [
+        'https://news.sina.com.cn/roll/#pageid=153&lid=2509&k=&num=50&page=1',
+        'https://news.163.com/special/0001386F/rank_whole.html'
+      ]
+      
+      // 这里简化处理，实际项目中可以使用RSS解析库
+      const mockFromRss: NewsItem[] = [
+        {
+          id: `rss_${Date.now()}_1`,
+          title: '实时：央行宣布新的货币政策调整措施',
+          source: '新浪财经',
+          url: 'https://finance.sina.com.cn',
+          imageUrl: 'https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?q=80&w=1200&auto=format&fit=crop',
+          publishedAt: new Date(Date.now() - 10 * 60 * 1000).toISOString(),
+          summary: '央行今日发布重要货币政策调整通知...'
+        },
+        {
+          id: `rss_${Date.now()}_2`,
+          title: '科技前沿：AI大模型在医疗领域取得重大突破',
+          source: '网易科技',
+          url: 'https://tech.163.com',
+          imageUrl: 'https://images.unsplash.com/photo-1559757148-5c350d0d3c56?q=80&w=1200&auto=format&fit=crop',
+          publishedAt: new Date(Date.now() - 25 * 60 * 1000).toISOString(),
+          summary: '最新研究显示AI在诊断准确率方面显著提升...'
+        },
+        {
+          id: `rss_${Date.now()}_3`,
+          title: '国际动态：多国就气候变化问题达成新共识',
+          source: '人民日报',
+          url: 'http://www.people.com.cn',
+          imageUrl: 'https://images.unsplash.com/photo-1569163139394-de44cb2c1dd3?q=80&w=1200&auto=format&fit=crop',
+          publishedAt: new Date(Date.now() - 40 * 60 * 1000).toISOString(),
+          summary: '联合国气候大会取得积极进展...'
+        },
+        {
+          id: `rss_${Date.now()}_4`,
+          title: '体育快讯：国足备战世预赛最新进展',
+          source: '新华体育',
+          url: 'https://www.xinhuanet.com',
+          imageUrl: 'https://images.unsplash.com/photo-1574629810360-7efbbe195018?q=80&w=1200&auto=format&fit=crop',
+          publishedAt: new Date(Date.now() - 55 * 60 * 1000).toISOString(),
+          summary: '国家队主教练公布最新集训名单...'
+        },
+        {
+          id: `rss_${Date.now()}_5`,
+          title: '经济观察：数字经济发展呈现新趋势',
+          source: '财新网',
+          url: 'https://www.caixin.com',
+          imageUrl: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?q=80&w=1200&auto=format&fit=crop',
+          publishedAt: new Date(Date.now() - 70 * 60 * 1000).toISOString(),
+          summary: '数字化转型推动经济结构优化升级...'
+        }
+      ]
+      
+      requestCache.set(cacheKey, { data: mockFromRss, timestamp: Date.now() })
+      try {
+        localStorage.setItem(lsKey, JSON.stringify({ data: mockFromRss, ts: Date.now() }))
+      } catch (e) {
+        void e
+      }
+      return mockFromRss.slice(0, pageSize)
+    } catch (e) {
+      console.log('RSS新闻获取失败，回退到模拟数据:', e)
+    }
+  }
+
+  // 模拟外部新闻源（全国热点）；发布时间按当前时间倒序 1-5 分钟内
+  const now = Date.now()
+  const sources = ['新华网', '央视新闻', '人民日报', '澎湃新闻', '界面新闻', '财新', '凤凰网']
+  const headlines = [
+    '多地推出稳增长举措，重点项目加速落地',
+    '新一代人工智能大模型发布，产业生态加速重构',
+    '中秋国庆假期旅游热度攀升，文旅融合亮点频出',
+    '我国首个商业航天发射场完成关键节点测试',
+    '多部门联合发文支持中小企业数字化转型'
+  ]
+
+  const images = [
+    'https://images.unsplash.com/photo-1521295121783-8a321d551ad2?q=80&w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1519741497674-611481863552?q=80&w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?q=80&w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?q=80&w=1200&auto=format&fit=crop',
+    'https://images.unsplash.com/photo-1518779578993-ec3579fee39f?q=80&w=1200&auto=format&fit=crop'
+  ]
+
+  // 对应的真实新闻链接（示例）
+  const newsUrls = [
+    'https://www.xinhuanet.com',
+    'https://news.cctv.com',
+    'http://www.people.com.cn',
+    'https://www.thepaper.cn',
+    'https://www.jiemian.com'
+  ]
+
+  function pick<T>(arr: T[], i: number): T {
+    return arr[i % arr.length]
+  }
+
+  const mock: NewsItem[] = Array.from({ length: 8 }).map((_, i) => {
+    const minuteOffset = (i + 1) * 60 * 1000
+    const ts = new Date(now - minuteOffset).toISOString()
+    const title = pick(headlines, i)
+    const source = pick(sources, i + 2)
+    const imageUrl = pick(images, i + 1)
+    const url = pick(newsUrls, i) // 使用真实的新闻网站链接
+    const id = `n_${btoa(url).replace(/=+$/g, '')}_${i}`
+    
+    // 调试：打印生成的URL
+    if (import.meta.env.DEV) {
+      console.log(`生成新闻 ${i}: ${title} -> ${url}`)
+    }
+    
+    return { id, title, source, url, imageUrl, publishedAt: ts, summary: '' }
+  })
+
+  // 按时间倒序并截取 pageSize
+  const items = mock
+    .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
+    .slice(0, pageSize)
+
+  // 模拟网络延迟 200-400ms
+  const delay = 200 + Math.floor(Math.random() * 200)
+  await new Promise(resolve => setTimeout(resolve, delay))
+
+  requestCache.set(cacheKey, { data: items, timestamp: Date.now() })
+  try {
+    localStorage.setItem(lsKey, JSON.stringify({ data: items, ts: Date.now() }))
+  } catch (e) {
+    void e
+  }
+  return items
 }
 
 export default api
