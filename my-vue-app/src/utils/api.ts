@@ -16,7 +16,7 @@ import type { NewsItem, FetchNewsParams } from '@/types'
 
 // 创建axios实例
 const api: AxiosInstance = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL || '/api',
+  baseURL: '/api', // 使用相对路径，通过 Vite 代理转发到后端
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
@@ -382,12 +382,14 @@ export async function changePassword(data: {
 /**
  * 忘记密码
  */
-export async function forgotPassword(email: string): Promise<void> {
-  const response = await api.post<ApiResponse>('/auth/forgot-password', { email })
+export async function forgotPassword(email: string): Promise<{ token: string; message: string }> {
+  const response = await api.post<ApiResponse<{ token: string; message: string }>>('/auth/forgot-password', { email })
 
-  if (response.data.code !== 200) {
-    throw createAppError('FORGOT_PASSWORD_FAILED', response.data.message || '发送重置邮件失败')
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
   }
+
+  throw createAppError('FORGOT_PASSWORD_FAILED', response.data.message || '发送重置邮件失败')
 }
 
 /**
@@ -547,7 +549,6 @@ export async function fetchNews(params: FetchNewsParams = {}): Promise<NewsItem[
 
   // 简单内存缓存（与全局 requestCache 一致的键格式）
   const provider = (import.meta as any).env?.VITE_NEWS_PROVIDER || 'mock'
-  const proxyBase = (import.meta as any).env?.VITE_NEWS_PROXY_URL || '/news'
   const cacheKey = `/${provider}/news?${JSON.stringify({ ...params, pageSize })}`
   const cached = requestCache.get(cacheKey)
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
@@ -625,12 +626,6 @@ export async function fetchNews(params: FetchNewsParams = {}): Promise<NewsItem[
   // RSS新闻源（无需API密钥的免费方案）
   if (provider === 'rss') {
     try {
-      // 使用公开的RSS聚合服务
-      const rssUrls = [
-        'https://news.sina.com.cn/roll/#pageid=153&lid=2509&k=&num=50&page=1',
-        'https://news.163.com/special/0001386F/rank_whole.html'
-      ]
-      
       // 这里简化处理，实际项目中可以使用RSS解析库
       const mockFromRss: NewsItem[] = [
         {
@@ -757,6 +752,236 @@ export async function fetchNews(params: FetchNewsParams = {}): Promise<NewsItem[
     void e
   }
   return items
+}
+
+// 统计相关API
+/**
+ * 获取统计总览
+ */
+export async function getStatisticsOverview(): Promise<any> {
+  const response = await api.get<ApiResponse<any>>('/statistics/overview')
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_OVERVIEW_FAILED', response.data.message || '获取统计总览失败')
+}
+
+/**
+ * 获取用户统计
+ */
+export async function getUserStatistics(startDate?: string, endDate?: string): Promise<any> {
+  const params: any = {}
+  if (startDate) params.start = startDate
+  if (endDate) params.end = endDate
+  
+  const response = await api.get<ApiResponse<any>>('/statistics/users', { params })
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_USER_STATS_FAILED', response.data.message || '获取用户统计失败')
+}
+
+/**
+ * 获取API统计
+ */
+export async function getApiStatistics(startDate?: string, endDate?: string): Promise<any> {
+  const params: any = {}
+  if (startDate) params.start = startDate
+  if (endDate) params.end = endDate
+  
+  const response = await api.get<ApiResponse<any>>('/statistics/apis', { params })
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_API_STATS_FAILED', response.data.message || '获取API统计失败')
+}
+
+/**
+ * 获取接口排行
+ */
+export async function getEndpointRanking(startDate?: string, endDate?: string): Promise<any> {
+  const params: any = {}
+  if (startDate) params.start = startDate
+  if (endDate) params.end = endDate
+  
+  const response = await api.get<ApiResponse<any>>('/statistics/ranking', { params })
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_RANKING_FAILED', response.data.message || '获取接口排行失败')
+}
+
+// 历史记录相关API
+/**
+ * 获取登录历史
+ */
+export async function getLoginHistory(limit = 50): Promise<any> {
+  const response = await api.get<ApiResponse<any>>(`/history/login?limit=${limit}`)
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_LOGIN_HISTORY_FAILED', response.data.message || '获取登录历史失败')
+}
+
+/**
+ * 获取操作历史
+ */
+export async function getOperationHistory(limit = 50): Promise<any> {
+  const response = await api.get<ApiResponse<any>>(`/history/operations?limit=${limit}`)
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_OPERATION_HISTORY_FAILED', response.data.message || '获取操作历史失败')
+}
+
+/**
+ * 获取资料修改历史
+ */
+export async function getProfileChangeHistory(limit = 50): Promise<any> {
+  const response = await api.get<ApiResponse<any>>(`/history/profile-changes?limit=${limit}`)
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_PROFILE_HISTORY_FAILED', response.data.message || '获取资料修改历史失败')
+}
+
+// 累计统计相关API
+/**
+ * 获取累计统计数据
+ */
+export async function getCumulativeStats(): Promise<any> {
+  const response = await api.get<ApiResponse<any>>('/cumulative-stats')
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_CUMULATIVE_STATS_FAILED', response.data.message || '获取累计统计失败')
+}
+
+/**
+ * 获取每日指标
+ */
+export async function getDailyMetrics(startDate?: string, endDate?: string): Promise<any> {
+  const params: any = {}
+  if (startDate) params.start = startDate
+  if (endDate) params.end = endDate
+  
+  const response = await api.get<ApiResponse<any>>('/daily-metrics', { params })
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_DAILY_METRICS_FAILED', response.data.message || '获取每日指标失败')
+}
+
+/**
+ * 获取实时指标
+ */
+export async function getRealtimeMetrics(): Promise<any> {
+  const response = await api.get<ApiResponse<any>>('/realtime-metrics')
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_REALTIME_METRICS_FAILED', response.data.message || '获取实时指标失败')
+}
+
+/**
+ * 获取用户地区分布
+ */
+export async function getLocationDistribution(): Promise<any> {
+  const response = await api.get<ApiResponse<any>>('/location/distribution')
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_LOCATION_DIST_FAILED', response.data.message || '获取地区分布失败')
+}
+
+// 聊天室相关API
+/**
+ * 发送聊天消息
+ */
+export async function sendChatMessage(content: string): Promise<any> {
+  const response = await api.post<ApiResponse<any>>('/chat/send', { content })
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('SEND_MESSAGE_FAILED', response.data.message || '发送消息失败')
+}
+
+/**
+ * 获取聊天消息列表
+ */
+export async function getChatMessages(limit: number = 50, beforeId: number = 0): Promise<any> {
+  const response = await api.get<ApiResponse<any>>('/chat/messages', {
+    params: { limit, before_id: beforeId }
+  })
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_MESSAGES_FAILED', response.data.message || '获取消息失败')
+}
+
+/**
+ * 获取新聊天消息（轮询）
+ */
+export async function getNewChatMessages(afterId: number): Promise<any> {
+  const response = await api.get<ApiResponse<any>>('/chat/messages/new', {
+    params: { after_id: afterId }
+  })
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_NEW_MESSAGES_FAILED', response.data.message || '获取新消息失败')
+}
+
+/**
+ * 删除聊天消息
+ */
+export async function deleteChatMessage(messageId: number): Promise<void> {
+  const response = await api.delete<ApiResponse>(`/chat/messages/${messageId}`)
+  
+  if (response.data.code !== 200) {
+    throw createAppError('DELETE_MESSAGE_FAILED', response.data.message || '删除消息失败')
+  }
+}
+
+/**
+ * 获取在线用户数
+ */
+export async function getOnlineCount(): Promise<number> {
+  const response = await api.get<ApiResponse<{ count: number }>>('/chat/online-count')
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data.count
+  }
+  
+  throw createAppError('GET_ONLINE_COUNT_FAILED', response.data.message || '获取在线用户数失败')
 }
 
 export default api

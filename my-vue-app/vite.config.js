@@ -51,12 +51,27 @@ export default defineConfig({
     port: 3000,
     open: true,
     cors: true,
-    host: true,
+    host: '0.0.0.0',
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://127.0.0.1:3001',
         changeOrigin: true,
-        secure: false
+        secure: false,
+        rewrite: (path) => {
+          console.log('[Vite Proxy] 代理请求:', path, '-> http://127.0.0.1:3001' + path)
+          return path
+        },
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.error('[Vite Proxy] 代理错误:', err)
+          })
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            console.log('[Vite Proxy] 发送请求到后端:', req.method, req.url)
+          })
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            console.log('[Vite Proxy] 收到后端响应:', proxyRes.statusCode, req.url)
+          })
+        }
       },
       // 开发环境：将 /news 代理到本地 8787（Cloudflare Workers 开发端口）
       '/news': {

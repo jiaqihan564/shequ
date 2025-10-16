@@ -121,19 +121,26 @@
         </button>
       </form>
 
-      <div class="login-footer">
+        <div class="login-footer">
         <p class="signup-text">
           还没有账号？
           <a href="#" class="signup-link" @click.prevent="handleSignup">立即注册</a>
         </p>
       </div>
     </div>
+
+    <ForgotPasswordDialog
+      :show="forgotPasswordDialogOpen"
+      @close="forgotPasswordDialogOpen = false"
+      @error="handleForgotPasswordError"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 
+import ForgotPasswordDialog from '@/components/auth/ForgotPasswordDialog.vue'
 import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
 import UserIcon from '@/components/icons/UserIcon.vue'
@@ -169,6 +176,7 @@ const errors = reactive<FormErrors>({
 const showPassword = ref(false)
 const isLoading = ref(false)
 const isFormValid = ref(false)
+const forgotPasswordDialogOpen = ref(false)
 
 const passwordStrength = reactive({
   strength: 'weak' as 'weak' | 'medium' | 'strong',
@@ -255,7 +263,11 @@ const clearErrors = () => {
 }
 
 const handleForgotPassword = () => {
-  emit('error', { message: '忘记密码功能正在开发中…' })
+  forgotPasswordDialogOpen.value = true
+}
+
+const handleForgotPasswordError = (error: { message: string }) => {
+  emit('error', error)
 }
 
 const handleSignup = () => {
@@ -276,7 +288,60 @@ const handleLogin = async () => {
   isLoading.value = true
 
   try {
-    const response = await login(form)
+    // 检测地理位置（多种方案）
+    let province = ''
+    let city = ''
+    
+    try {
+      // 方案1：尝试使用高德IP定位（国内稳定）
+      const gaodeResponse = await fetch('https://restapi.amap.com/v3/ip?key=c2e4b3f8d8fd8e5b8a5c3e6f9d2a1b4c')
+      if (gaodeResponse.ok) {
+        const gaodeData = await gaodeResponse.json()
+        if (gaodeData.status === '1' && gaodeData.province) {
+          province = gaodeData.province
+          city = gaodeData.city || gaodeData.province
+          console.log('高德IP定位成功:', { province, city })
+        }
+      }
+    } catch (e1) {
+      console.warn('高德定位失败，尝试备用方案', e1)
+      
+      // 方案2：使用太平洋IP定位（免费无限制）
+      try {
+        const pconlineResponse = await fetch('https://whois.pconline.com.cn/ipJson.jsp?json=true')
+        if (pconlineResponse.ok) {
+          const text = await pconlineResponse.text()
+          const pconlineData = JSON.parse(text)
+          if (pconlineData.pro) {
+            province = pconlineData.pro
+            city = pconlineData.city || pconlineData.pro
+            console.log('太平洋IP定位成功:', { province, city })
+          }
+        }
+      } catch (e2) {
+        console.warn('所有IP定位方案失败，使用浏览器定位', e2)
+        
+        // 方案3：浏览器地理位置（需要用户授权）
+        // 这里暂时不使用，避免弹窗干扰
+        province = '未知'
+        city = '未知'
+      }
+    }
+
+    // 登录请求（附带地理位置信息）
+    const loginData = {
+      ...form,
+      province,
+      city
+    }
+    
+    console.log('登录数据:', { 
+      username: loginData.username, 
+      province: loginData.province, 
+      city: loginData.city 
+    })
+    
+    const response = await login(loginData)
     if (form.rememberMe) {
       localStorage.setItem('remembered_username', form.username)
     } else {

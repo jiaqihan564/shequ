@@ -75,14 +75,25 @@
             </div>
             <div class="field">
               <label for="email">邮箱</label>
-              <input
-                id="email"
-                v-model.trim="form.email"
-                type="email"
-                placeholder="name@example.com"
-                disabled
-                title="邮箱用于登录与通知，暂不支持在此修改。如需变更请联系管理员"
-              />
+              <div class="input-with-icon">
+                <input
+                  id="email"
+                  v-model.trim="form.email"
+                  :type="showEmail ? 'text' : 'password'"
+                  placeholder="name@example.com"
+                  disabled
+                  title="邮箱用于登录与通知，暂不支持在此修改。如需变更请联系管理员"
+                />
+                <button
+                  type="button"
+                  class="field-toggle-btn"
+                  :aria-label="showEmail ? '隐藏邮箱' : '显示邮箱'"
+                  @click="showEmail = !showEmail"
+                >
+                  <EyeIcon v-if="!showEmail" />
+                  <EyeOffIcon v-else />
+                </button>
+              </div>
             </div>
             <div class="field">
               <label for="nickname">昵称</label>
@@ -140,6 +151,20 @@
             </button>
           </div>
         </form>
+
+        <!-- 安全设置区域 -->
+        <div class="security-section">
+          <h3 class="section-title">安全设置</h3>
+          <div class="security-item">
+            <div class="security-info">
+              <h4>登录密码</h4>
+              <p class="security-desc">定期更换密码，保护账户安全</p>
+            </div>
+            <button class="btn ghost sm" type="button" @click="openChangePasswordDialog">
+              修改密码
+            </button>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -187,12 +212,22 @@
       :initial="avatarInitial"
       @close="historyPreviewOpen = false"
     />
+
+    <ChangePasswordDialog
+      :show="changePasswordDialogOpen"
+      @close="changePasswordDialogOpen = false"
+      @success="handleChangePasswordSuccess"
+      @error="handleChangePasswordError"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted, watch } from 'vue'
 
+import ChangePasswordDialog from '@/components/profile/ChangePasswordDialog.vue'
+import EyeIcon from '@/components/icons/EyeIcon.vue'
+import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
 import ImagePreview from '@/shared/ui/ImagePreview.vue'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import type { User, UserProfile, AvatarHistoryItem } from '@/types'
@@ -215,6 +250,8 @@ const avatarPreviewOpen = ref(false)
 const isEditing = ref(false)
 const uploading = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const changePasswordDialogOpen = ref(false)
+const showEmail = ref(false)
 const { municipalities } = useRegions()
 const addressValue = ref('')
 const addressDisplay = computed(() => {
@@ -336,18 +373,6 @@ function formatTime(ts: number): string {
   }
 }
 
-function startEdit() {
-  isEditing.value = true
-}
-
-function cancelEdit() {
-  if (initialUser.value) {
-    fillForm(initialUser.value)
-    showAvatar.value = true
-  }
-  isEditing.value = false
-}
-
 async function onPickAvatar(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files && input.files[0]
@@ -456,10 +481,20 @@ function buildPayload(): Partial<User> {
   // 仅允许修改昵称与个人简介
   const profilePayload: any = {}
   const p = u.profile || {}
-  if ((form.profile?.nickname || '') !== (p.nickname || ''))
-    profilePayload.nickname = form.profile?.nickname || ''
-  if ((form.profile?.bio || '') !== (p.bio || ''))
-    profilePayload.bio = form.profile?.bio || ''
+  
+  // 只在字段有实际内容且与原值不同时才更新
+  const newNickname = (form.profile?.nickname || '').trim()
+  const oldNickname = (p.nickname || '').trim()
+  if (newNickname && newNickname !== oldNickname) {
+    profilePayload.nickname = newNickname
+  }
+  
+  const newBio = (form.profile?.bio || '').trim()
+  const oldBio = (p.bio || '').trim()
+  if (newBio && newBio !== oldBio) {
+    profilePayload.bio = newBio
+  }
+  
   if (Object.keys(profilePayload).length > 0) payload.profile = profilePayload
   return payload
 }
@@ -542,6 +577,36 @@ async function onDetectAddress() {
   } finally {
     detecting.value = false
   }
+}
+
+function startEdit() {
+  isEditing.value = true
+}
+
+function cancelEdit() {
+  onReset()
+  isEditing.value = false
+}
+
+// 修改密码相关
+function openChangePasswordDialog() {
+  changePasswordDialogOpen.value = true
+}
+
+function handleChangePasswordSuccess() {
+  showToast('success', '密码修改成功，请重新登录')
+  // 密码修改成功后，清除认证信息并跳转到登录页
+  setTimeout(() => {
+    localStorage.removeItem('auth_token')
+    sessionStorage.removeItem('auth_token')
+    localStorage.removeItem('user_info')
+    sessionStorage.removeItem('user_info')
+    window.location.href = '/login'
+  }, 1500)
+}
+
+function handleChangePasswordError(error: { message: string }) {
+  showToast('error', error?.message || '修改密码失败')
 }
 </script>
 
@@ -656,6 +721,40 @@ async function onDetectAddress() {
 .field.full {
   grid-column: 1 / -1;
 }
+.input-with-icon {
+  position: relative;
+  width: 100%;
+}
+.input-with-icon input {
+  width: 100%;
+  padding-right: 40px !important;
+}
+.field-toggle-btn {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  padding: 6px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 4px;
+}
+.field-toggle-btn:hover {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+}
+.field-toggle-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
 label {
   font-size: 12px;
   color: #6b7280;
@@ -746,6 +845,36 @@ select:focus {
     flex-direction: column;
     align-items: stretch;
   }
+}
+
+/* 安全设置区域样式 */
+.security-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #f3f4f6;
+}
+
+.security-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: #f9fafb;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+}
+
+.security-info h4 {
+  margin: 0 0 4px 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.security-desc {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
 }
 
 /* 历史头像弹窗样式 */
