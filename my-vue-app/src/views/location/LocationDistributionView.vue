@@ -684,7 +684,6 @@ const render3DGlobe = async () => {
       backgroundColor: 'rgba(5, 10, 20, 1)',
       title: {
         text: '用户省份分布（3D柱状图）',
-        subtext: '地图加载失败，使用简化版本',
         left: 'center',
         top: 20,
         textStyle: {

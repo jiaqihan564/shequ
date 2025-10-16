@@ -1,78 +1,175 @@
 <template>
-  <div class="stats-container">
-    <header class="stats-header">
-      <h2 class="title">全站累计数据</h2>
-      <p class="subtitle">系统运行以来的累计统计数据</p>
-    </header>
-
-    <!-- 用户相关 -->
-    <div class="stats-section">
-      <h3 class="section-title">👥 用户相关</h3>
-      <div class="stats-grid">
-        <div v-for="item in data.user" :key="item.stat_key" class="stat-card">
-          <div class="card-icon user">{{ getIcon(item.stat_key) }}</div>
-          <div class="card-content">
-            <div class="card-label">{{ item.stat_desc }}</div>
-            <div class="card-value">{{ formatNumber(item.stat_value) }}</div>
-          </div>
+  <div class="cumulative-stats-container">
+    <!-- 页面头部 -->
+    <el-card class="header-card" shadow="never">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">全站累计统计</h1>
+          <p class="page-subtitle">系统运行以来的累计统计数据</p>
         </div>
+        <el-button :icon="Refresh" @click="loadData" :loading="loading">
+          刷新数据
+        </el-button>
       </div>
-    </div>
+      <div v-if="lastUpdateTime" class="update-time">
+        <el-text type="info" size="small">
+          <el-icon><Clock /></el-icon>
+          最后更新：{{ lastUpdateTime }}
+        </el-text>
+      </div>
+    </el-card>
 
-    <!-- API相关 -->
-    <div class="stats-section">
-      <h3 class="section-title">📡 API相关</h3>
-      <div class="stats-grid">
-        <div v-for="item in data.api" :key="item.stat_key" class="stat-card">
-          <div class="card-icon api">{{ getIcon(item.stat_key) }}</div>
-          <div class="card-content">
-            <div class="card-label">{{ item.stat_desc }}</div>
-            <div class="card-value">{{ formatNumber(item.stat_value) }}</div>
+    <!-- 加载骨架屏 -->
+    <el-skeleton v-if="loading" :rows="6" animated />
+
+    <!-- 数据展示 -->
+    <div v-else>
+      <!-- 用户数据 -->
+      <el-card class="stats-section-card" shadow="hover">
+        <template #header>
+          <div class="section-header">
+            <h3 class="section-title">
+              <el-icon color="#409eff"><User /></el-icon>
+              用户数据
+            </h3>
           </div>
-        </div>
-      </div>
-    </div>
+        </template>
+        <el-row :gutter="20">
+          <el-col
+            v-for="item in data.user"
+            :key="item.stat_key"
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="6"
+          >
+            <el-statistic
+              :value="item.stat_value"
+              :title="item.stat_desc"
+            >
+              <template #prefix>
+                <el-icon :style="{ color: getUserColor(item.stat_key) }">
+                  <component :is="getUserIcon(item.stat_key)" />
+                </el-icon>
+              </template>
+            </el-statistic>
+          </el-col>
+        </el-row>
+      </el-card>
 
-    <!-- 安全相关 -->
-    <div class="stats-section">
-      <h3 class="section-title">🔐 安全相关</h3>
-      <div class="stats-grid">
-        <div v-for="item in data.security" :key="item.stat_key" class="stat-card">
-          <div class="card-icon security">{{ getIcon(item.stat_key) }}</div>
-          <div class="card-content">
-            <div class="card-label">{{ item.stat_desc }}</div>
-            <div class="card-value">{{ formatNumber(item.stat_value) }}</div>
+      <!-- API数据 -->
+      <el-card class="stats-section-card" shadow="hover">
+        <template #header>
+          <div class="section-header">
+            <h3 class="section-title">
+              <el-icon color="#67c23a"><DataAnalysis /></el-icon>
+              API数据
+            </h3>
           </div>
-        </div>
-      </div>
-    </div>
+        </template>
+        <el-row :gutter="20">
+          <el-col
+            v-for="item in data.api"
+            :key="item.stat_key"
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="6"
+          >
+            <el-statistic
+              :value="item.stat_value"
+              :title="item.stat_desc"
+            >
+              <template #prefix>
+                <el-icon :style="{ color: getApiColor(item.stat_key) }">
+                  <component :is="getApiIcon(item.stat_key)" />
+                </el-icon>
+              </template>
+            </el-statistic>
+          </el-col>
+        </el-row>
+      </el-card>
 
-    <!-- 内容相关 -->
-    <div class="stats-section">
-      <h3 class="section-title">📁 内容相关</h3>
-      <div class="stats-grid">
-        <div v-for="item in data.content" :key="item.stat_key" class="stat-card">
-          <div class="card-icon content">{{ getIcon(item.stat_key) }}</div>
-          <div class="card-content">
-            <div class="card-label">{{ item.stat_desc }}</div>
-            <div class="card-value">{{ formatNumber(item.stat_value) }}</div>
+      <!-- 安全数据 -->
+      <el-card class="stats-section-card" shadow="hover">
+        <template #header>
+          <div class="section-header">
+            <h3 class="section-title">
+              <el-icon color="#f56c6c"><Lock /></el-icon>
+              安全数据
+            </h3>
           </div>
-        </div>
-      </div>
-    </div>
+        </template>
+        <el-row :gutter="20">
+          <el-col
+            v-for="item in data.security"
+            :key="item.stat_key"
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="6"
+          >
+            <el-statistic
+              :value="item.stat_value"
+              :title="item.stat_desc"
+            >
+              <template #prefix>
+                <el-icon :style="{ color: getSecurityColor(item.stat_key) }">
+                  <component :is="getSecurityIcon(item.stat_key)" />
+                </el-icon>
+              </template>
+            </el-statistic>
+          </el-col>
+        </el-row>
+      </el-card>
 
-    <LoadingSpinner v-if="loading" />
+      <!-- 内容数据 -->
+      <el-card v-if="data.content && data.content.length > 0" class="stats-section-card" shadow="hover">
+        <template #header>
+          <div class="section-header">
+            <h3 class="section-title">
+              <el-icon color="#e6a23c"><Document /></el-icon>
+              内容数据
+            </h3>
+          </div>
+        </template>
+        <el-row :gutter="20">
+          <el-col
+            v-for="item in data.content"
+            :key="item.stat_key"
+            :xs="24"
+            :sm="12"
+            :md="8"
+            :lg="6"
+          >
+            <el-statistic
+              :value="item.stat_value"
+              :title="item.stat_desc"
+            >
+              <template #prefix>
+                <el-icon :style="{ color: getContentColor(item.stat_key) }">
+                  <component :is="getContentIcon(item.stat_key)" />
+                </el-icon>
+              </template>
+            </el-statistic>
+          </el-col>
+        </el-row>
+      </el-card>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-
-import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
+import {
+  Refresh, Clock, User, DataAnalysis, Lock, Document,
+  UserFilled, Key, Connection, Upload, EditPen, Warning
+} from '@element-plus/icons-vue'
 import { getCumulativeStats } from '@/utils/api'
-import { toast } from '@/utils/toast'
+import toast from '@/utils/toast'
 
 const loading = ref(false)
+const lastUpdateTime = ref('')
 const data = ref<any>({
   user: [],
   api: [],
@@ -85,6 +182,7 @@ const loadData = async () => {
   try {
     const result = await getCumulativeStats()
     data.value = result || { user: [], api: [], security: [], content: [] }
+    lastUpdateTime.value = new Date().toLocaleString('zh-CN')
   } catch (error: any) {
     toast.error(error?.message || '加载累计统计失败')
   } finally {
@@ -92,27 +190,58 @@ const loadData = async () => {
   }
 }
 
-const formatNumber = (num: number) => {
-  if (num >= 1000000) {
-    return (num / 1000000).toFixed(1) + 'M'
+// 用户数据图标和颜色
+function getUserIcon(statKey: string) {
+  const icons: any = {
+    total_users: UserFilled,
+    total_logins: Key,
+    active_users: User
   }
-  if (num >= 1000) {
-    return (num / 1000).toFixed(1) + 'K'
-  }
-  return num.toString()
+  return icons[statKey] || UserFilled
 }
 
-const getIcon = (statKey: string) => {
+function getUserColor(statKey: string) {
+  return '#409eff'
+}
+
+// API数据图标和颜色
+function getApiIcon(statKey: string) {
   const icons: any = {
-    total_users: '👥',
-    total_logins: '🔐',
-    total_api_calls: '📡',
-    total_uploads: '📁',
-    total_password_changes: '🔑',
-    total_password_resets: '🔄',
-    total_errors: '⚠️'
+    total_api_calls: Connection,
+    total_uploads: Upload,
+    api_success: DataAnalysis,
+    api_errors: Warning
   }
-  return icons[statKey] || '📊'
+  return icons[statKey] || Connection
+}
+
+function getApiColor(statKey: string) {
+  if (statKey.includes('error')) return '#f56c6c'
+  return '#67c23a'
+}
+
+// 安全数据图标和颜色
+function getSecurityIcon(statKey: string) {
+  const icons: any = {
+    total_password_changes: EditPen,
+    total_password_resets: Key,
+    security_events: Lock
+  }
+  return icons[statKey] || Lock
+}
+
+function getSecurityColor(statKey: string) {
+  if (statKey.includes('error') || statKey.includes('fail')) return '#f56c6c'
+  return '#e6a23c'
+}
+
+// 内容数据图标和颜色
+function getContentIcon(statKey: string) {
+  return Document
+}
+
+function getContentColor(statKey: string) {
+  return '#409eff'
 }
 
 onMounted(() => {
@@ -121,105 +250,109 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.stats-container {
-  max-width: 1200px;
+.cumulative-stats-container {
+  max-width: 1400px;
   margin: 0 auto;
-  padding: 24px;
+  padding: 20px;
 }
 
-.stats-header {
-  margin-bottom: 32px;
+.header-card {
+  margin-bottom: 20px;
+  border-radius: 12px;
 }
 
-.title {
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.page-title {
   font-size: 28px;
-  font-weight: 700;
-  background: linear-gradient(135deg, #667eea, #764ba2);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-weight: bold;
+  color: #303133;
   margin: 0 0 8px 0;
 }
 
-.subtitle {
-  color: #6b7280;
+.page-subtitle {
   font-size: 14px;
+  color: #909399;
   margin: 0;
 }
 
-.stats-section {
-  margin-bottom: 32px;
+.update-time {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #ebeef5;
+}
+
+.stats-section-card {
+  margin-bottom: 20px;
+  border-radius: 12px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .section-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 16px 0;
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 20px;
-}
-
-.stat-card {
-  background: white;
-  border-radius: 16px;
-  padding: 24px;
   display: flex;
   align-items: center;
-  gap: 16px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0;
+}
+
+/* Statistic 组件样式优化 */
+:deep(.el-statistic) {
+  padding: 20px;
+  background: #f5f7fa;
+  border-radius: 8px;
+  text-align: center;
   transition: all 0.3s;
 }
 
-.stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+:deep(.el-statistic:hover) {
+  background: #ecf5ff;
+  transform: translateY(-2px);
 }
 
-.card-icon {
-  width: 60px;
-  height: 60px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 28px;
-  flex-shrink: 0;
+:deep(.el-statistic__head) {
+  font-size: 14px;
+  color: #606266;
+  margin-bottom: 12px;
 }
 
-.card-icon.user {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+:deep(.el-statistic__content) {
+  font-size: 32px;
+  font-weight: bold;
+  color: #303133;
 }
 
-.card-icon.api {
-  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+:deep(.el-statistic .el-icon) {
+  font-size: 24px;
+  margin-right: 8px;
 }
 
-.card-icon.security {
-  background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
-}
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .cumulative-stats-container {
+    padding: 10px;
+  }
 
-.card-icon.content {
-  background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
-}
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
 
-.card-content {
-  flex: 1;
-}
-
-.card-label {
-  font-size: 13px;
-  color: #6b7280;
-  margin-bottom: 6px;
-}
-
-.card-value {
-  font-size: 36px;
-  font-weight: 700;
-  color: #111827;
+  .page-title {
+    font-size: 24px;
+  }
 }
 </style>
-

@@ -27,17 +27,21 @@
     "format:check": "prettier --check \"src/**/*.{js,ts,vue,json,css,scss,md}\""
   },
   "dependencies": {
+    "@element-plus/icons-vue": "^2.3.2",
     "@vueuse/core": "^11.0.0",
     "@vueuse/head": "^2.0.0",
     "axios": "^1.7.7",
-    "echarts": "^6.0.0",
+    "echarts": "^5.6.0",
     "echarts-extension-gmap": "^1.7.0",
     "echarts-gl": "^2.0.9",
+    "element-plus": "^2.11.4",
     "pinia": "^2.2.6",
+    "qrcode": "^1.5.4",
     "vue": "^3.5.18",
     "vue-router": "^4.4.5"
   },
   "devDependencies": {
+    "@types/qrcode": "^1.5.5",
     "@typescript-eslint/eslint-plugin": "^8.43.0",
     "@typescript-eslint/parser": "^8.43.0",
     "@vitejs/plugin-vue": "^6.0.1",

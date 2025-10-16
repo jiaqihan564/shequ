@@ -17,6 +17,9 @@ const DailyMetricsView = () => import('@/views/stats/DailyMetricsView.vue')
 const RealtimeMetricsView = () => import('@/views/stats/RealtimeMetricsView.vue')
 const LocationDistributionView = () => import('@/views/location/LocationDistributionView.vue')
 const ChatRoomView = () => import('@/views/chat/ChatRoomView.vue')
+const ArticleListView = () => import('@/views/article/ArticleListView.vue')
+const ArticleDetailView = () => import('@/views/article/ArticleDetailView.vue')
+const ArticleEditorView = () => import('@/views/article/ArticleEditorView.vue')
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/home' },
@@ -104,6 +107,30 @@ const routes: RouteRecordRaw[] = [
         name: 'chatroom',
         component: ChatRoomView,
         meta: { title: '聊天室', requiresAuth: true }
+      },
+      {
+        path: 'articles',
+        name: 'articles',
+        component: ArticleListView,
+        meta: { title: '技术文章', requiresAuth: true }
+      },
+      {
+        path: 'articles/create',
+        name: 'article-create',
+        component: ArticleEditorView,
+        meta: { title: '发布文章', requiresAuth: true }
+      },
+      {
+        path: 'articles/:id/edit',
+        name: 'article-edit',
+        component: ArticleEditorView,
+        meta: { title: '编辑文章', requiresAuth: true }
+      },
+      {
+        path: 'articles/:id',
+        name: 'article-detail',
+        component: ArticleDetailView,
+        meta: { title: '文章详情', requiresAuth: true }
       }
     ]
   }

@@ -984,4 +984,184 @@ export async function getOnlineCount(): Promise<number> {
   throw createAppError('GET_ONLINE_COUNT_FAILED', response.data.message || '获取在线用户数失败')
 }
 
+// ========================================
+// 文章相关API
+// ========================================
+
+import type {
+  CreateArticleRequest,
+  UpdateArticleRequest,
+  ArticleDetail,
+  ArticleListResponse,
+  ArticleListQuery,
+  CreateCommentRequest,
+  CommentsResponse,
+  CreateReportRequest,
+  ArticleCategory,
+  ArticleTag
+} from '@/types/article'
+
+/**
+ * 创建文章
+ */
+export async function createArticle(data: CreateArticleRequest): Promise<{ article_id: number }> {
+  const response = await api.post<ApiResponse<{ article_id: number }>>('/articles', data)
+  
+  if (response.data.code === 201 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('CREATE_ARTICLE_FAILED', response.data.message || '创建文章失败')
+}
+
+/**
+ * 获取文章列表
+ */
+export async function getArticles(query: ArticleListQuery = {}): Promise<ArticleListResponse> {
+  const response = await api.get<ApiResponse<ArticleListResponse>>('/articles', { params: query })
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_ARTICLES_FAILED', response.data.message || '获取文章列表失败')
+}
+
+/**
+ * 获取文章详情
+ */
+export async function getArticleDetail(id: number): Promise<ArticleDetail> {
+  const response = await api.get<ApiResponse<ArticleDetail>>(`/articles/${id}`)
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_ARTICLE_DETAIL_FAILED', response.data.message || '获取文章详情失败')
+}
+
+/**
+ * 更新文章
+ */
+export async function updateArticle(id: number, data: UpdateArticleRequest): Promise<void> {
+  const response = await api.put<ApiResponse>(`/articles/${id}`, data)
+  
+  if (response.data.code !== 200) {
+    throw createAppError('UPDATE_ARTICLE_FAILED', response.data.message || '更新文章失败')
+  }
+}
+
+/**
+ * 删除文章
+ */
+export async function deleteArticle(id: number): Promise<void> {
+  const response = await api.delete<ApiResponse>(`/articles/${id}`)
+  
+  if (response.data.code !== 200) {
+    throw createAppError('DELETE_ARTICLE_FAILED', response.data.message || '删除文章失败')
+  }
+}
+
+/**
+ * 切换文章点赞
+ */
+export async function toggleArticleLike(id: number): Promise<boolean> {
+  const response = await api.post<ApiResponse<{ is_liked: boolean }>>(`/articles/${id}/like`)
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data.is_liked
+  }
+  
+  throw createAppError('TOGGLE_LIKE_FAILED', response.data.message || '点赞操作失败')
+}
+
+/**
+ * 发表评论
+ */
+export async function postComment(articleId: number, data: CreateCommentRequest): Promise<{ comment_id: number }> {
+  const response = await api.post<ApiResponse<{ comment_id: number }>>(`/articles/${articleId}/comments`, data)
+  
+  if (response.data.code === 201 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('POST_COMMENT_FAILED', response.data.message || '发表评论失败')
+}
+
+/**
+ * 获取文章评论
+ */
+export async function getArticleComments(articleId: number, page = 1, pageSize = 20): Promise<CommentsResponse> {
+  const response = await api.get<ApiResponse<CommentsResponse>>(`/articles/${articleId}/comments`, {
+    params: { page, page_size: pageSize }
+  })
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_COMMENTS_FAILED', response.data.message || '获取评论失败')
+}
+
+/**
+ * 切换评论点赞
+ */
+export async function toggleCommentLike(commentId: number): Promise<boolean> {
+  const response = await api.post<ApiResponse<{ is_liked: boolean }>>(`/comments/${commentId}/like`)
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data.is_liked
+  }
+  
+  throw createAppError('TOGGLE_COMMENT_LIKE_FAILED', response.data.message || '点赞评论失败')
+}
+
+/**
+ * 删除评论
+ */
+export async function deleteComment(commentId: number): Promise<void> {
+  const response = await api.delete<ApiResponse>(`/comments/${commentId}`)
+  
+  if (response.data.code !== 200) {
+    throw createAppError('DELETE_COMMENT_FAILED', response.data.message || '删除评论失败')
+  }
+}
+
+/**
+ * 举报文章或评论
+ */
+export async function reportContent(data: CreateReportRequest): Promise<void> {
+  const response = await api.post<ApiResponse>('/articles/report', data)
+  
+  if (response.data.code !== 201) {
+    throw createAppError('REPORT_FAILED', response.data.message || '举报失败')
+  }
+}
+
+/**
+ * 获取所有分类
+ */
+export async function getArticleCategories(): Promise<ArticleCategory[]> {
+  const response = await api.get<ApiResponse<{ categories: ArticleCategory[] }>>('/articles/categories')
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data.categories
+  }
+  
+  throw createAppError('GET_CATEGORIES_FAILED', response.data.message || '获取分类失败')
+}
+
+/**
+ * 获取所有标签
+ */
+export async function getArticleTags(): Promise<ArticleTag[]> {
+  const response = await api.get<ApiResponse<{ tags: ArticleTag[] }>>('/articles/tags')
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data.tags
+  }
+  
+  throw createAppError('GET_TAGS_FAILED', response.data.message || '获取标签失败')
+}
+
 export default api

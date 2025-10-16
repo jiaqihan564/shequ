@@ -7,8 +7,8 @@
           <p class="subtitle">浏览精彩内容 · 关注热门话题 · 与伙伴高效交流</p>
         </div>
         <div class="hero-actions">
-          <button class="btn primary" @click="$emit('create-post')">发布帖子</button>
-          <button class="btn ghost" @click="$emit('explore-topics')">探索话题</button>
+          <router-link to="/articles/create" class="btn primary">✏️ 发布文章</router-link>
+          <router-link to="/articles" class="btn ghost">📚 浏览文章</router-link>
         </div>
       </div>
     </section>
@@ -37,17 +37,13 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { RouterLink } from 'vue-router'
 
 import type { User } from '@/types'
 import type { NewsItem } from '@/types'
 import { fetchNews } from '@/utils/api'
 import NewsCarousel from '@/components/news/NewsCarousel.vue'
 import toast from '@/utils/toast'
-
-defineEmits<{
-  (e: 'create-post'): void
-  (e: 'explore-topics'): void
-}>()
 
 const user = ref<User | null>(null)
 const news = ref<NewsItem[]>([])
@@ -156,9 +152,15 @@ function onVisibility() {
   gap: 10px;
 }
 .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   padding: 10px 16px;
   border-radius: 10px;
   font-weight: 600;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
   transition: all var(--transition-normal, 300ms ease-in-out);
 }
 .btn.primary {

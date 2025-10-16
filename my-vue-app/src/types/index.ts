@@ -247,3 +247,6 @@ export interface FetchNewsParams {
   country?: string
   category?: string
 }
+
+// 导出文章相关类型
+export * from './article'

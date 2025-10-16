@@ -25,6 +25,7 @@
           <div class="nav-divider"></div>
           <div class="nav-section-title">社交互动</div>
           <RouterLink to="/chatroom" class="nav-item" active-class="active">💬 聊天室</RouterLink>
+          <RouterLink to="/articles" class="nav-item" active-class="active">📝 技术文章</RouterLink>
         </nav>
       </slot>
     </aside>
