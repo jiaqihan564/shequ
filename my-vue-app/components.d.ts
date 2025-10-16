@@ -17,6 +17,7 @@ declare module 'vue' {
     ForgotPasswordDialog: typeof import('./src/components/auth/ForgotPasswordDialog.vue')['default']
     InfoIcon: typeof import('./src/components/icons/InfoIcon.vue')['default']
     NewsCarousel: typeof import('./src/components/news/NewsCarousel.vue')['default']
+    ResourceCommentItem: typeof import('./src/components/resource/ResourceCommentItem.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     UserIcon: typeof import('./src/components/icons/UserIcon.vue')['default']

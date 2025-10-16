@@ -30,6 +30,9 @@
             <el-badge v-if="unreadCount > 0" :value="unreadCount" type="danger" />
           </RouterLink>
           <RouterLink to="/articles" class="nav-item" active-class="active">📝 技术文章</RouterLink>
+          <div class="nav-divider"></div>
+          <div class="nav-section-title">资源分享</div>
+          <RouterLink to="/resources" class="nav-item" active-class="active">📦 资源中心</RouterLink>
         </nav>
       </slot>
     </aside>

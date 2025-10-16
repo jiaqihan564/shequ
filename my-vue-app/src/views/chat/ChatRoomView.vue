@@ -225,14 +225,19 @@ const loadInitialMessages = async () => {
 let pollInterval: number | null = null
 const pollNewMessages = async () => {
   try {
+    console.log('轮询新消息，lastMessageId:', lastMessageId.value)
     const result = await getNewChatMessages(lastMessageId.value)
     const messages = result.messages || []
     
+    console.log('收到新消息:', messages.length, '条')
+    
     if (messages.length > 0) {
       messages.forEach((msg: ChatMessage) => {
+        console.log('添加弹幕:', msg.content)
         addDanmaku(msg)
       })
       lastMessageId.value = messages[messages.length - 1].id
+      console.log('更新lastMessageId:', lastMessageId.value)
     }
   } catch (error) {
     // 静默失败，避免频繁提示
@@ -262,10 +267,10 @@ onMounted(() => {
   // 加载初始消息
   loadInitialMessages()
   
-  // 启动轮询（每2秒）
+  // 启动轮询（每1秒，更实时）
   pollInterval = window.setInterval(() => {
     pollNewMessages()
-  }, 2000)
+  }, 1000)
   
   // 更新在线人数（每5秒）
   updateOnlineCount()

@@ -23,6 +23,9 @@ const ArticleEditorView = () => import('@/views/article/ArticleEditorView.vue')
 const UserDetailView = () => import('@/views/user/UserDetailView.vue')
 const MessageListView = () => import('@/views/message/MessageListView.vue')
 const MessageChatView = () => import('@/views/message/MessageChatView.vue')
+const ResourceListView = () => import('@/views/resource/ResourceListView.vue')
+const ResourceDetailView = () => import('@/views/resource/ResourceDetailView.vue')
+const ResourceUploadView = () => import('@/views/resource/ResourceUploadView.vue')
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/home' },
@@ -152,6 +155,24 @@ const routes: RouteRecordRaw[] = [
         name: 'message-chat',
         component: MessageChatView,
         meta: { title: '对话', requiresAuth: true }
+      },
+      {
+        path: 'resources',
+        name: 'resources',
+        component: ResourceListView,
+        meta: { title: '资源中心', requiresAuth: true }
+      },
+      {
+        path: 'resources/upload',
+        name: 'resource-upload',
+        component: ResourceUploadView,
+        meta: { title: '上传资源', requiresAuth: true }
+      },
+      {
+        path: 'resources/:id',
+        name: 'resource-detail',
+        component: ResourceDetailView,
+        meta: { title: '资源详情', requiresAuth: true }
       }
     ]
   }

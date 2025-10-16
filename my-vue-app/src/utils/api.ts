@@ -1243,4 +1243,222 @@ export async function startConversation(userId: number): Promise<StartConversati
   throw createAppError('START_CONVERSATION_FAILED', response.data.message || '开始会话失败')
 }
 
+// ========================================
+// 资源相关API
+// ========================================
+
+import type {
+  Resource,
+  ResourceListResponse,
+  ResourceListItem,
+  ResourceCategory,
+  CreateResourceRequest,
+  InitUploadRequest,
+  InitUploadResponse,
+  MergeChunksResponse
+} from '@/types/resource'
+
+/**
+ * 获取资源列表
+ */
+export async function getResources(params?: {
+  page?: number
+  page_size?: number
+  category_id?: number
+  keyword?: string
+  sort_by?: string
+  user_id?: number
+}): Promise<ResourceListResponse> {
+  const response = await api.get<ApiResponse<ResourceListResponse>>('/resources', { params })
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_RESOURCES_FAILED', response.data.message || '获取资源列表失败')
+}
+
+/**
+ * 获取资源详情
+ */
+export async function getResourceDetail(id: number): Promise<Resource> {
+  const response = await api.get<ApiResponse<Resource>>(`/resources/${id}`)
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_RESOURCE_DETAIL_FAILED', response.data.message || '获取资源详情失败')
+}
+
+/**
+ * 创建资源
+ */
+export async function createResource(data: CreateResourceRequest): Promise<{ resource_id: number }> {
+  const response = await api.post<ApiResponse<{ resource_id: number }>>('/resources', data)
+  
+  if (response.data.code === 201 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('CREATE_RESOURCE_FAILED', response.data.message || '创建资源失败')
+}
+
+/**
+ * 删除资源
+ */
+export async function deleteResource(id: number): Promise<void> {
+  const response = await api.delete<ApiResponse>(`/resources/${id}`)
+  
+  if (response.data.code !== 200) {
+    throw createAppError('DELETE_RESOURCE_FAILED', response.data.message || '删除资源失败')
+  }
+}
+
+/**
+ * 切换资源点赞
+ */
+export async function toggleResourceLike(id: number): Promise<boolean> {
+  const response = await api.post<ApiResponse<{ is_liked: boolean }>>(`/resources/${id}/like`)
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data.is_liked
+  }
+  
+  throw createAppError('TOGGLE_RESOURCE_LIKE_FAILED', response.data.message || '点赞失败')
+}
+
+/**
+ * 获取资源下载链接
+ */
+export async function getResourceDownload(id: number): Promise<{ download_url: string; file_name: string; file_size: number }> {
+  const response = await api.get<ApiResponse<{ download_url: string; file_name: string; file_size: number }>>(`/resources/${id}/download`)
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_DOWNLOAD_FAILED', response.data.message || '获取下载链接失败')
+}
+
+/**
+ * 获取资源分类
+ */
+export async function getResourceCategories(): Promise<ResourceCategory[]> {
+  const response = await api.get<ApiResponse<{ categories: ResourceCategory[] }>>('/resource-categories')
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data.categories
+  }
+  
+  throw createAppError('GET_RESOURCE_CATEGORIES_FAILED', response.data.message || '获取分类失败')
+}
+
+/**
+ * 发表资源评论
+ */
+export async function postResourceComment(resourceId: number, data: { content: string; parent_id?: number; reply_to_user_id?: number }) {
+  const response = await api.post<ApiResponse<{ comment_id: number }>>(`/resources/${resourceId}/comments`, data)
+  
+  if (response.data.code === 201 || response.data.code === 200) {
+    return response.data.data
+  }
+  
+  throw createAppError('POST_RESOURCE_COMMENT_FAILED', response.data.message || '评论失败')
+}
+
+/**
+ * 获取资源评论列表
+ */
+export async function getResourceComments(resourceId: number, params?: { page?: number; page_size?: number }) {
+  const response = await api.get<ApiResponse<any>>(`/resources/${resourceId}/comments`, { params })
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_RESOURCE_COMMENTS_FAILED', response.data.message || '获取评论失败')
+}
+
+/**
+ * 切换资源评论点赞
+ */
+export async function toggleResourceCommentLike(commentId: number): Promise<boolean> {
+  const response = await api.post<ApiResponse<{ is_liked: boolean }>>(`/resource-comments/${commentId}/like`)
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data.is_liked
+  }
+  
+  throw createAppError('TOGGLE_RESOURCE_COMMENT_LIKE_FAILED', response.data.message || '操作失败')
+}
+
+/**
+ * 初始化分片上传
+ */
+export async function initChunkUpload(data: InitUploadRequest): Promise<InitUploadResponse> {
+  const response = await api.post<ApiResponse<InitUploadResponse>>('/upload/init', data)
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('INIT_UPLOAD_FAILED', response.data.message || '初始化上传失败')
+}
+
+/**
+ * 上传分片
+ */
+export async function uploadChunk(uploadId: string, chunkIndex: number, chunkData: Blob): Promise<void> {
+  const formData = new FormData()
+  formData.append('upload_id', uploadId)
+  formData.append('chunk_index', chunkIndex.toString())
+  formData.append('chunk', chunkData)
+  
+  const response = await api.post<ApiResponse>('/upload/chunk', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  
+  if (response.data.code !== 200) {
+    throw createAppError('UPLOAD_CHUNK_FAILED', response.data.message || '上传分片失败')
+  }
+}
+
+/**
+ * 合并分片
+ */
+export async function mergeChunks(uploadId: string): Promise<MergeChunksResponse> {
+  const response = await api.post<ApiResponse<MergeChunksResponse>>('/upload/merge', { upload_id: uploadId })
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('MERGE_CHUNKS_FAILED', response.data.message || '合并分片失败')
+}
+
+/**
+ * 查询上传进度
+ */
+export async function getUploadStatus(uploadId: string): Promise<any> {
+  const response = await api.get<ApiResponse<any>>(`/upload/status/${uploadId}`)
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_UPLOAD_STATUS_FAILED', response.data.message || '查询进度失败')
+}
+
+/**
+ * 取消上传
+ */
+export async function cancelUpload(uploadId: string): Promise<void> {
+  const response = await api.post<ApiResponse>(`/upload/cancel/${uploadId}`)
+  
+  if (response.data.code !== 200) {
+    throw createAppError('CANCEL_UPLOAD_FAILED', response.data.message || '取消上传失败')
+  }
+}
+
 export default api

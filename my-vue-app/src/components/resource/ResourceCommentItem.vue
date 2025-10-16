@@ -2,22 +2,22 @@
   <div :class="['comment-item', { 'is-reply': isReply }]">
     <el-avatar
       :size="isReply ? 32 : 40"
-      :src="hasValidAvatar(comment.user?.avatar || comment.author?.avatar) ? (comment.user?.avatar || comment.author?.avatar) : undefined"
-      :alt="comment.user?.nickname || comment.author?.nickname"
+      :src="hasValidAvatar(comment.user?.avatar) ? comment.user.avatar : undefined"
+      :alt="comment.user?.nickname"
       @click="goToUserDetail"
       :style="{ 
-        backgroundColor: getAvatarColor(comment.user?.id || comment.author?.id || comment.user_id), 
+        backgroundColor: getAvatarColor(comment.user?.id || comment.user_id), 
         cursor: 'pointer',
         fontSize: isReply ? '14px' : '18px',
         fontWeight: '600'
       }"
     >
-      {{ getAvatarInitial(comment.user?.nickname || comment.author?.nickname) }}
+      {{ getAvatarInitial(comment.user?.nickname) }}
     </el-avatar>
     <div class="comment-content">
       <div class="comment-header">
         <div class="commenter-info">
-          <span class="commenter-name">{{ comment.user?.nickname || comment.author?.nickname }}</span>
+          <span class="commenter-name">{{ comment.user?.nickname }}</span>
           <span v-if="comment.reply_to_user" class="reply-to">
             回复 @{{ comment.reply_to_user.nickname }}
           </span>
@@ -42,7 +42,7 @@
           v-model="replyContent"
           type="textarea"
           :rows="3"
-          :placeholder="`回复 @${comment.user?.nickname || comment.author?.nickname}...`"
+          :placeholder="`回复 @${comment.user?.nickname}...`"
           maxlength="500"
           show-word-limit
         />
@@ -54,18 +54,18 @@
             :disabled="!replyContent.trim()"
             @click="submitReply"
           >
-            发表回复
+            发送
           </el-button>
         </div>
       </div>
 
       <!-- 递归显示子评论 -->
       <div v-if="comment.replies && comment.replies.length > 0" class="replies-list">
-        <CommentItem
+        <ResourceCommentItem
           v-for="reply in comment.replies"
           :key="reply.id"
           :comment="reply"
-          :article-id="articleId"
+          :resource-id="resourceId"
           :is-reply="true"
           @comment-posted="$emit('commentPosted')"
         />
@@ -78,14 +78,14 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { ChatDotRound } from '@element-plus/icons-vue'
-import { postComment } from '@/utils/api'
-import type { ArticleComment } from '@/types'
+import { postResourceComment } from '@/utils/api'
+import type { ResourceComment } from '@/types/resource'
 import toast from '@/utils/toast'
 import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
 
 interface Props {
-  comment: ArticleComment
-  articleId: number
+  comment: ResourceComment
+  resourceId: number
   isReply?: boolean
 }
 
@@ -96,7 +96,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const emit = defineEmits<{
-  reply: [comment: ArticleComment]
+  reply: [comment: ResourceComment]
   commentPosted: []
 }>()
 
@@ -122,7 +122,7 @@ async function submitReply() {
   }
 
   try {
-    await postComment(props.articleId, {
+    await postResourceComment(props.resourceId, {
       content: replyContent.value,
       parent_id: props.comment.id,
       reply_to_user_id: props.comment.user_id || props.comment.user?.id
@@ -138,7 +138,7 @@ async function submitReply() {
 }
 
 function goToUserDetail() {
-  const userId = props.comment.user?.id || props.comment.author?.id || props.comment.user_id
+  const userId = props.comment.user?.id || props.comment.user_id
   if (userId) {
     router.push(`/users/${userId}`)
   }
@@ -173,14 +173,9 @@ function formatDate(dateString: string): string {
 }
 
 .comment-item.is-reply {
-  padding-bottom: 16px;
+  padding-left: 20px;
   border-bottom: none;
-  margin-top: 16px;
-}
-
-.comment-item:last-child {
-  border-bottom: none;
-  padding-bottom: 0;
+  padding-bottom: 12px;
 }
 
 .comment-content {
@@ -193,8 +188,6 @@ function formatDate(dateString: string): string {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
-  flex-wrap: wrap;
-  gap: 8px;
 }
 
 .commenter-info {
@@ -211,26 +204,26 @@ function formatDate(dateString: string): string {
 }
 
 .reply-to {
-  font-size: 13px;
   color: #909399;
+  font-size: 13px;
 }
 
 .comment-time {
-  font-size: 13px;
   color: #909399;
+  font-size: 13px;
+  white-space: nowrap;
 }
 
 .comment-text {
-  font-size: 14px;
+  margin-bottom: 12px;
   color: #606266;
   line-height: 1.6;
-  margin-bottom: 8px;
   word-break: break-word;
 }
 
 .comment-actions {
   display: flex;
-  gap: 12px;
+  gap: 16px;
 }
 
 .reply-input-box {
@@ -249,18 +242,15 @@ function formatDate(dateString: string): string {
 
 .replies-list {
   margin-top: 16px;
-  padding-left: 20px;
-  border-left: 2px solid #ebeef5;
+  padding-left: 12px;
+  border-left: 2px solid #e4e7ed;
 }
 
-/* 响应式设计 */
+/* 响应式 */
 @media (max-width: 768px) {
   .comment-item {
+    flex-direction: column;
     gap: 8px;
-  }
-
-  .replies-list {
-    padding-left: 12px;
   }
 
   .comment-header {

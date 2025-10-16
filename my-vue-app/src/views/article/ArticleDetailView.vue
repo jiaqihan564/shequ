@@ -64,7 +64,7 @@
 
       <!-- 文章正文 -->
       <el-card class="article-body-card" shadow="never">
-        <div v-html="renderedContent" class="markdown-body"></div>
+        <div v-html="renderedContent" class="markdown-body" @click="handleImageClick"></div>
         
         <!-- 代码块 -->
         <div v-if="article.code_blocks && article.code_blocks.length > 0" class="code-blocks">
@@ -136,7 +136,7 @@
             size="large"
             @click="handleLike"
           >
-            {{ article.is_liked ? '已点赞' : '点赞' }} ({{ article.like_count }})
+          {{ article.is_liked ? '已点赞' : '点赞' }} ({{ article.like_count }})
           </el-button>
           
           <el-button
@@ -145,7 +145,7 @@
             size="large"
             @click="scrollToComments"
           >
-            评论 ({{ article.comment_count }})
+          评论 ({{ article.comment_count }})
           </el-button>
           
           <el-button
@@ -156,7 +156,7 @@
           >
             分享
           </el-button>
-        </div>
+      </div>
       </el-card>
 
       <!-- 评论区 -->
@@ -169,22 +169,21 @@
             </h3>
           </div>
         </template>
-
-        <!-- 发表评论 -->
+        
+        <!-- 评论输入 -->
         <div class="comment-input-section">
           <el-input
             v-model="newComment"
             type="textarea"
-            :rows="4"
+            :rows="3"
             placeholder="发表你的评论..."
             maxlength="500"
             show-word-limit
           />
           <el-button
             type="primary"
-            :icon="Promotion"
-            @click="handlePostComment"
             :disabled="!newComment.trim()"
+            @click="handlePostComment"
             style="margin-top: 12px"
           >
             发表评论
@@ -200,7 +199,6 @@
             :key="comment.id"
             :comment="comment"
             :article-id="article.id"
-            @like="handleCommentLike"
             @comment-posted="handleCommentPosted"
           />
         </div>
@@ -210,6 +208,14 @@
     </div>
 
     <el-empty v-else description="文章不存在" />
+
+    <!-- 图片预览 -->
+    <el-image-viewer
+      v-if="showImageViewer"
+      :url-list="[currentImageUrl]"
+      @close="closeImageViewer"
+      :z-index="3000"
+    />
 
     <!-- 分享对话框 -->
     <el-dialog
@@ -245,7 +251,7 @@
           >
             复制链接
           </el-button>
-        </div>
+              </div>
 
         <el-divider>或通过以下方式分享</el-divider>
 
@@ -297,7 +303,7 @@
           <canvas ref="qrcodeCanvas" class="qrcode-canvas"></canvas>
         </div>
         <p class="qrcode-tip">扫描二维码即可在微信中打开文章</p>
-      </div>
+    </div>
       <template #footer>
         <el-button type="primary" @click="wechatQrVisible = false">关闭</el-button>
       </template>
@@ -310,15 +316,14 @@ import { ref, onMounted, computed, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import QRCode from 'qrcode'
 import {
-  Clock, View, Star, StarFilled, ChatDotRound, Share, Document, Promotion,
+  Clock, View, Star, StarFilled, ChatDotRound, Share, Document,
   Link, CopyDocument, DocumentCopy
 } from '@element-plus/icons-vue'
 import {
   getArticleDetail,
   toggleArticleLike,
   postComment,
-  getArticleComments,
-  toggleCommentLike
+  getArticleComments
 } from '@/utils/api'
 import type { ArticleDetail, ArticleComment } from '@/types'
 import toast from '@/utils/toast'
@@ -337,6 +342,8 @@ const quickCommentExpanded = ref(false)
 const shareDialogVisible = ref(false)
 const wechatQrVisible = ref(false)
 const qrcodeCanvas = ref<HTMLCanvasElement | null>(null)
+const showImageViewer = ref(false)
+const currentImageUrl = ref('')
 
 // 分享链接
 const shareLink = computed(() => {
@@ -368,9 +375,11 @@ async function loadArticle() {
 async function loadComments(articleId: number) {
   try {
     const response = await getArticleComments(articleId)
-    comments.value = response.comments
+    comments.value = response.comments || []
   } catch (error) {
     console.error('加载评论失败:', error)
+    // 确保即使加载失败也能显示空的评论区
+    comments.value = []
   }
 }
 
@@ -400,15 +409,6 @@ async function handlePostComment() {
     if (article.value) article.value.comment_count++
   } catch (error: any) {
     toast.error(error.message || '评论失败')
-  }
-}
-
-async function handleCommentLike(commentId: number) {
-  try {
-    await toggleCommentLike(commentId)
-    // 更新评论状态会由子组件处理
-  } catch (error: any) {
-    toast.error(error.message || '操作失败')
   }
 }
 
@@ -477,6 +477,21 @@ async function copyCode(code: string) {
 // 跳转到用户详情
 function goToUserDetail(userId: number) {
   router.push(`/users/${userId}`)
+}
+
+// 图片点击查看
+function handleImageClick(event: MouseEvent) {
+  const target = event.target as HTMLElement
+  if (target.tagName === 'IMG') {
+    const img = target as HTMLImageElement
+    currentImageUrl.value = img.src
+    showImageViewer.value = true
+  }
+}
+
+function closeImageViewer() {
+  showImageViewer.value = false
+  currentImageUrl.value = ''
 }
 
 // 分享功能
@@ -787,6 +802,13 @@ onMounted(() => {
   height: auto;
   border-radius: 8px;
   margin: 16px 0;
+  cursor: zoom-in;
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.markdown-body :deep(img:hover) {
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .code-blocks {

@@ -17,6 +17,54 @@
       </div>
     </el-card>
 
+    <!-- 快捷访问 -->
+    <el-row :gutter="16" style="margin-bottom: 20px">
+      <el-col :xs="24" :sm="12" :md="6">
+        <el-card class="quick-card" shadow="hover" @click="$router.push('/resources')">
+          <div class="quick-content">
+            <el-icon :size="32" color="#409eff"><FolderOpened /></el-icon>
+            <div>
+              <h4>资源中心</h4>
+              <p>下载实用资源</p>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :sm="12" :md="6">
+        <el-card class="quick-card" shadow="hover" @click="$router.push('/chatroom')">
+          <div class="quick-content">
+            <el-icon :size="32" color="#67c23a"><ChatDotRound /></el-icon>
+            <div>
+              <h4>聊天室</h4>
+              <p>实时交流</p>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :sm="12" :md="6">
+        <el-card class="quick-card" shadow="hover" @click="$router.push('/messages')">
+          <div class="quick-content">
+            <el-icon :size="32" color="#e6a23c"><Message /></el-icon>
+            <div>
+              <h4>私信</h4>
+              <p>私密对话</p>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+      <el-col :xs="24" :sm="12" :md="6">
+        <el-card class="quick-card" shadow="hover" @click="$router.push('/cumulative-stats')">
+          <div class="quick-content">
+            <el-icon :size="32" color="#f56c6c"><DataAnalysis /></el-icon>
+            <div>
+              <h4>数据中心</h4>
+              <p>统计分析</p>
+            </div>
+          </div>
+        </el-card>
+      </el-col>
+    </el-row>
+
     <!-- 筛选器 -->
     <el-card class="filters-card" shadow="never">
       <el-form :inline="true">
@@ -156,14 +204,13 @@
     </el-card>
 
     <!-- 分页 -->
-    <div v-if="total > 0 && totalPages > 1" class="pagination-container">
+    <div v-if="total > 0" class="pagination-container">
       <el-pagination
         v-model:current-page="page"
         :page-size="pageSize"
         :total="total"
-        :pager-count="7"
         background
-        layout="prev, pager, next, jumper, total"
+        layout="prev, pager, next, total"
         @current-change="goToPage"
       />
     </div>
@@ -173,7 +220,7 @@
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { Edit, Search, View, Star, ChatDotRound } from '@element-plus/icons-vue'
+import { Edit, Search, View, Star, ChatDotRound, FolderOpened, Message, DataAnalysis } from '@element-plus/icons-vue'
 import { getArticles, getArticleCategories, getArticleTags } from '@/utils/api'
 import type { ArticleListItem, ArticleCategory, ArticleTag, ArticleListQuery } from '@/types/article'
 import toast from '@/utils/toast'
@@ -453,6 +500,37 @@ onMounted(() => {
   justify-content: center;
   margin-top: 30px;
   padding: 20px 0;
+}
+
+/* 快捷访问卡片 */
+.quick-card {
+  cursor: pointer;
+  border-radius: 12px;
+  transition: all 0.3s;
+}
+
+.quick-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.quick-content {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.quick-content h4 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin: 0 0 4px 0;
+}
+
+.quick-content p {
+  font-size: 13px;
+  color: #909399;
+  margin: 0;
 }
 
 /* 响应式设计 */

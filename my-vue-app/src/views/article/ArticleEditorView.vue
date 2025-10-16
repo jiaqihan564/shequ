@@ -90,13 +90,48 @@
 
         <!-- 正文 -->
         <el-form-item label="文章正文（支持Markdown）" required>
+          <!-- 编辑器工具栏 -->
+          <div class="editor-toolbar">
+            <el-button-group>
+              <el-button
+                :icon="Picture"
+                size="small"
+                @click="selectImage"
+                :loading="uploading"
+              >
+                {{ uploading ? '上传中...' : '插入图片' }}
+              </el-button>
+              <el-button
+                :icon="View"
+                size="small"
+                @click="togglePreview"
+              >
+                {{ showPreview ? '编辑' : '预览' }}
+              </el-button>
+            </el-button-group>
+            <el-text v-if="uploading" type="primary" size="small">
+              正在上传图片，请稍候...
+            </el-text>
+          </div>
+
+          <!-- 编辑器 -->
           <el-input
+            v-if="!showPreview"
+            ref="contentEditor"
             v-model="form.content"
             type="textarea"
-            placeholder="请输入文章正文，支持Markdown格式..."
+            placeholder="请输入文章正文，支持Markdown格式...&#10;&#10;提示：&#10;- 点击'插入图片'上传图片&#10;- 点击'预览'查看渲染效果&#10;- 支持标题、列表、代码块等Markdown语法"
             :rows="15"
             :autosize="{ minRows: 15, maxRows: 30 }"
           />
+
+          <!-- Markdown预览 -->
+          <div v-else class="markdown-preview">
+            <div class="preview-header">
+              <el-text type="info">预览模式</el-text>
+            </div>
+            <div class="markdown-body" v-html="previewContent"></div>
+          </div>
         </el-form-item>
 
         <!-- 代码块 -->
@@ -202,30 +237,35 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, computed, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { Plus, Delete, FolderOpened } from '@element-plus/icons-vue'
+import { Plus, Delete, FolderOpened, Picture, View } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
 import {
   createArticle,
   updateArticle,
   getArticleDetail,
   getArticleCategories,
-  getArticleTags
+  getArticleTags,
+  uploadImage
 } from '@/utils/api'
 import type { ArticleCategory, ArticleTag, ArticleCodeBlock } from '@/types'
 import { SUPPORTED_LANGUAGES } from '@/types/article'
 import toast from '@/utils/toast'
+import { renderMarkdown } from '@/utils/markdown'
 
 const route = useRoute()
 const router = useRouter()
 
 const isEditMode = ref(false)
 const submitting = ref(false)
+const uploading = ref(false)
+const showPreview = ref(false)
 const categories = ref<ArticleCategory[]>([])
 const tags = ref<ArticleTag[]>([])
 const languages = SUPPORTED_LANGUAGES
 const mdFileInput = ref<HTMLInputElement | null>(null)
+const contentEditor = ref<any>(null)
 
 const form = reactive({
   title: '',
@@ -281,6 +321,89 @@ function addCodeBlock() {
 
 function removeCodeBlock(index: number) {
   form.code_blocks.splice(index, 1)
+}
+
+// Markdown预览
+const previewContent = computed(() => {
+  return renderMarkdown(form.content)
+})
+
+function togglePreview() {
+  showPreview.value = !showPreview.value
+}
+
+// 图片上传功能
+function selectImage() {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = 'image/*'
+  input.onchange = handleImageUpload
+  input.click()
+}
+
+async function handleImageUpload(event: Event) {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (!file) return
+
+  // 验证文件类型
+  if (!file.type.startsWith('image/')) {
+    toast.error('请选择图片文件')
+    return
+  }
+
+  // 验证文件大小（5MB限制）
+  const maxSize = 5 * 1024 * 1024
+  if (file.size > maxSize) {
+    toast.error('图片大小不能超过5MB')
+    return
+  }
+
+  uploading.value = true
+  try {
+    const url = await uploadImage(file)
+    insertImageMarkdown(url, file.name.replace(/\.[^/.]+$/, ''))
+    toast.success('图片上传成功')
+  } catch (error: any) {
+    toast.error(error.message || '图片上传失败')
+  } finally {
+    uploading.value = false
+  }
+}
+
+function insertImageMarkdown(url: string, alt: string = '图片') {
+  const markdown = `![${alt}](${url})`
+
+  // 尝试在光标位置插入
+  const textarea = contentEditor.value?.$el?.querySelector('textarea')
+  if (textarea) {
+    const pos = textarea.selectionStart || 0
+    const before = form.content.substring(0, pos)
+    const after = form.content.substring(pos)
+    
+    // 插入时确保前后有换行
+    const needsNewlineBefore = pos > 0 && before[before.length - 1] !== '\n'
+    const needsNewlineAfter = after.length > 0 && after[0] !== '\n'
+    
+    const prefix = needsNewlineBefore ? '\n' : ''
+    const suffix = needsNewlineAfter ? '\n' : ''
+    const fullMarkdown = prefix + markdown + suffix
+    
+    form.content = before + fullMarkdown + after
+
+    // 恢复光标位置（在插入的Markdown之后）
+    nextTick(() => {
+      textarea.focus()
+      const newPos = pos + prefix.length + markdown.length
+      textarea.selectionStart = textarea.selectionEnd = newPos
+      
+      // 滚动到光标位置
+      textarea.scrollTop = textarea.scrollHeight * (newPos / form.content.length)
+    })
+  } else {
+    // 降级：追加到末尾
+    form.content += (form.content ? '\n\n' : '') + markdown
+  }
 }
 
 // Markdown文件导入功能
@@ -533,6 +656,110 @@ onMounted(() => {
 :deep(.el-form-item__label) {
   font-weight: 600;
   color: #303133;
+}
+
+/* 编辑器工具栏 */
+.editor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #ecf0f5 100%);
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+}
+
+/* Markdown预览 */
+.markdown-preview {
+  min-height: 400px;
+  border: 1px solid #dcdfe6;
+  border-radius: 8px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.preview-header {
+  padding: 12px 16px;
+  background: #f5f7fa;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.markdown-preview .markdown-body {
+  padding: 20px;
+  font-size: 16px;
+  line-height: 1.8;
+  color: #303133;
+}
+
+/* Markdown 样式（复用文章详情页的样式） */
+.markdown-preview :deep(h1),
+.markdown-preview :deep(h2),
+.markdown-preview :deep(h3) {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.markdown-preview :deep(h1) {
+  font-size: 28px;
+  border-bottom: 1px solid #ebeef5;
+  padding-bottom: 8px;
+}
+
+.markdown-preview :deep(h2) {
+  font-size: 24px;
+}
+
+.markdown-preview :deep(h3) {
+  font-size: 20px;
+}
+
+.markdown-preview :deep(p) {
+  margin-bottom: 16px;
+}
+
+.markdown-preview :deep(code) {
+  font-family: 'Consolas', 'Monaco', monospace;
+  background: #f5f7fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #e83e8c;
+}
+
+.markdown-preview :deep(pre) {
+  background: #282c34;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+.markdown-preview :deep(pre code) {
+  background: transparent;
+  color: #abb2bf;
+}
+
+.markdown-preview :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 16px 0;
+}
+
+.markdown-preview :deep(blockquote) {
+  margin: 16px 0;
+  padding: 12px 16px;
+  border-left: 4px solid #409eff;
+  background: #ecf5ff;
+}
+
+.markdown-preview :deep(ul),
+.markdown-preview :deep(ol) {
+  padding-left: 24px;
+  margin-bottom: 16px;
 }
 
 @media (max-width: 768px) {
