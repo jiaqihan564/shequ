@@ -2,9 +2,18 @@
   <div :class="['comment-item', { 'is-reply': isReply }]">
     <el-avatar
       :size="isReply ? 32 : 40"
-      :src="comment.user?.avatar || comment.author?.avatar || '/default-avatar.png'"
+      :src="hasValidAvatar(comment.user?.avatar || comment.author?.avatar) ? (comment.user?.avatar || comment.author?.avatar) : undefined"
       :alt="comment.user?.nickname || comment.author?.nickname"
-    />
+      @click="goToUserDetail"
+      :style="{ 
+        backgroundColor: getAvatarColor(comment.user?.id || comment.author?.id || comment.user_id), 
+        cursor: 'pointer',
+        fontSize: isReply ? '14px' : '18px',
+        fontWeight: '600'
+      }"
+    >
+      {{ getAvatarInitial(comment.user?.nickname || comment.author?.nickname) }}
+    </el-avatar>
     <div class="comment-content">
       <div class="comment-header">
         <div class="commenter-info">
@@ -77,16 +86,20 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { Star, StarFilled, ChatDotRound } from '@element-plus/icons-vue'
 import { postComment, toggleCommentLike } from '@/utils/api'
 import type { ArticleComment } from '@/types'
 import toast from '@/utils/toast'
+import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
 
 interface Props {
   comment: ArticleComment
   articleId: number
   isReply?: boolean
 }
+
+const router = useRouter()
 
 const props = withDefaults(defineProps<Props>(), {
   isReply: false
@@ -144,6 +157,13 @@ async function handleLike() {
     emit('like', props.comment.id)
   } catch (error: any) {
     toast.error(error.message || '操作失败')
+  }
+}
+
+function goToUserDetail() {
+  const userId = props.comment.user?.id || props.comment.author?.id || props.comment.user_id
+  if (userId) {
+    router.push(`/users/${userId}`)
   }
 }
 

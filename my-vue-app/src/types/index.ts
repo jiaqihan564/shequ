@@ -10,8 +10,10 @@ export interface User {
   role?: UserRole
   status?: UserStatus
   profile?: UserProfile
-  createdAt?: string
-  updatedAt?: string
+  created_at?: string  // 后端返回的字段名（下划线）
+  updated_at?: string  // 后端返回的字段名（下划线）
+  createdAt?: string   // 兼容驼峰命名
+  updatedAt?: string   // 兼容驼峰命名
 }
 
 export type UserRole = 'user' | 'admin' | 'moderator'
@@ -22,6 +24,7 @@ export interface UserProfile {
   firstName?: string
   lastName?: string
   bio?: string
+  avatar_url?: string
   website?: string
   location?: string
   province?: string

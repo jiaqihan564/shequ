@@ -1164,4 +1164,83 @@ export async function getArticleTags(): Promise<ArticleTag[]> {
   throw createAppError('GET_TAGS_FAILED', response.data.message || '获取标签失败')
 }
 
+// ========================================
+// 私信相关API
+// ========================================
+
+import type {
+  ConversationsListResponse,
+  MessagesListResponse,
+  SendMessageRequest,
+  SendMessageResponse,
+  StartConversationResponse
+} from '@/types/message'
+
+/**
+ * 获取会话列表
+ */
+export async function getConversations(): Promise<ConversationsListResponse> {
+  const response = await api.get<ApiResponse<ConversationsListResponse>>('/conversations')
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_CONVERSATIONS_FAILED', response.data.message || '获取会话列表失败')
+}
+
+/**
+ * 获取会话消息
+ */
+export async function getConversationMessages(conversationId: number, limit = 50): Promise<MessagesListResponse> {
+  const response = await api.get<ApiResponse<MessagesListResponse>>(`/conversations/${conversationId}/messages`, {
+    params: { limit }
+  })
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('GET_MESSAGES_FAILED', response.data.message || '获取消息失败')
+}
+
+/**
+ * 发送私信
+ */
+export async function sendPrivateMessage(data: SendMessageRequest): Promise<SendMessageResponse> {
+  const response = await api.post<ApiResponse<SendMessageResponse>>('/messages/send', data)
+  
+  if (response.data.code === 201 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('SEND_MESSAGE_FAILED', response.data.message || '发送消息失败')
+}
+
+/**
+ * 获取未读消息数
+ */
+export async function getUnreadMessageCount(): Promise<number> {
+  const response = await api.get<ApiResponse<{ unread_count: number }>>('/conversations/unread-count')
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data.unread_count
+  }
+  
+  throw createAppError('GET_UNREAD_COUNT_FAILED', response.data.message || '获取未读数失败')
+}
+
+/**
+ * 开始与指定用户的会话
+ */
+export async function startConversation(userId: number): Promise<StartConversationResponse> {
+  const response = await api.post<ApiResponse<StartConversationResponse>>(`/conversations/start/${userId}`)
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data
+  }
+  
+  throw createAppError('START_CONVERSATION_FAILED', response.data.message || '开始会话失败')
+}
+
 export default api

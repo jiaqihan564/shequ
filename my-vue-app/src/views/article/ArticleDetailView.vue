@@ -13,9 +13,13 @@
           <div class="author-info">
             <el-avatar
               :size="48"
-              :src="article.author.avatar || '/default-avatar.png'"
+              :src="hasValidAvatar(article.author.avatar) ? article.author.avatar : undefined"
               :alt="article.author.nickname"
-            />
+              @click="goToUserDetail(article.author.id)"
+              :style="{ backgroundColor: getAvatarColor(article.author.id), cursor: 'pointer', fontSize: '20px', fontWeight: '600' }"
+            >
+              {{ getAvatarInitial(article.author.nickname) }}
+            </el-avatar>
             <div class="author-details">
               <div class="author-name">{{ article.author.nickname }}</div>
               <div class="publish-time">
@@ -303,7 +307,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import QRCode from 'qrcode'
 import {
   Clock, View, Star, StarFilled, ChatDotRound, Share, Document, Promotion,
@@ -319,8 +323,11 @@ import {
 import type { ArticleDetail, ArticleComment } from '@/types'
 import toast from '@/utils/toast'
 import CommentItem from './CommentItem.vue'
+import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
+import { renderMarkdown } from '@/utils/markdown'
 
 const route = useRoute()
+const router = useRouter()
 const loading = ref(true)
 const article = ref<ArticleDetail | null>(null)
 const comments = ref<ArticleComment[]>([])
@@ -339,11 +346,10 @@ const shareLink = computed(() => {
   return ''
 })
 
-// 简单的Markdown渲染（实际应使用markdown-it库）
+// Markdown渲染
 const renderedContent = computed(() => {
   if (!article.value) return ''
-  // 这里简化处理，实际应使用专业的markdown解析库
-  return article.value.content.replace(/\n/g, '<br>')
+  return renderMarkdown(article.value.content)
 })
 
 async function loadArticle() {
@@ -466,6 +472,11 @@ async function copyCode(code: string) {
     }
     document.body.removeChild(textArea)
   }
+}
+
+// 跳转到用户详情
+function goToUserDetail(userId: number) {
+  router.push(`/users/${userId}`)
 }
 
 // 分享功能
@@ -650,6 +661,132 @@ onMounted(() => {
   font-size: 16px;
   line-height: 1.8;
   color: #303133;
+  word-wrap: break-word;
+}
+
+/* Markdown 标题 */
+.markdown-body :deep(h1),
+.markdown-body :deep(h2),
+.markdown-body :deep(h3),
+.markdown-body :deep(h4),
+.markdown-body :deep(h5),
+.markdown-body :deep(h6) {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: #303133;
+}
+
+.markdown-body :deep(h1) {
+  font-size: 28px;
+  border-bottom: 1px solid #ebeef5;
+  padding-bottom: 8px;
+}
+
+.markdown-body :deep(h2) {
+  font-size: 24px;
+  border-bottom: 1px solid #f5f7fa;
+  padding-bottom: 6px;
+}
+
+.markdown-body :deep(h3) {
+  font-size: 20px;
+}
+
+/* Markdown 段落 */
+.markdown-body :deep(p) {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+/* Markdown 列表 */
+.markdown-body :deep(ul),
+.markdown-body :deep(ol) {
+  padding-left: 24px;
+  margin-bottom: 16px;
+}
+
+.markdown-body :deep(li) {
+  margin-bottom: 8px;
+}
+
+/* Markdown 代码 */
+.markdown-body :deep(code) {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  background: #f5f7fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #e83e8c;
+}
+
+.markdown-body :deep(pre) {
+  background: #282c34;
+  padding: 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.markdown-body :deep(pre code) {
+  background: transparent;
+  padding: 0;
+  color: #abb2bf;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+/* Markdown 引用 */
+.markdown-body :deep(blockquote) {
+  margin: 16px 0;
+  padding: 12px 16px;
+  border-left: 4px solid #409eff;
+  background: #ecf5ff;
+  color: #606266;
+}
+
+/* Markdown 链接 */
+.markdown-body :deep(a) {
+  color: #409eff;
+  text-decoration: none;
+}
+
+.markdown-body :deep(a:hover) {
+  text-decoration: underline;
+}
+
+/* Markdown 表格 */
+.markdown-body :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.markdown-body :deep(th),
+.markdown-body :deep(td) {
+  border: 1px solid #dcdfe6;
+  padding: 8px 12px;
+}
+
+.markdown-body :deep(th) {
+  background: #f5f7fa;
+  font-weight: 600;
+}
+
+/* Markdown 分隔线 */
+.markdown-body :deep(hr) {
+  border: none;
+  border-top: 1px solid #ebeef5;
+  margin: 24px 0;
+}
+
+/* Markdown 图片 */
+.markdown-body :deep(img) {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 16px 0;
 }
 
 .code-blocks {

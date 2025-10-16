@@ -13,6 +13,20 @@
       </div>
     </section>
 
+    <section class="user-welcome" v-if="user">
+      <el-avatar
+        :size="64"
+        :src="hasValidAvatar(user.avatar) ? user.avatar : undefined"
+        :style="{ backgroundColor: getAvatarColor(user.id), fontSize: '28px', fontWeight: '600' }"
+      >
+        {{ getAvatarInitial(user.profile?.nickname || user.username) }}
+      </el-avatar>
+      <div class="welcome-text">
+        <h3>你好，{{ user.profile?.nickname || user.username }}！</h3>
+        <p>当前身份：{{ user.role || '用户' }}</p>
+      </div>
+    </section>
+
     <section class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">当前身份</div>
@@ -44,6 +58,7 @@ import type { NewsItem } from '@/types'
 import { fetchNews } from '@/utils/api'
 import NewsCarousel from '@/components/news/NewsCarousel.vue'
 import toast from '@/utils/toast'
+import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
 
 const user = ref<User | null>(null)
 const news = ref<NewsItem[]>([])
@@ -113,6 +128,30 @@ function onVisibility() {
   padding: 24px;
   display: grid;
   gap: 16px;
+}
+
+.user-welcome {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(17, 24, 39, 0.04);
+}
+
+.welcome-text h3 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.welcome-text p {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
 }
 .hero {
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.12), rgba(118, 75, 162, 0.12));

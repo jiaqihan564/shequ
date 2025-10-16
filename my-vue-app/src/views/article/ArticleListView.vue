@@ -101,13 +101,16 @@
           <p class="article-description">{{ article.description }}</p>
 
           <div class="article-meta">
-            <div class="author">
+            <div class="author" @click.stop="goToUserDetail(article.author.id)">
               <el-avatar
                 :size="32"
-                :src="article.author.avatar || '/default-avatar.png'"
+                :src="hasValidAvatar(article.author.avatar) ? article.author.avatar : undefined"
                 :alt="article.author.nickname"
-              />
-              <span class="nickname">{{ article.author.nickname }}</span>
+                :style="{ backgroundColor: getAvatarColor(article.author.id), cursor: 'pointer', fontSize: '14px', fontWeight: '600' }"
+              >
+                {{ getAvatarInitial(article.author.nickname) }}
+              </el-avatar>
+              <span class="nickname" style="cursor: pointer">{{ article.author.nickname }}</span>
             </div>
 
             <div class="stats">
@@ -169,11 +172,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import { Edit, Search, View, Star, ChatDotRound } from '@element-plus/icons-vue'
 import { getArticles, getArticleCategories, getArticleTags } from '@/utils/api'
-import type { ArticleListItem, ArticleCategory, ArticleTag, ArticleListQuery } from '@/types'
+import type { ArticleListItem, ArticleCategory, ArticleTag, ArticleListQuery } from '@/types/article'
 import toast from '@/utils/toast'
+import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
 
+const router = useRouter()
 const loading = ref(false)
 const articles = ref<ArticleListItem[]>([])
 const categories = ref<ArticleCategory[]>([])
@@ -250,6 +256,11 @@ function goToPage(newPage: number) {
   query.page = newPage
   loadArticles()
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// 跳转到用户详情
+function goToUserDetail(userId: number) {
+  router.push(`/users/${userId}`)
 }
 
 // 格式化日期
@@ -364,6 +375,7 @@ onMounted(() => {
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   transition: color 0.3s;
@@ -380,6 +392,7 @@ onMounted(() => {
   margin: 0 0 16px 0;
   display: -webkit-box;
   -webkit-line-clamp: 3;
+  line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

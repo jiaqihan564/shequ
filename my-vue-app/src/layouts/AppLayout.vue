@@ -25,6 +25,10 @@
           <div class="nav-divider"></div>
           <div class="nav-section-title">社交互动</div>
           <RouterLink to="/chatroom" class="nav-item" active-class="active">💬 聊天室</RouterLink>
+          <RouterLink to="/messages" class="nav-item" active-class="active">
+            ✉️ 私信
+            <el-badge v-if="unreadCount > 0" :value="unreadCount" type="danger" />
+          </RouterLink>
           <RouterLink to="/articles" class="nav-item" active-class="active">📝 技术文章</RouterLink>
         </nav>
       </slot>
@@ -72,26 +76,71 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, onBeforeUnmount } from 'vue'
-import { useRouter, RouterLink } from 'vue-router'
+import { ref, onMounted, computed, onBeforeUnmount, watch } from 'vue'
+import { useRouter, RouterLink, useRoute } from 'vue-router'
 
 import UserMenu from '@/shared/ui/UserMenu.vue'
 import type { User } from '@/types'
-import { logout } from '@/utils/api'
+import { logout, getUnreadMessageCount } from '@/utils/api'
 
 const router = useRouter()
+const route = useRoute()
 const user = ref<User | null>(null)
 const showAvatar = ref(true)
 const menuOpen = ref(false)
 const anchorEl = ref<HTMLElement | null>(null)
+const unreadCount = ref(0)
+
+let unreadTimer: number | null = null
+
+// 监听路由变化，进入私信相关页面时刷新未读数
+watch(() => route.path, (newPath) => {
+  if (newPath.startsWith('/messages')) {
+    loadUnreadCount()
+  }
+})
+
+// 加载未读消息数
+async function loadUnreadCount() {
+  try {
+    const count = await getUnreadMessageCount()
+    unreadCount.value = count
+  } catch (error) {
+    // 静默失败
+    console.error('获取未读消息数失败:', error)
+  }
+}
+
+// 启动未读消息轮询
+function startUnreadPolling() {
+  loadUnreadCount()
+  unreadTimer = window.setInterval(() => {
+    loadUnreadCount()
+  }, 10000) // 每10秒更新一次（更实时）
+}
+
+// 停止轮询
+function stopUnreadPolling() {
+  if (unreadTimer) {
+    clearInterval(unreadTimer)
+    unreadTimer = null
+  }
+}
 
 onMounted(() => {
   try {
     const raw = localStorage.getItem('user_info') || sessionStorage.getItem('user_info')
     if (raw) user.value = JSON.parse(raw)
+    
+    // 启动未读消息轮询
+    startUnreadPolling()
   } catch (e) {
     if (import.meta.env.DEV) console.warn('读取用户信息失败', e)
   }
+  
+  // 监听手动刷新未读数事件
+  window.addEventListener('refresh-unread-count', loadUnreadCount)
+  
   // 监听用户更新事件（登录、更新资料、更新头像后触发）
   const handler = (e: Event) => {
     const detail = (e as CustomEvent).detail as User
@@ -138,7 +187,11 @@ function handleClickOutside(event: MouseEvent) {
 }
 
 document.addEventListener('click', handleClickOutside)
-onBeforeUnmount(() => document.removeEventListener('click', handleClickOutside))
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
+  window.removeEventListener('refresh-unread-count', loadUnreadCount)
+  stopUnreadPolling()
+})
 </script>
 
 <style scoped>

@@ -20,6 +20,9 @@ const ChatRoomView = () => import('@/views/chat/ChatRoomView.vue')
 const ArticleListView = () => import('@/views/article/ArticleListView.vue')
 const ArticleDetailView = () => import('@/views/article/ArticleDetailView.vue')
 const ArticleEditorView = () => import('@/views/article/ArticleEditorView.vue')
+const UserDetailView = () => import('@/views/user/UserDetailView.vue')
+const MessageListView = () => import('@/views/message/MessageListView.vue')
+const MessageChatView = () => import('@/views/message/MessageChatView.vue')
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/home' },
@@ -131,6 +134,24 @@ const routes: RouteRecordRaw[] = [
         name: 'article-detail',
         component: ArticleDetailView,
         meta: { title: '文章详情', requiresAuth: true }
+      },
+      {
+        path: 'users/:id',
+        name: 'user-detail',
+        component: UserDetailView,
+        meta: { title: '用户详情', requiresAuth: true }
+      },
+      {
+        path: 'messages',
+        name: 'messages',
+        component: MessageListView,
+        meta: { title: '私信', requiresAuth: true }
+      },
+      {
+        path: 'messages/:userId',
+        name: 'message-chat',
+        component: MessageChatView,
+        meta: { title: '对话', requiresAuth: true }
       }
     ]
   }
