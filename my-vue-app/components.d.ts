@@ -7,6 +7,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    ArticleListWithVirtualScroll: typeof import('./src/components/article/ArticleListWithVirtualScroll.vue')['default']
     ChangePasswordDialog: typeof import('./src/components/profile/ChangePasswordDialog.vue')['default']
     CheckIcon: typeof import('./src/components/icons/CheckIcon.vue')['default']
     CloseIcon: typeof import('./src/components/icons/CloseIcon.vue')['default']
@@ -17,6 +18,7 @@ declare module 'vue' {
     ForgotPasswordDialog: typeof import('./src/components/auth/ForgotPasswordDialog.vue')['default']
     InfoIcon: typeof import('./src/components/icons/InfoIcon.vue')['default']
     NewsCarousel: typeof import('./src/components/news/NewsCarousel.vue')['default']
+    OptimizedVirtualList: typeof import('./src/components/shared/OptimizedVirtualList.vue')['default']
     ResourceCommentItem: typeof import('./src/components/resource/ResourceCommentItem.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']

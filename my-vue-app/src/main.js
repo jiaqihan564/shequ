@@ -9,6 +9,8 @@ import 'highlight.js/styles/atom-one-dark.css'
 import App from './App.vue'
 import router from './router'
 import './style.css'
+import './styles/lazy-load.css'
+import { lazyLoad } from './directives/lazyLoad'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -18,6 +20,9 @@ const head = createHead()
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
+
+// 注册全局指令
+app.directive('lazy', lazyLoad)
 
 // 使用插件
 app.use(ElementPlus)

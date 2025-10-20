@@ -32,6 +32,18 @@ const api: AxiosInstance = axios.create({
 const requestCache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_DURATION = 5 * 60 * 1000 // 5分钟缓存
 
+// 请求去重：防止相同请求并发发送
+const pendingRequests = new Map<string, Promise<any>>()
+
+// 请求取消：组件卸载时取消pending请求
+const cancelTokens = new Map<string, AbortController>()
+
+// 生成请求唯一键（用于去重）
+function getRequestKey(config: AxiosRequestConfig): string {
+  const { method, url, params, data } = config
+  return `${method}:${url}:${JSON.stringify(params)}:${JSON.stringify(data)}`
+}
+
 // 请求拦截器
 api.interceptors.request.use(
   config => {
@@ -42,14 +54,33 @@ api.interceptors.request.use(
     }
 
     // 添加请求ID用于追踪
-    config.headers['X-Request-ID'] = generateRequestId()
+    const requestId = generateRequestId()
+    config.headers['X-Request-ID'] = requestId
 
-    // 添加时间戳防止缓存
+    // 为GET请求实现请求去重
+    if (config.method === 'get') {
+      const requestKey = getRequestKey(config)
+      
+      // 检查是否有相同的pending请求
+      const pendingRequest = pendingRequests.get(requestKey)
+      if (pendingRequest) {
+        // 返回pending的Promise，避免重复请求
+        return Promise.reject({
+          __CANCEL__: true,
+          promise: pendingRequest
+        })
+      }
+    }
+
+    // 创建取消令牌（用于组件卸载时取消请求）
+    const controller = new AbortController()
+    config.signal = controller.signal
+    cancelTokens.set(requestId, controller)
+
+    // 添加时间戳防止浏览器缓存
     if (config.method === 'get' && !config.params) {
       config.params = { _t: Date.now() }
     }
-
-    // 缓存检查在响应拦截器中处理，这里只做请求配置
 
     return config
   },
@@ -61,6 +92,19 @@ api.interceptors.request.use(
 // 响应拦截器
 api.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
+    const requestId = response.config.headers?.['X-Request-ID'] as string
+    
+    // 清理cancel token
+    if (requestId) {
+      cancelTokens.delete(requestId)
+    }
+    
+    // 清理pending request（如果是GET请求）
+    if (response.config.method === 'get') {
+      const requestKey = getRequestKey(response.config)
+      pendingRequests.delete(requestKey)
+    }
+    
     // 缓存GET请求的响应
     if (response.config.method === 'get' && response.status === 200) {
       const cacheKey = `${response.config.url}?${JSON.stringify(response.config.params || {})}`
@@ -73,7 +117,35 @@ api.interceptors.response.use(
     return response
   },
   async error => {
+    // 处理请求去重的特殊情况
+    if (error.__CANCEL__ && error.promise) {
+      try {
+        return await error.promise
+      } catch (e) {
+        throw e
+      }
+    }
+    
+    // 处理请求取消
+    if (axios.isCancel(error)) {
+      console.log('请求已取消:', error.message)
+      return Promise.reject(createAppError('REQUEST_CANCELLED', '请求已取消'))
+    }
+    
     const originalRequest = error.config
+    
+    // 清理cancel token和pending request
+    if (originalRequest) {
+      const requestId = originalRequest.headers?.['X-Request-ID'] as string
+      if (requestId) {
+        cancelTokens.delete(requestId)
+      }
+      
+      if (originalRequest.method === 'get') {
+        const requestKey = getRequestKey(originalRequest)
+        pendingRequests.delete(requestKey)
+      }
+    }
 
     // 处理认证错误
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -1494,6 +1566,61 @@ export async function cancelUpload(uploadId: string): Promise<void> {
   
   if (response.data.code !== 200) {
     throw createAppError('CANCEL_UPLOAD_FAILED', response.data.message || '取消上传失败')
+  }
+}
+
+/**
+ * 取消指定请求ID的请求
+ */
+export function cancelRequest(requestId: string): void {
+  const controller = cancelTokens.get(requestId)
+  if (controller) {
+    controller.abort()
+    cancelTokens.delete(requestId)
+  }
+}
+
+/**
+ * 取消所有pending请求（组件卸载时使用）
+ */
+export function cancelAllRequests(): void {
+  cancelTokens.forEach(controller => {
+    controller.abort()
+  })
+  cancelTokens.clear()
+  pendingRequests.clear()
+}
+
+/**
+ * 获取当前pending请求数量
+ */
+export function getPendingRequestCount(): number {
+  return cancelTokens.size
+}
+
+/**
+ * useRequestCleanup - Vue组合式API钩子，自动清理组件卸载时的请求
+ * 使用示例:
+ * <script setup>
+ * import { useRequestCleanup } from '@/utils/api'
+ * useRequestCleanup()
+ * </script>
+ */
+export function useRequestCleanup(): void {
+  if (typeof window !== 'undefined') {
+    // 在组件卸载时取消所有请求
+    const cleanup = () => {
+      const count = getPendingRequestCount()
+      if (count > 0) {
+        console.log(`组件卸载，取消 ${count} 个pending请求`)
+        cancelAllRequests()
+      }
+    }
+    
+    // 使用 onBeforeUnmount (如果在Vue组件中)
+    if (typeof (globalThis as any).onBeforeUnmount === 'function') {
+      ;(globalThis as any).onBeforeUnmount(cleanup)
+    }
   }
 }
 

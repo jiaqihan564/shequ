@@ -1,0 +1,113 @@
+/**
+ * 图片懒加载样式
+ */
+
+/* 懒加载图片基础样式 */
+.lazy-image {
+  transition: opacity 0.3s ease-in-out, filter 0.3s ease-in-out;
+}
+
+/* 加载中状态 */
+.lazy-image.lazy-loading {
+  opacity: 0.6;
+  filter: blur(5px);
+}
+
+/* 加载完成状态 */
+.lazy-image.lazy-loaded {
+  opacity: 1;
+  filter: none;
+}
+
+/* 加载失败状态 */
+.lazy-image.lazy-error {
+  opacity: 0.5;
+  filter: grayscale(100%);
+}
+
+/* 骨架屏动画 */
+@keyframes lazy-pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.lazy-image:not(.lazy-loaded):not(.lazy-error) {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: lazy-pulse 1.5s ease-in-out infinite;
+}
+
+/* 响应式图片容器 */
+.lazy-image-container {
+  position: relative;
+  overflow: hidden;
+  background-color: #f5f5f5;
+}
+
+.lazy-image-container img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* 加载指示器 */
+.lazy-image-container::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e0e0e0;
+  border-top-color: #409eff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.lazy-image-container:has(.lazy-loading)::before {
+  opacity: 1;
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* 渐进式图片加载效果 */
+.lazy-image.progressive {
+  background: linear-gradient(to right, #f0f0f0 0%, #e0e0e0 50%, #f0f0f0 100%);
+  background-size: 200% 100%;
+  animation: progressive-load 1.5s ease-in-out infinite;
+}
+
+@keyframes progressive-load {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* 优化：减少重绘和回流 */
+.lazy-image {
+  will-change: opacity, filter;
+  content-visibility: auto;
+}
+
+/* 打印时显示所有图片 */
+@media print {
+  .lazy-image {
+    opacity: 1 !important;
+    filter: none !important;
+  }
+}
+
