@@ -149,7 +149,7 @@ import { useRouter } from 'vue-router'
 import { Plus, UploadFilled, FolderOpened, Picture, View } from '@element-plus/icons-vue'
 import type { UploadFile, UploadFiles } from 'element-plus'
 import { uploadFileWithChunks } from '@/utils/chunk-upload'
-import { createResource, uploadImage, getResourceCategories } from '@/utils/api'
+import { createResource, uploadResourceImage, uploadDocumentImage, getResourceCategories } from '@/utils/api'
 import type { ResourceCategory } from '@/types/resource'
 import toast from '@/utils/toast'
 import { renderMarkdown } from '@/utils/markdown'
@@ -240,7 +240,7 @@ async function handleDocImageUpload(event: Event) {
 
   uploadingDocImage.value = true
   try {
-    const url = await uploadImage(file)
+    const url = await uploadDocumentImage(file)
     insertDocImageMarkdown(url, file.name.replace(/\.[^/.]+$/, ''))
     toast.success('图片上传成功')
   } catch (error: any) {
@@ -347,7 +347,7 @@ async function handleSubmit() {
     uploadedStoragePath.value = storagePath
     console.log('文件上传成功，路径:', storagePath)
 
-    // 2. 上传预览图
+    // 2. 上传预览图到资源专用桶
     console.log('开始上传预览图，共', imageFileList.value.length, '张')
     const imageUrls: string[] = []
     
@@ -357,11 +357,7 @@ async function handleSubmit() {
         try {
           toast.info(`正在上传第 ${i + 1} 张预览图...`)
           
-          // 创建FormData手动上传（避免PNG限制）
-          const formData = new FormData()
-          formData.append('file', imgFile.raw)
-          
-          const url = await uploadImage(imgFile.raw)
+          const url = await uploadResourceImage(imgFile.raw)
           imageUrls.push(url)
           console.log('预览图上传成功:', url)
         } catch (e: any) {

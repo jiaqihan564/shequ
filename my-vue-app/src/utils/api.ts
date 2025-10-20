@@ -436,6 +436,42 @@ export async function uploadImage(file: File): Promise<string> {
 }
 
 /**
+ * 上传资源预览图（到资源专用桶）
+ */
+export async function uploadResourceImage(file: File): Promise<string> {
+  const form = new FormData()
+  form.append('file', file)
+  
+  const response = await api.post<ApiResponse<{ image_url: string }>>('/resources/images/upload', form, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data.image_url
+  }
+  
+  throw createAppError('UPLOAD_RESOURCE_IMAGE_FAILED', response.data.message || '上传资源图片失败')
+}
+
+/**
+ * 上传文档图片（到资源专用桶）
+ */
+export async function uploadDocumentImage(file: File): Promise<string> {
+  const form = new FormData()
+  form.append('file', file)
+  
+  const response = await api.post<ApiResponse<{ image_url: string }>>('/resources/documents/upload', form, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  
+  if (response.data.code === 200 && response.data.data) {
+    return response.data.data.image_url
+  }
+  
+  throw createAppError('UPLOAD_DOCUMENT_IMAGE_FAILED', response.data.message || '上传文档图片失败')
+}
+
+/**
  * 更新用户头像
  */
 export async function updateUserAvatar(avatarUrl: string): Promise<User> {
