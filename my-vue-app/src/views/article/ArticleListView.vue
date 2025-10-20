@@ -248,7 +248,8 @@ async function loadArticles() {
   loading.value = true
   try {
     const response = await getArticles(query)
-    articles.value = response.articles
+    // 确保 articles 始终是数组，防止后端返回 null 或 undefined
+    articles.value = response.articles || []
     total.value = response.total
     page.value = response.page
     pageSize.value = response.page_size

@@ -298,12 +298,12 @@ onMounted(() => {
 .reset-title {
   font-size: 28px;
   font-weight: 700;
-  color: #111827;
   margin: 0 0 8px 0;
   background: linear-gradient(135deg, #667eea, #764ba2);
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 .reset-subtitle {

@@ -49,7 +49,7 @@ const history = ref<any[]>([])
 const loadData = async () => {
   loading.value = true
   try {
-    const data = await getProfileChangeHistory(50)
+    const data = await getProfileChangeHistory(10)
     history.value = data || []
   } catch (error: any) {
     toast.error(error?.message || '加载修改历史失败')
@@ -104,9 +104,11 @@ onMounted(() => {
 .title {
   font-size: 28px;
   font-weight: 700;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: linear-gradient(135deg, #183cd9, #764ba2);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
+  color: transparent;
   margin: 0 0 8px 0;
 }
 

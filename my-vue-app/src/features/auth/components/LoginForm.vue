@@ -375,12 +375,12 @@ onMounted(() => {
 .login-title {
   font-size: var(--font-size-3xl);
   font-weight: 700;
-  color: var(--color-gray-900);
   margin: 0 0 var(--spacing-2) 0;
   background: linear-gradient(135deg, var(--color-primary), var(--color-primary-dark));
   -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
   background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
 }
 
 .login-subtitle {
