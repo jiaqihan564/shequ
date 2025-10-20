@@ -208,11 +208,13 @@
     <div v-if="total > 0" class="pagination-container">
       <el-pagination
         v-model:current-page="page"
-        :page-size="pageSize"
+        v-model:page-size="pageSize"
+        :page-sizes="[12, 20, 36, 48]"
         :total="total"
         background
-        layout="prev, pager, next, total"
+        layout="sizes, prev, pager, next, total"
         @current-change="goToPage"
+        @size-change="handleSizeChange"
       />
     </div>
   </div>
@@ -234,13 +236,13 @@ const categories = ref<ArticleCategory[]>([])
 const tags = ref<ArticleTag[]>([])
 const total = ref(0)
 const page = ref(1)
-const pageSize = ref(20)
+const pageSize = ref(12)
 const totalPages = ref(0)
 const searchKeyword = ref('')
 
 const query = reactive<ArticleListQuery>({
   page: 1,
-  page_size: 20,
+  page_size: 12,
   sort_by: 'latest'
 })
 
@@ -305,6 +307,14 @@ function goToPage(newPage: number) {
   query.page = newPage
   loadArticles()
   window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+// 页面大小变化
+function handleSizeChange(newSize: number) {
+  query.page_size = newSize
+  query.page = 1
+  page.value = 1
+  loadArticles()
 }
 
 // 跳转到用户详情
