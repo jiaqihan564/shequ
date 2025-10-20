@@ -21,6 +21,7 @@ declare module 'vue' {
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
     UserIcon: typeof import('./src/components/icons/UserIcon.vue')['default']
+    VirtualList: typeof import('./src/components/shared/VirtualList.vue')['default']
     WarningIcon: typeof import('./src/components/icons/WarningIcon.vue')['default']
   }
 }

@@ -100,9 +100,86 @@ export default defineConfig({
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
         assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
-        manualChunks: {
-          vendor: ['vue', 'vue-router', 'pinia'],
-          utils: ['axios', '@vueuse/core']
+        manualChunks(id) {
+          // Vue 核心库
+          if (id.includes('node_modules/vue/') || id.includes('node_modules/@vue/')) {
+            return 'vue-core'
+          }
+          
+          // Vue Router
+          if (id.includes('node_modules/vue-router/')) {
+            return 'vue-router'
+          }
+          
+          // Pinia 状态管理
+          if (id.includes('node_modules/pinia/')) {
+            return 'pinia'
+          }
+          
+          // Element Plus UI库
+          if (id.includes('node_modules/element-plus/')) {
+            return 'element-plus'
+          }
+          
+          // Element Plus 图标
+          if (id.includes('node_modules/@element-plus/icons-vue/')) {
+            return 'element-icons'
+          }
+          
+          // VueUse 工具库
+          if (id.includes('node_modules/@vueuse/')) {
+            return 'vueuse'
+          }
+          
+          // Axios 和网络请求相关
+          if (id.includes('node_modules/axios/')) {
+            return 'axios'
+          }
+          
+          // ECharts 图表库（大文件，单独拆分）
+          if (id.includes('node_modules/echarts/')) {
+            return 'echarts'
+          }
+          
+          // Markdown 相关
+          if (id.includes('node_modules/markdown-it/')) {
+            return 'markdown'
+          }
+          
+          // Highlight.js 代码高亮
+          if (id.includes('node_modules/highlight.js/')) {
+            return 'highlight'
+          }
+          
+          // 其他 node_modules 统一打包
+          if (id.includes('node_modules/')) {
+            return 'vendor-misc'
+          }
+          
+          // 工具函数单独打包
+          if (id.includes('/src/utils/')) {
+            return 'utils'
+          }
+          
+          // 视图组件按模块拆分
+          if (id.includes('/src/views/article/')) {
+            return 'views-article'
+          }
+          if (id.includes('/src/views/chat/')) {
+            return 'views-chat'
+          }
+          if (id.includes('/src/views/message/')) {
+            return 'views-message'
+          }
+          if (id.includes('/src/views/resource/')) {
+            return 'views-resource'
+          }
+          if (id.includes('/src/views/statistics/') || id.includes('/src/views/stats/')) {
+            return 'views-stats'
+          }
+          if (id.includes('/src/views/history/')) {
+            return 'views-history'
+          }
         }
       }
     },
