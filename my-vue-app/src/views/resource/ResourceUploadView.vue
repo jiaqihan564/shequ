@@ -414,7 +414,7 @@ onMounted(() => {
 
 <style scoped>
 .resource-upload-container {
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
 }
@@ -434,9 +434,23 @@ onMounted(() => {
 }
 
 .document-toolbar {
-  margin-bottom: 12px;
   display: flex;
+  justify-content: space-between;
+  align-items: center;
   gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #ecf0f5 100%);
+  border-radius: 8px;
+  border: 1px solid #e4e7ed;
+}
+
+.editor-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
   padding: 12px;
   background: linear-gradient(135deg, #f5f7fa 0%, #ecf0f5 100%);
   border-radius: 8px;
@@ -464,16 +478,55 @@ onMounted(() => {
 
 .markdown-preview :deep(h1),
 .markdown-preview :deep(h2),
-.markdown-preview :deep(h3) {
-  margin-top: 20px;
-  margin-bottom: 12px;
+.markdown-preview :deep(h3),
+.markdown-preview :deep(h4),
+.markdown-preview :deep(h5),
+.markdown-preview :deep(h6) {
+  margin-top: 24px;
+  margin-bottom: 16px;
   font-weight: 600;
+  line-height: 1.25;
+  color: #303133;
 }
 
-.markdown-preview :deep(img) {
-  max-width: 100%;
-  border-radius: 8px;
-  margin: 12px 0;
+.markdown-preview :deep(h1) {
+  font-size: 28px;
+  border-bottom: 1px solid #ebeef5;
+  padding-bottom: 8px;
+}
+
+.markdown-preview :deep(h2) {
+  font-size: 24px;
+  border-bottom: 1px solid #f5f7fa;
+  padding-bottom: 6px;
+}
+
+.markdown-preview :deep(h3) {
+  font-size: 20px;
+}
+
+.markdown-preview :deep(p) {
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+.markdown-preview :deep(ul),
+.markdown-preview :deep(ol) {
+  padding-left: 24px;
+  margin-bottom: 16px;
+}
+
+.markdown-preview :deep(li) {
+  margin-bottom: 8px;
+}
+
+.markdown-preview :deep(code) {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  background: #f5f7fa;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #e83e8c;
 }
 
 .markdown-preview :deep(pre) {
@@ -481,10 +534,63 @@ onMounted(() => {
   padding: 16px;
   border-radius: 8px;
   overflow-x: auto;
+  margin-bottom: 16px;
 }
 
-.markdown-preview :deep(code) {
-  font-family: 'Consolas', 'Monaco', monospace;
+.markdown-preview :deep(pre code) {
+  background: transparent;
+  padding: 0;
+  color: #abb2bf;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.markdown-preview :deep(blockquote) {
+  margin: 16px 0;
+  padding: 12px 16px;
+  border-left: 4px solid #409eff;
+  background: #ecf5ff;
+  color: #606266;
+}
+
+.markdown-preview :deep(a) {
+  color: #409eff;
+  text-decoration: none;
+}
+
+.markdown-preview :deep(a:hover) {
+  text-decoration: underline;
+}
+
+.markdown-preview :deep(table) {
+  border-collapse: collapse;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.markdown-preview :deep(th),
+.markdown-preview :deep(td) {
+  border: 1px solid #dcdfe6;
+  padding: 8px 12px;
+}
+
+.markdown-preview :deep(th) {
+  background: #f5f7fa;
+  font-weight: 600;
+}
+
+.markdown-preview :deep(hr) {
+  border: none;
+  border-top: 1px solid #ebeef5;
+  margin: 24px 0;
+}
+
+.markdown-preview :deep(img) {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  margin: 16px 0;
 }
 
 .form-actions {

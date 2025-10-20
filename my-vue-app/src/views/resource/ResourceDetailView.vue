@@ -73,33 +73,7 @@
         <template #header>
           <h3>详细文档</h3>
         </template>
-        <div class="markdown-body" v-html="renderedDocument"></div>
-      </el-card>
-
-      <!-- 快捷评论输入框 -->
-      <el-card class="quick-comment-card" shadow="never">
-        <div class="quick-comment-section">
-          <el-input
-            v-model="quickComment"
-            type="textarea"
-            :rows="quickCommentExpanded ? 4 : 1"
-            placeholder="写下你的评论..."
-            maxlength="500"
-            :show-word-limit="quickCommentExpanded"
-            @focus="quickCommentExpanded = true"
-          />
-          <div v-if="quickCommentExpanded" class="quick-comment-actions">
-            <el-button size="small" @click="cancelQuickComment">收起</el-button>
-            <el-button
-              type="primary"
-              size="small"
-              :disabled="!quickComment.trim()"
-              @click="submitQuickComment"
-            >
-              发表评论
-            </el-button>
-          </div>
-        </div>
+        <div class="markdown-body" v-html="renderedDocument" @click="handleImageClick"></div>
       </el-card>
 
       <!-- 操作按钮 -->
@@ -184,6 +158,14 @@
 
     <el-empty v-else description="资源不存在" />
 
+    <!-- 图片预览 -->
+    <el-image-viewer
+      v-if="showImageViewer"
+      :url-list="[currentImageUrl]"
+      @close="closeImageViewer"
+      :z-index="3000"
+    />
+
     <!-- 分享对话框 -->
     <el-dialog
       v-model="shareDialogVisible"
@@ -221,10 +203,10 @@ const loading = ref(true)
 const resource = ref<Resource | null>(null)
 const comments = ref<ResourceComment[]>([])
 const newComment = ref('')
-const quickComment = ref('')
-const quickCommentExpanded = ref(false)
 const shareDialogVisible = ref(false)
 const commentCount = ref(0)
+const showImageViewer = ref(false)
+const currentImageUrl = ref('')
 
 const imageUrls = computed(() => {
   return resource.value?.images.map(img => img.image_url) || []
@@ -323,26 +305,6 @@ async function submitComment() {
   }
 }
 
-async function submitQuickComment() {
-  if (!resource.value || !quickComment.value.trim()) {
-    toast.warning('请输入评论内容')
-    return
-  }
-  
-  try {
-    await postResourceComment(resource.value.id, { content: quickComment.value })
-    quickComment.value = ''
-    quickCommentExpanded.value = false
-    toast.success('评论成功')
-    await loadComments(resource.value.id)
-    commentCount.value++
-    // 滚动到评论区
-    setTimeout(() => scrollToComments(), 300)
-  } catch (error: any) {
-    toast.error(error.message || '评论失败')
-  }
-}
-
 async function handleCommentPosted() {
   // 重新加载评论列表
   if (resource.value) {
@@ -351,13 +313,23 @@ async function handleCommentPosted() {
   }
 }
 
-function cancelQuickComment() {
-  quickComment.value = ''
-  quickCommentExpanded.value = false
-}
-
 function scrollToComments() {
   document.getElementById('comments-section')?.scrollIntoView({ behavior: 'smooth' })
+}
+
+// 图片点击查看
+function handleImageClick(event: MouseEvent) {
+  const target = event.target as HTMLElement
+  if (target.tagName === 'IMG') {
+    const img = target as HTMLImageElement
+    currentImageUrl.value = img.src
+    showImageViewer.value = true
+  }
+}
+
+function closeImageViewer() {
+  showImageViewer.value = false
+  currentImageUrl.value = ''
 }
 
 // 分享功能
@@ -567,6 +539,7 @@ onMounted(() => {
 
 /* Markdown 图片 */
 .markdown-body :deep(img) {
+  display: block;
   max-width: 100%;
   height: auto;
   border-radius: 8px;
@@ -578,23 +551,6 @@ onMounted(() => {
 .markdown-body :deep(img:hover) {
   transform: scale(1.02);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-/* 快捷评论 */
-.quick-comment-card {
-  border-radius: 12px;
-}
-
-.quick-comment-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.quick-comment-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 /* 操作按钮 */

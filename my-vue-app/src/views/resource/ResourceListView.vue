@@ -182,12 +182,13 @@
     <div v-if="total > 0" class="pagination-container">
       <el-pagination
         v-model:current-page="page"
-        :page-size="pageSize"
+        v-model:page-size="pageSize"
+        :page-sizes="[12, 24, 36, 48]"
         :total="total"
         background
-        layout="prev, pager, next, total"
-        @current-change="loadResources"
-        style="display: flex; justify-content: center"
+        layout="sizes, prev, pager, next, total"
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
     </div>
   </div>
@@ -261,6 +262,19 @@ function handleCategoryTagClick(categoryId: number | null) {
 
 function goToDetail(id: number) {
   router.push(`/resources/${id}`)
+}
+
+function handlePageChange(newPage: number) {
+  query.page = newPage
+  loadResources()
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+}
+
+function handleSizeChange(newSize: number) {
+  query.page_size = newSize
+  query.page = 1
+  page.value = 1
+  loadResources()
 }
 
 function formatFileSize(bytes: number): string {
@@ -338,7 +352,7 @@ onMounted(() => {
   margin: -20px -20px 16px -20px;
   border-radius: 12px 12px 0 0;
   overflow: hidden;
-  background: #f5f7fa;
+  background: #ffffff;
 }
 
 .image-slot {

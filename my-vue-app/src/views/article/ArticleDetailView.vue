@@ -101,32 +101,6 @@
         </div>
       </el-card>
 
-      <!-- 快捷评论输入框 -->
-      <el-card class="quick-comment-card" shadow="never">
-        <div class="quick-comment-section">
-          <el-input
-            v-model="quickComment"
-            type="textarea"
-            :rows="quickCommentExpanded ? 4 : 1"
-            placeholder="写下你的评论..."
-            maxlength="500"
-            :show-word-limit="quickCommentExpanded"
-            @focus="quickCommentExpanded = true"
-          />
-          <div v-if="quickCommentExpanded" class="quick-comment-actions">
-            <el-button size="small" @click="cancelQuickComment">收起</el-button>
-            <el-button
-              type="primary"
-              size="small"
-              :disabled="!quickComment.trim()"
-              @click="submitQuickComment"
-            >
-              发表评论
-            </el-button>
-          </div>
-        </div>
-      </el-card>
-
       <!-- 操作按钮 -->
       <el-card class="article-actions-card" shadow="never">
         <div class="actions-container">
@@ -337,8 +311,6 @@ const loading = ref(true)
 const article = ref<ArticleDetail | null>(null)
 const comments = ref<ArticleComment[]>([])
 const newComment = ref('')
-const quickComment = ref('')
-const quickCommentExpanded = ref(false)
 const shareDialogVisible = ref(false)
 const wechatQrVisible = ref(false)
 const qrcodeCanvas = ref<HTMLCanvasElement | null>(null)
@@ -422,32 +394,6 @@ async function handleCommentPosted() {
 
 function scrollToComments() {
   document.getElementById('comments-section')?.scrollIntoView({ behavior: 'smooth' })
-}
-
-// 快捷评论功能
-async function submitQuickComment() {
-  if (!article.value || !quickComment.value.trim()) {
-    toast.warning('请输入评论内容')
-    return
-  }
-  
-  try {
-    await postComment(article.value.id, { content: quickComment.value })
-    quickComment.value = ''
-    quickCommentExpanded.value = false
-    toast.success('评论成功')
-    await loadComments(article.value.id)
-    if (article.value) article.value.comment_count++
-    // 滚动到评论区
-    setTimeout(() => scrollToComments(), 300)
-  } catch (error: any) {
-    toast.error(error.message || '评论失败')
-  }
-}
-
-function cancelQuickComment() {
-  quickComment.value = ''
-  quickCommentExpanded.value = false
 }
 
 // 代码复制功能
@@ -798,6 +744,7 @@ onMounted(() => {
 
 /* Markdown 图片 */
 .markdown-body :deep(img) {
+  display: block;
   max-width: 100%;
   height: auto;
   border-radius: 8px;
@@ -851,22 +798,6 @@ onMounted(() => {
   font-size: 14px;
   line-height: 1.6;
   color: #303133;
-}
-
-.quick-comment-card {
-  border-radius: 12px;
-}
-
-.quick-comment-section {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.quick-comment-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
 }
 
 .actions-container {

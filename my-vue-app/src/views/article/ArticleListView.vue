@@ -67,52 +67,57 @@
 
     <!-- 筛选器 -->
     <el-card class="filters-card" shadow="never">
-      <el-form :inline="true">
-        <el-form-item label="分类">
-          <el-select
-            v-model="query.category_id"
-            placeholder="全部分类"
-            clearable
-            @change="handleFilterChange"
-            style="width: 180px"
-          >
-            <el-option
-              v-for="cat in categories"
-              :key="cat.id"
-              :label="`${cat.name} (${cat.article_count})`"
-              :value="cat.id"
-            />
-          </el-select>
-        </el-form-item>
+      <el-row :gutter="16">
+        <el-col :xs="24" :sm="12" :md="6">
+          <el-form-item label="分类">
+            <el-select
+              v-model="query.category_id"
+              placeholder="全部分类"
+              clearable
+              @change="handleFilterChange"
+              style="width: 100%"
+            >
+              <el-option
+                v-for="cat in categories"
+                :key="cat.id"
+                :label="`${cat.name} (${cat.article_count})`"
+                :value="cat.id"
+              />
+            </el-select>
+          </el-form-item>
+        </el-col>
 
-        <el-form-item label="排序">
-          <el-select
-            v-model="query.sort_by"
-            @change="handleFilterChange"
-            style="width: 140px"
-          >
-            <el-option label="最新发布" value="latest" />
-            <el-option label="最热门" value="hot" />
-            <el-option label="最多浏览" value="popular" />
-          </el-select>
-        </el-form-item>
+        <el-col :xs="24" :sm="12" :md="6">
+          <el-form-item label="排序方式">
+            <el-select
+              v-model="query.sort_by"
+              @change="handleFilterChange"
+              style="width: 100%"
+            >
+              <el-option label="最新发布" value="latest" />
+              <el-option label="最热门" value="hot" />
+              <el-option label="最多浏览" value="popular" />
+            </el-select>
+          </el-form-item>
+        </el-col>
 
-        <el-form-item label="搜索">
-          <el-input
-            v-model="searchKeyword"
-            placeholder="搜索文章标题或内容..."
-            :prefix-icon="Search"
-            clearable
-            @keyup.enter="handleSearch"
-            @clear="handleSearch"
-            style="width: 300px"
-          >
-            <template #append>
-              <el-button :icon="Search" @click="handleSearch" />
-            </template>
-          </el-input>
-        </el-form-item>
-      </el-form>
+        <el-col :xs="24" :sm="24" :md="12">
+          <el-form-item label="搜索文章">
+            <el-input
+              v-model="searchKeyword"
+              placeholder="搜索文章标题或内容..."
+              :prefix-icon="Search"
+              clearable
+              @keyup.enter="handleSearch"
+              @clear="handleSearch"
+            >
+              <template #append>
+                <el-button :icon="Search" @click="handleSearch" />
+              </template>
+            </el-input>
+          </el-form-item>
+        </el-col>
+      </el-row>
 
       <!-- 标签过滤 -->
       <div v-if="tags.length > 0" class="tags-filter">
@@ -196,11 +201,7 @@
 
     <!-- 空状态 -->
     <el-card v-else class="empty-card" shadow="never">
-      <el-empty description="暂无文章">
-        <el-button type="primary" @click="$router.push('/articles/create')">
-          发布第一篇文章
-        </el-button>
-      </el-empty>
+      <el-empty description="暂无文章" />
     </el-card>
 
     <!-- 分页 -->
