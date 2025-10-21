@@ -85,47 +85,49 @@
 
         <!-- 详细文档 -->
         <el-form-item label="详细文档（支持Markdown）">
-          <!-- 编辑器工具栏 -->
-          <div class="editor-toolbar">
-            <el-button-group>
-              <el-button
-                :icon="Picture"
-                size="small"
-                @click="selectDocImage"
-                :loading="uploadingDocImage"
-              >
-                {{ uploadingDocImage ? '上传中...' : '插入图片' }}
-              </el-button>
-              <el-button
-                :icon="View"
-                size="small"
-                @click="toggleDocPreview"
-              >
-                {{ showDocPreview ? '编辑' : '预览' }}
-              </el-button>
-            </el-button-group>
-            <el-text v-if="uploadingDocImage" type="primary" size="small">
-              正在上传图片，请稍候...
-            </el-text>
-          </div>
-          
-          <!-- 编辑器 -->
-          <el-input
-            v-if="!showDocPreview"
-            ref="documentEditor"
-            v-model="form.document"
-            type="textarea"
-            placeholder="请输入详细文档，支持Markdown格式...&#10;&#10;提示：&#10;- 点击'插入图片'上传图片&#10;- 点击'预览'查看渲染效果&#10;- 支持标题、列表、代码块等Markdown语法"
-            :rows="15"
-            :autosize="{ minRows: 15, maxRows: 30 }"
-          />
-          
-          <!-- Markdown预览 -->
-          <div v-else class="markdown-preview">
-            <div class="preview-header">
-              <el-text type="info">预览模式</el-text>
+          <!-- 编辑器容器 -->
+          <div class="editor-wrapper">
+            <!-- 编辑器工具栏（放在顶部） -->
+            <div class="editor-toolbar-top">
+              <el-button-group>
+                <el-button
+                  :icon="Picture"
+                  size="small"
+                  @click="selectDocImage"
+                  :loading="uploadingDocImage"
+                  text
+                >
+                  {{ uploadingDocImage ? '上传中...' : '插入图片' }}
+                </el-button>
+                <el-button
+                  :icon="View"
+                  size="small"
+                  @click="toggleDocPreview"
+                  text
+                >
+                  {{ showDocPreview ? '编辑' : '预览' }}
+                </el-button>
+              </el-button-group>
+              <el-text v-if="uploadingDocImage" type="primary" size="small">
+                正在上传图片，请稍候...
+              </el-text>
             </div>
-            <div class="markdown-body" v-html="documentPreview"></div>
+
+            <!-- 编辑器 -->
+            <el-input
+              v-if="!showDocPreview"
+              ref="documentEditor"
+              v-model="form.document"
+              type="textarea"
+              placeholder="请输入详细文档，支持Markdown格式...&#10;&#10;提示：&#10;- 点击'插入图片'上传图片&#10;- 点击'预览'查看渲染效果&#10;- 支持标题、列表、代码块等Markdown语法"
+              :rows="20"
+              class="editor-textarea"
+            />
+
+            <!-- Markdown预览 -->
+            <div v-else class="markdown-preview">
+              <div class="markdown-body" v-html="documentPreview"></div>
+            </div>
           </div>
         </el-form-item>
 
@@ -149,7 +151,7 @@ import { useRouter } from 'vue-router'
 import { Plus, UploadFilled, FolderOpened, Picture, View } from '@element-plus/icons-vue'
 import type { UploadFile, UploadFiles } from 'element-plus'
 import { uploadFileWithChunks } from '@/utils/chunk-upload'
-import { createResource, uploadResourceImage, uploadDocumentImage, getResourceCategories } from '@/utils/api'
+import { createResource, uploadResourceImage, uploadImage, getResourceCategories } from '@/utils/api'
 import type { ResourceCategory } from '@/types/resource'
 import toast from '@/utils/toast'
 import { renderMarkdown } from '@/utils/markdown'
@@ -192,6 +194,15 @@ async function loadCategories() {
 function handleFileChange(file: UploadFile) {
   selectedFile.value = file.raw as File
   console.log('选择文件:', file.name, file.size)
+  
+  // 如果标题为空，自动设置为文件名（去掉扩展名）
+  if (!form.title.trim()) {
+    const fileName = file.name
+    const lastDotIndex = fileName.lastIndexOf('.')
+    const nameWithoutExtension = lastDotIndex > 0 ? fileName.substring(0, lastDotIndex) : fileName
+    form.title = nameWithoutExtension
+    console.log('自动设置标题为:', nameWithoutExtension)
+  }
 }
 
 function beforeImageUpload(file: File) {
@@ -240,7 +251,8 @@ async function handleDocImageUpload(event: Event) {
 
   uploadingDocImage.value = true
   try {
-    const url = await uploadDocumentImage(file)
+    // 使用与文章相同的图片上传接口
+    const url = await uploadImage(file)
     insertDocImageMarkdown(url, file.name.replace(/\.[^/.]+$/, ''))
     toast.success('图片上传成功')
   } catch (error: any) {
@@ -414,13 +426,23 @@ onMounted(() => {
 
 <style scoped>
 .resource-upload-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 5px 10px;
 }
 
 .upload-card {
-  border-radius: 12px;
+  border-radius: 8px;
+  width: 100%;
+}
+
+.upload-card :deep(.el-card__header) {
+  padding: 15px 20px;
+}
+
+.upload-card :deep(.el-card__body) {
+  padding: 20px;
 }
 
 .page-title {
@@ -433,47 +455,97 @@ onMounted(() => {
   margin-top: 12px;
 }
 
-.document-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  padding: 12px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #ecf0f5 100%);
-  border-radius: 8px;
-  border: 1px solid #e4e7ed;
-}
-
-.editor-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
-  padding: 12px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #ecf0f5 100%);
-  border-radius: 8px;
-  border: 1px solid #e4e7ed;
-}
-
-.markdown-preview {
-  min-height: 300px;
+/* 编辑器容器 */
+.editor-wrapper {
+  position: relative;
   border: 1px solid #dcdfe6;
-  border-radius: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  height: 550px;
+  width: 100%;
+}
+
+.editor-wrapper .editor-textarea {
+  border: none;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-wrapper :deep(.el-textarea) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-wrapper :deep(.el-textarea__inner) {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  resize: none;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  font-size: 14px;
+  padding: 12px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  line-height: 1.6;
+}
+
+/* 编辑器工具栏（顶部） */
+.editor-toolbar-top {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px;
+  background: #f8f8f8;
+  border-bottom: 1px solid #e4e7ed;
+  flex-shrink: 0;
+}
+
+/* Markdown预览 */
+.markdown-preview {
   background: #fff;
   overflow: hidden;
-}
-
-.preview-header {
-  padding: 12px 16px;
-  background: #f5f7fa;
-  border-bottom: 1px solid #ebeef5;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
 }
 
 .markdown-preview .markdown-body {
   padding: 20px;
+  font-size: 14px;
   line-height: 1.8;
+  color: #303133;
+  flex: 1;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 自定义滚动条样式 */
+.markdown-preview .markdown-body::-webkit-scrollbar {
+  width: 12px;
+}
+
+.markdown-preview .markdown-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-left: 1px solid #e1e4e8;
+}
+
+.markdown-preview .markdown-body::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 6px;
+  border: 2px solid #f1f1f1;
+}
+
+.markdown-preview .markdown-body::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 .markdown-preview :deep(h1),
@@ -593,11 +665,18 @@ onMounted(() => {
   margin: 16px 0;
 }
 
+/* 减少表单项间距 */
+:deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
 .form-actions {
   display: flex;
   gap: 12px;
-  padding-top: 20px;
+  margin-top: 18px;
+  padding-top: 18px;
   border-top: 1px solid #ebeef5;
+  width: 100%;
 }
 
 :deep(.el-upload-dragger) {
@@ -618,6 +697,28 @@ onMounted(() => {
   margin-top: 7px;
   font-size: 12px;
   color: #909399;
+}
+
+@media (max-width: 768px) {
+  .resource-upload-container {
+    padding: 5px;
+  }
+
+  .upload-card :deep(.el-card__header) {
+    padding: 10px 15px;
+  }
+
+  .upload-card :deep(.el-card__body) {
+    padding: 15px;
+  }
+
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
 }
 </style>
 

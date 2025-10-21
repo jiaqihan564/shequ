@@ -90,47 +90,49 @@
 
         <!-- 正文 -->
         <el-form-item label="文章正文（支持Markdown）" required>
-          <!-- 编辑器工具栏 -->
-          <div class="editor-toolbar">
-            <el-button-group>
-              <el-button
-                :icon="Picture"
-                size="small"
-                @click="selectImage"
-                :loading="uploading"
-              >
-                {{ uploading ? '上传中...' : '插入图片' }}
-              </el-button>
-              <el-button
-                :icon="View"
-                size="small"
-                @click="togglePreview"
-              >
-                {{ showPreview ? '编辑' : '预览' }}
-              </el-button>
-            </el-button-group>
-            <el-text v-if="uploading" type="primary" size="small">
-              正在上传图片，请稍候...
-            </el-text>
-          </div>
-
-          <!-- 编辑器 -->
-          <el-input
-            v-if="!showPreview"
-            ref="contentEditor"
-            v-model="form.content"
-            type="textarea"
-            placeholder="请输入文章正文，支持Markdown格式...&#10;&#10;提示：&#10;- 点击'插入图片'上传图片&#10;- 点击'预览'查看渲染效果&#10;- 支持标题、列表、代码块等Markdown语法"
-            :rows="15"
-            :autosize="{ minRows: 15, maxRows: 30 }"
-          />
-
-          <!-- Markdown预览 -->
-          <div v-else class="markdown-preview">
-            <div class="preview-header">
-              <el-text type="info">预览模式</el-text>
+          <!-- 编辑器容器 -->
+          <div class="editor-wrapper">
+            <!-- 编辑器工具栏（放在顶部） -->
+            <div class="editor-toolbar-top">
+              <el-button-group>
+                <el-button
+                  :icon="Picture"
+                  size="small"
+                  @click="selectImage"
+                  :loading="uploading"
+                  text
+                >
+                  {{ uploading ? '上传中...' : '插入图片' }}
+                </el-button>
+                <el-button
+                  :icon="View"
+                  size="small"
+                  @click="togglePreview"
+                  text
+                >
+                  {{ showPreview ? '编辑' : '预览' }}
+                </el-button>
+              </el-button-group>
+              <el-text v-if="uploading" type="primary" size="small">
+                正在上传图片，请稍候...
+              </el-text>
             </div>
-            <div class="markdown-body" v-html="previewContent"></div>
+
+            <!-- 编辑器 -->
+            <el-input
+              v-if="!showPreview"
+              ref="contentEditor"
+              v-model="form.content"
+              type="textarea"
+              placeholder="请输入文章正文，支持Markdown格式...&#10;&#10;提示：&#10;- 点击'插入图片'上传图片&#10;- 点击'预览'查看渲染效果&#10;- 支持标题、列表、代码块等Markdown语法"
+              :rows="20"
+              class="editor-textarea"
+            />
+
+            <!-- Markdown预览 -->
+            <div v-else class="markdown-preview">
+              <div class="markdown-body" v-html="previewContent"></div>
+            </div>
           </div>
         </el-form-item>
 
@@ -207,14 +209,6 @@
         <!-- 操作按钮 -->
         <el-form-item>
           <div class="form-actions">
-            <el-button
-              type="info"
-              size="large"
-              :loading="submitting"
-              @click="handleSaveDraft"
-            >
-              保存草稿
-            </el-button>
             <el-button
               type="primary"
               size="large"
@@ -490,9 +484,9 @@ function parseMarkdownContent(content: string) {
         const value = valueParts.join(':').trim().replace(/^["']|["']$/g, '')
         const normalizedKey = key.trim().toLowerCase()
         
-        if (normalizedKey === 'title') {
+        if (normalizedKey === 'title' && !form.title.trim()) {
           form.title = value
-        } else if (normalizedKey === 'description' || normalizedKey === 'summary') {
+        } else if ((normalizedKey === 'description' || normalizedKey === 'summary') && !form.description.trim()) {
           form.description = value
         } else if (normalizedKey === 'tags') {
           // 尝试解析标签数组 [tag1, tag2] 或 tag1, tag2
@@ -506,12 +500,12 @@ function parseMarkdownContent(content: string) {
     form.content = markdownContent.trim()
   } else {
     // 没有Front Matter，直接使用内容
-    // 尝试从第一行提取标题
+    // 尝试从第一行提取标题（仅当标题为空时）
     const lines = content.split('\n')
     const firstLine = lines[0]?.trim()
     
-    if (firstLine && firstLine.startsWith('#')) {
-      // 第一行是标题
+    if (firstLine && firstLine.startsWith('#') && !form.title.trim()) {
+      // 第一行是标题，且当前标题为空
       form.title = firstLine.replace(/^#+\s*/, '')
       form.content = lines.slice(1).join('\n').trim()
     } else {
@@ -557,30 +551,6 @@ async function handleSubmit() {
   }
 }
 
-async function handleSaveDraft() {
-  if (!form.title || !form.content) {
-    toast.warning('标题和正文不能为空')
-    return
-  }
-
-  submitting.value = true
-  try {
-    form.status = 0 // 草稿状态
-    
-    if (isEditMode.value) {
-      await updateArticle(Number(route.params.id), form)
-    } else {
-      await createArticle(form)
-    }
-    toast.success('草稿保存成功')
-    router.push('/articles')
-  } catch (error: any) {
-    toast.error(error.message || '保存失败')
-  } finally {
-    submitting.value = false
-  }
-}
-
 onMounted(() => {
   loadMetadata()
   if (route.params.id) {
@@ -591,13 +561,23 @@ onMounted(() => {
 
 <style scoped>
 .article-editor-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 20px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 5px 10px;
 }
 
 .editor-card {
-  border-radius: 12px;
+  border-radius: 8px;
+  width: 100%;
+}
+
+.editor-card :deep(.el-card__header) {
+  padding: 15px 20px;
+}
+
+.editor-card :deep(.el-card__body) {
+  padding: 20px;
 }
 
 .card-header {
@@ -618,8 +598,17 @@ onMounted(() => {
 }
 
 .code-block-card {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
   border-radius: 8px;
+  width: 100%;
+}
+
+.code-block-card :deep(.el-card__header) {
+  padding: 12px 16px;
+}
+
+.code-block-card :deep(.el-card__body) {
+  padding: 16px;
 }
 
 .code-block-header {
@@ -632,9 +621,10 @@ onMounted(() => {
 .form-actions {
   display: flex;
   gap: 12px;
-  margin-top: 24px;
-  padding-top: 24px;
+  margin-top: 18px;
+  padding-top: 18px;
   border-top: 1px solid #ebeef5;
+  width: 100%;
 }
 
 /* Element Plus 组件自定义样式 */
@@ -645,6 +635,12 @@ onMounted(() => {
 
 :deep(.el-checkbox.is-bordered) {
   padding: 9px 20px 9px 10px;
+}
+
+:deep(.el-textarea) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 :deep(.el-textarea__inner) {
@@ -658,39 +654,89 @@ onMounted(() => {
   color: #303133;
 }
 
-/* 编辑器工具栏 */
-.editor-toolbar {
+/* 编辑器容器 */
+.editor-wrapper {
+  position: relative;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
   display: flex;
-  justify-content: space-between;
+  flex-direction: column;
+  height: 550px;
+  width: 100%;
+}
+
+.editor-wrapper .editor-textarea {
+  border: none;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-wrapper :deep(.el-textarea__inner) {
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  resize: none;
+  height: 100% !important;
+  min-height: 100% !important;
+  max-height: 100% !important;
+  font-size: 14px;
+  padding: 12px;
+}
+
+/* 编辑器工具栏（顶部） */
+.editor-toolbar-top {
+  display: flex;
+  justify-content: flex-start;
   align-items: center;
   gap: 12px;
-  margin-bottom: 12px;
-  padding: 12px;
-  background: linear-gradient(135deg, #f5f7fa 0%, #ecf0f5 100%);
-  border-radius: 8px;
-  border: 1px solid #e4e7ed;
+  padding: 6px 10px;
+  background: #f8f8f8;
+  border-bottom: 1px solid #e4e7ed;
+  flex-shrink: 0;
 }
 
 /* Markdown预览 */
 .markdown-preview {
-  min-height: 400px;
-  border: 1px solid #dcdfe6;
-  border-radius: 8px;
   background: #fff;
   overflow: hidden;
-}
-
-.preview-header {
-  padding: 12px 16px;
-  background: #f5f7fa;
-  border-bottom: 1px solid #ebeef5;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
 }
 
 .markdown-preview .markdown-body {
   padding: 20px;
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.8;
   color: #303133;
+  flex: 1;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* 自定义滚动条样式 */
+.markdown-preview .markdown-body::-webkit-scrollbar {
+  width: 12px;
+}
+
+.markdown-preview .markdown-body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-left: 1px solid #e1e4e8;
+}
+
+.markdown-preview .markdown-body::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 6px;
+  border: 2px solid #f1f1f1;
+}
+
+.markdown-preview .markdown-body::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
 }
 
 /* Markdown 样式（复用文章详情页的样式） */
@@ -762,9 +808,22 @@ onMounted(() => {
   margin-bottom: 16px;
 }
 
+/* 减少表单项间距 */
+:deep(.el-form-item) {
+  margin-bottom: 18px;
+}
+
 @media (max-width: 768px) {
   .article-editor-container {
-    padding: 10px;
+    padding: 5px;
+  }
+
+  .editor-card :deep(.el-card__header) {
+    padding: 10px 15px;
+  }
+
+  .editor-card :deep(.el-card__body) {
+    padding: 15px;
   }
 
   .form-actions {
