@@ -204,6 +204,238 @@ def fib_recursive(n):
 
 print(f"\\n第10个斐波那契数: {fib_recursive(10)}")`,
       expectedOutput: '斐波那契数列(前10个): [0, 1, 1, 2, 3, 5, 8, 13, 21, 34]\n...'
+    },
+    {
+      id: 'python-dict-operations',
+      title: '字典高级操作',
+      description: '字典的合并、筛选、排序',
+      code: `# 字典高级操作
+# 创建字典
+person = {'name': 'Alice', 'age': 25, 'city': 'Beijing'}
+print("原始字典:", person)
+
+# 字典合并
+extra_info = {'job': 'Engineer', 'hobby': 'Reading'}
+person.update(extra_info)
+print("\\n合并后:", person)
+
+# 字典推导式
+numbers = {'one': 1, 'two': 2, 'three': 3, 'four': 4}
+doubled = {k: v*2 for k, v in numbers.items()}
+print("\\n翻倍:", doubled)
+
+# 筛选字典
+filtered = {k: v for k, v in numbers.items() if v > 2}
+print("大于2:", filtered)
+
+# 字典排序
+scores = {'Alice': 95, 'Bob': 78, 'Charlie': 92, 'David': 85}
+sorted_by_value = dict(sorted(scores.items(), key=lambda x: x[1], reverse=True))
+print("\\n按分数排序:", sorted_by_value)
+
+# get 方法使用默认值
+age = person.get('age', 0)
+salary = person.get('salary', 'N/A')
+print(f"\\n年龄: {age}, 薪资: {salary}")
+
+# setdefault 方法
+person.setdefault('country', 'China')
+print("\\n添加默认值后:", person)`,
+      expectedOutput: '原始字典: {\'name\': \'Alice\', \'age\': 25, \'city\': \'Beijing\'}\n...'
+    },
+    {
+      id: 'python-exception-handling',
+      title: '异常处理',
+      description: 'try/except/finally 使用',
+      code: `# 异常处理
+print("=== 基本异常处理 ===")
+try:
+    result = 10 / 2
+    print(f"结果: {result}")
+    
+    # 这会引发异常
+    error_result = 10 / 0
+except ZeroDivisionError as e:
+    print(f"捕获到异常: {e}")
+finally:
+    print("finally 块总是执行")
+
+# 多个 except
+print("\\n=== 多个异常类型 ===")
+def process_data(data):
+    try:
+        # 可能的类型错误
+        number = int(data)
+        # 可能的除零错误
+        result = 100 / number
+        return result
+    except ValueError:
+        print("无法转换为数字")
+        return None
+    except ZeroDivisionError:
+        print("不能除以零")
+        return None
+    except Exception as e:
+        print(f"其他错误: {e}")
+        return None
+
+print(process_data("20"))
+print(process_data("abc"))
+print(process_data("0"))
+
+# 自定义异常
+print("\\n=== 自定义异常 ===")
+class AgeError(Exception):
+    pass
+
+def check_age(age):
+    if age < 0:
+        raise AgeError("年龄不能为负数")
+    elif age > 150:
+        raise AgeError("年龄不合理")
+    return f"年龄验证通过: {age}"
+
+try:
+    print(check_age(25))
+    print(check_age(-5))
+except AgeError as e:
+    print(f"年龄错误: {e}")`,
+      expectedOutput: '=== 基本异常处理 ===\n结果: 5.0\n捕获到异常: division by zero\n...'
+    },
+    {
+      id: 'python-generators',
+      title: '生成器',
+      description: 'yield 和生成器表达式',
+      code: `# 生成器
+# 基本生成器
+def count_up_to(n):
+    """生成从1到n的数字"""
+    count = 1
+    while count <= n:
+        yield count
+        count += 1
+
+print("=== 基本生成器 ===")
+for num in count_up_to(5):
+    print(num, end=' ')
+print()
+
+# 斐波那契生成器
+def fibonacci_gen(n):
+    """生成斐波那契数列"""
+    a, b = 0, 1
+    count = 0
+    while count < n:
+        yield a
+        a, b = b, a + b
+        count += 1
+
+print("\\n=== 斐波那契生成器 ===")
+fib = list(fibonacci_gen(10))
+print(f"前10个: {fib}")
+
+# 生成器表达式
+print("\\n=== 生成器表达式 ===")
+squares_gen = (x**2 for x in range(1, 6))
+print(f"平方数: {list(squares_gen)}")
+
+# 实用生成器：读取大文件（模拟）
+def read_lines(text):
+    """模拟逐行读取"""
+    lines = text.split('\\n')
+    for line in lines:
+        yield line.strip()
+
+data = """第一行
+第二行
+第三行"""
+
+print("\\n=== 逐行处理 ===")
+for line in read_lines(data):
+    if line:
+        print(f"处理: {line}")
+
+# 无限生成器
+def infinite_sequence():
+    num = 0
+    while True:
+        yield num
+        num += 1
+
+print("\\n=== 无限序列（前5个）===")
+seq = infinite_sequence()
+for _ in range(5):
+    print(next(seq), end=' ')
+print()`,
+      expectedOutput: '=== 基本生成器 ===\n1 2 3 4 5\n=== 斐波那契生成器 ===\n...'
+    },
+    {
+      id: 'python-decorators',
+      title: '装饰器',
+      description: '函数装饰器的使用',
+      code: `# 装饰器
+import time
+
+# 简单装饰器
+def timer_decorator(func):
+    """计时装饰器"""
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
+        print(f"{func.__name__} 执行时间: {(end-start)*1000:.2f}ms")
+        return result
+    return wrapper
+
+@timer_decorator
+def slow_function():
+    """模拟慢函数"""
+    time.sleep(0.1)
+    return "完成"
+
+print("=== 计时装饰器 ===")
+slow_function()
+
+# 带参数的装饰器
+def repeat(times):
+    """重复执行装饰器"""
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            results = []
+            for _ in range(times):
+                result = func(*args, **kwargs)
+                results.append(result)
+            return results
+        return wrapper
+    return decorator
+
+@repeat(3)
+def greet(name):
+    return f"Hello, {name}!"
+
+print("\\n=== 重复装饰器 ===")
+results = greet("Alice")
+for r in results:
+    print(r)
+
+# 日志装饰器
+def log_call(func):
+    """记录函数调用"""
+    def wrapper(*args, **kwargs):
+        print(f"调用 {func.__name__}")
+        print(f"  参数: args={args}, kwargs={kwargs}")
+        result = func(*args, **kwargs)
+        print(f"  返回: {result}")
+        return result
+    return wrapper
+
+@log_call
+def add(a, b):
+    return a + b
+
+print("\\n=== 日志装饰器 ===")
+add(5, 3)`,
+      expectedOutput: '=== 计时装饰器 ===\nslow_function 执行时间: ...'
     }
   ],
 
@@ -464,6 +696,266 @@ console.log("排序后:", sorted);
 const descending = quickSort(numbers).reverse();
 console.log("降序:", descending);`,
       expectedOutput: '原始数组: [ 64, 34, 25, 12, 22, 11, 90, 88, 45, 50 ]\n...'
+    },
+    {
+      id: 'js-destructuring',
+      title: '解构赋值',
+      description: '数组和对象解构',
+      code: `// 解构赋值
+// 数组解构
+const colors = ['red', 'green', 'blue', 'yellow'];
+const [first, second, ...rest] = colors;
+
+console.log("=== 数组解构 ===");
+console.log("第一个:", first);
+console.log("第二个:", second);
+console.log("其余:", rest);
+
+// 交换变量
+let a = 1, b = 2;
+[a, b] = [b, a];
+console.log(\`\\n交换后: a=\${a}, b=\${b}\`);
+
+// 对象解构
+const person = {
+  name: 'Alice',
+  age: 25,
+  city: 'Beijing',
+  job: 'Engineer'
+};
+
+const { name, age, ...otherInfo } = person;
+console.log("\\n=== 对象解构 ===");
+console.log("姓名:", name);
+console.log("年龄:", age);
+console.log("其他信息:", otherInfo);
+
+// 重命名
+const { name: personName, city: location } = person;
+console.log(\`\\n\${personName} 住在 \${location}\`);
+
+// 默认值
+const { salary = 50000, bonus = 0 } = person;
+console.log(\`\\n薪资: \${salary}, 奖金: \${bonus}\`);
+
+// 嵌套解构
+const user = {
+  id: 1,
+  profile: {
+    username: 'alice123',
+    email: 'alice@example.com'
+  }
+};
+
+const { profile: { username, email } } = user;
+console.log(\`\\n用户名: \${username}, 邮箱: \${email}\`);
+
+// 函数参数解构
+function greet({ name, age = 18 }) {
+  return \`Hello, \${name}! You are \${age} years old.\`;
+}
+
+console.log("\\n" + greet({ name: 'Bob', age: 30 }));
+console.log(greet({ name: 'Charlie' }));`,
+      expectedOutput: '=== 数组解构 ===\n第一个: red\n第二个: green\n...'
+    },
+    {
+      id: 'js-async-await',
+      title: 'Async/Await',
+      description: '异步编程进阶',
+      code: `// Async/Await
+// 模拟异步操作
+function delay(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function fetchUser(id) {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      resolve({ id, name: \`User\${id}\`, age: 20 + id });
+    }, 100);
+  });
+}
+
+// 基本用法
+async function getUser() {
+  console.log("开始获取用户...");
+  const user = await fetchUser(1);
+  console.log("用户信息:", user);
+  return user;
+}
+
+// 错误处理
+async function getUserWithError() {
+  try {
+    const user = await fetchUser(2);
+    console.log("\\n获取成功:", user);
+  } catch (error) {
+    console.error("错误:", error);
+  }
+}
+
+// 并行执行
+async function getMultipleUsers() {
+  console.log("\\n=== 并行获取多个用户 ===");
+  const start = Date.now();
+  
+  // 并行执行
+  const users = await Promise.all([
+    fetchUser(1),
+    fetchUser(2),
+    fetchUser(3)
+  ]);
+  
+  const time = Date.now() - start;
+  console.log("用户列表:", users);
+  console.log(\`耗时: \${time}ms\`);
+}
+
+// 串行执行
+async function getUsersSequentially() {
+  console.log("\\n=== 串行获取用户 ===");
+  const start = Date.now();
+  
+  const user1 = await fetchUser(1);
+  const user2 = await fetchUser(2);
+  const user3 = await fetchUser(3);
+  
+  const time = Date.now() - start;
+  console.log("获取完成，耗时:", time + "ms");
+}
+
+// 执行所有示例
+(async () => {
+  await getUser();
+  await getUserWithError();
+  await getMultipleUsers();
+  await getUsersSequentially();
+  console.log("\\n所有任务完成");
+})();`,
+      expectedOutput: '开始获取用户...\n用户信息: { id: 1, name: \'User1\', age: 21 }\n...'
+    },
+    {
+      id: 'js-set-map',
+      title: 'Set 和 Map',
+      description: '集合和映射数据结构',
+      code: `// Set 和 Map
+// Set - 唯一值集合
+console.log("=== Set 集合 ===");
+const numbers = new Set([1, 2, 3, 3, 4, 4, 5]);
+console.log("Set:", numbers);
+console.log("大小:", numbers.size);
+
+// Set 操作
+numbers.add(6);
+numbers.add(3); // 重复值不会添加
+console.log("\\n添加后:", numbers);
+
+numbers.delete(2);
+console.log("删除2后:", numbers);
+
+console.log("包含3?", numbers.has(3));
+
+// Set 转数组
+const arr = [...numbers];
+console.log("\\n转为数组:", arr);
+
+// 数组去重
+const duplicates = [1, 2, 2, 3, 3, 3, 4, 5, 5];
+const unique = [...new Set(duplicates)];
+console.log("\\n去重前:", duplicates);
+console.log("去重后:", unique);
+
+// Map - 键值对
+console.log("\\n=== Map 映射 ===");
+const userMap = new Map();
+
+userMap.set('alice', { age: 25, city: 'Beijing' });
+userMap.set('bob', { age: 30, city: 'Shanghai' });
+userMap.set('charlie', { age: 28, city: 'Guangzhou' });
+
+console.log("Map 大小:", userMap.size);
+console.log("Alice:", userMap.get('alice'));
+
+// 遍历 Map
+console.log("\\n遍历 Map:");
+for (const [key, value] of userMap) {
+  console.log(\`\${key}: \${JSON.stringify(value)}\`);
+}
+
+// Map 的 keys, values, entries
+console.log("\\n所有键:", [...userMap.keys()]);
+console.log("所有值:", [...userMap.values()]);
+
+// 对象转 Map
+const obj = { a: 1, b: 2, c: 3 };
+const map = new Map(Object.entries(obj));
+console.log("\\n对象转Map:", map);
+
+// Map 转对象
+const mapToObj = Object.fromEntries(map);
+console.log("Map转对象:", mapToObj);`,
+      expectedOutput: '=== Set 集合 ===\nSet: Set(5) { 1, 2, 3, 4, 5 }\n...'
+    },
+    {
+      id: 'js-spread-rest',
+      title: '展开和剩余运算符',
+      description: '... 运算符的使用',
+      code: `// 展开和剩余运算符
+// 数组展开
+console.log("=== 数组展开 ===");
+const arr1 = [1, 2, 3];
+const arr2 = [4, 5, 6];
+const combined = [...arr1, ...arr2];
+console.log("合并:", combined);
+
+// 数组复制
+const original = [1, 2, 3];
+const copy = [...original];
+copy.push(4);
+console.log("\\n原数组:", original);
+console.log("复制数组:", copy);
+
+// 数组最大最小值
+const nums = [5, 2, 8, 1, 9, 3];
+console.log("\\n最大值:", Math.max(...nums));
+console.log("最小值:", Math.min(...nums));
+
+// 对象展开
+console.log("\\n=== 对象展开 ===");
+const person = { name: 'Alice', age: 25 };
+const address = { city: 'Beijing', country: 'China' };
+const fullInfo = { ...person, ...address, job: 'Engineer' };
+console.log("完整信息:", fullInfo);
+
+// 对象复制和更新
+const user = { id: 1, name: 'Bob', role: 'user' };
+const admin = { ...user, role: 'admin', permissions: ['read', 'write'] };
+console.log("\\n用户:", user);
+console.log("管理员:", admin);
+
+// 剩余参数
+console.log("\\n=== 剩余参数 ===");
+function sum(...numbers) {
+  return numbers.reduce((acc, num) => acc + num, 0);
+}
+
+console.log("sum(1, 2, 3):", sum(1, 2, 3));
+console.log("sum(1, 2, 3, 4, 5):", sum(1, 2, 3, 4, 5));
+
+// 结合普通参数
+function greet(greeting, ...names) {
+  return \`\${greeting}, \${names.join(' and ')}!\`;
+}
+
+console.log("\\n" + greet('Hello', 'Alice', 'Bob', 'Charlie'));
+
+// 数组解构中的剩余
+const [first, second, ...rest] = [1, 2, 3, 4, 5];
+console.log("\\nfirst:", first);
+console.log("second:", second);
+console.log("rest:", rest);`,
+      expectedOutput: '=== 数组展开 ===\n合并: [ 1, 2, 3, 4, 5, 6 ]\n...'
     }
   ],
 
@@ -729,6 +1221,131 @@ public class Main {
     }
 }`,
       expectedOutput: '=== Factorial ===\n1! = 1\n2! = 2\n...'
+    },
+    {
+      id: 'java-lambda',
+      title: 'Lambda 表达式',
+      description: 'Java 8 Lambda',
+      code: `// Java Lambda 表达式
+import java.util.*;
+import java.util.function.*;
+
+public class Main {
+    public static void main(String[] args) {
+        // 基本 Lambda
+        System.out.println("=== 基本 Lambda ===");
+        Calculator add = (a, b) -> a + b;
+        Calculator multiply = (a, b) -> a * b;
+        
+        System.out.println("5 + 3 = " + add.calculate(5, 3));
+        System.out.println("5 * 3 = " + multiply.calculate(5, 3));
+        
+        // 列表操作
+        System.out.println("\\n=== Lambda 与集合 ===");
+        List<Integer> numbers = Arrays.asList(1, 2, 3, 4, 5);
+        
+        // forEach
+        System.out.print("Numbers: ");
+        numbers.forEach(n -> System.out.print(n + " "));
+        System.out.println();
+        
+        // Predicate - 条件判断
+        Predicate<Integer> isEven = n -> n % 2 == 0;
+        System.out.println("2 is even? " + isEven.test(2));
+        System.out.println("3 is even? " + isEven.test(3));
+        
+        // Function - 转换
+        Function<String, Integer> strLength = s -> s.length();
+        System.out.println("\\n'Hello' length: " + strLength.apply("Hello"));
+        
+        // Consumer - 消费
+        Consumer<String> printer = s -> System.out.println(">> " + s);
+        System.out.println();
+        printer.accept("Lambda Consumer");
+        
+        // Supplier - 提供
+        Supplier<Double> randomSupplier = () -> Math.random();
+        System.out.println("\\nRandom: " + randomSupplier.get());
+        
+        // 方法引用
+        System.out.println("\\n=== 方法引用 ===");
+        List<String> names = Arrays.asList("Alice", "Bob", "Charlie");
+        names.forEach(System.out::println);
+    }
+}
+
+@FunctionalInterface
+interface Calculator {
+    int calculate(int a, int b);
+}`,
+      expectedOutput: '=== 基本 Lambda ===\n5 + 3 = 8\n5 * 3 = 15\n...'
+    },
+    {
+      id: 'java-stream',
+      title: 'Stream API',
+      description: 'Java 8 Stream 流式处理',
+      code: `// Java Stream API
+import java.util.*;
+import java.util.stream.*;
+
+public class Main {
+    public static void main(String[] args) {
+        // 创建 Stream
+        System.out.println("=== Stream 基础 ===");
+        List<Integer> numbers = Arrays.asList(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+        
+        // filter - 筛选偶数
+        List<Integer> evens = numbers.stream()
+            .filter(n -> n % 2 == 0)
+            .collect(Collectors.toList());
+        System.out.println("偶数: " + evens);
+        
+        // map - 转换
+        List<Integer> squares = numbers.stream()
+            .map(n -> n * n)
+            .collect(Collectors.toList());
+        System.out.println("平方: " + squares);
+        
+        // reduce - 聚合
+        int sum = numbers.stream()
+            .reduce(0, (a, b) -> a + b);
+        System.out.println("\\n总和: " + sum);
+        
+        // 组合操作
+        System.out.println("\\n=== 组合操作 ===");
+        int result = numbers.stream()
+            .filter(n -> n % 2 == 0)  // 筛选偶数
+            .map(n -> n * 2)           // 乘以2
+            .reduce(0, Integer::sum);  // 求和
+        System.out.println("偶数翻倍后的和: " + result);
+        
+        // 统计
+        IntSummaryStatistics stats = numbers.stream()
+            .mapToInt(Integer::intValue)
+            .summaryStatistics();
+        System.out.println("\\n=== 统计信息 ===");
+        System.out.println("数量: " + stats.getCount());
+        System.out.println("总和: " + stats.getSum());
+        System.out.println("平均: " + stats.getAverage());
+        System.out.println("最大: " + stats.getMax());
+        System.out.println("最小: " + stats.getMin());
+        
+        // 字符串操作
+        System.out.println("\\n=== 字符串 Stream ===");
+        List<String> words = Arrays.asList("apple", "banana", "cherry", "date");
+        String joined = words.stream()
+            .map(String::toUpperCase)
+            .collect(Collectors.joining(", "));
+        System.out.println("连接: " + joined);
+        
+        // 分组
+        Map<Boolean, List<Integer>> partitioned = numbers.stream()
+            .collect(Collectors.partitioningBy(n -> n % 2 == 0));
+        System.out.println("\\n偶数组: " + partitioned.get(true));
+        System.out.println("奇数组: " + partitioned.get(false));
+    }
+}`,
+      expectedOutput: '=== Stream 基础 ===\n偶数: [2, 4, 6, 8, 10]\n平方: [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]\n...'
     }
   ],
 
@@ -1044,6 +1661,62 @@ int main() {
     return 0;
 }`,
       expectedOutput: '原始数组: 64 34 25 12 22 11 90\n...'
+    },
+    {
+      id: 'cpp-lambda',
+      title: 'Lambda 表达式',
+      description: 'C++11 Lambda',
+      code: `// C++ Lambda 表达式
+#include <iostream>
+#include <vector>
+#include <algorithm>
+using namespace std;
+
+int main() {
+    // 基本 Lambda
+    cout << "=== 基本 Lambda ===" << endl;
+    auto add = [](int a, int b) { return a + b; };
+    auto multiply = [](int a, int b) -> int { return a * b; };
+    
+    cout << "5 + 3 = " << add(5, 3) << endl;
+    cout << "5 * 3 = " << multiply(5, 3) << endl;
+    
+    // Lambda 与容器
+    vector<int> numbers = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+    
+    // for_each
+    cout << "\\n=== for_each ===" << endl;
+    cout << "Numbers: ";
+    for_each(numbers.begin(), numbers.end(), 
+             [](int n) { cout << n << " "; });
+    cout << endl;
+    
+    // 捕获外部变量
+    int multiplier = 2;
+    cout << "\\n=== 捕获变量 ===" << endl;
+    for_each(numbers.begin(), numbers.end(),
+             [multiplier](int n) { cout << n * multiplier << " "; });
+    cout << endl;
+    
+    // count_if - 计数
+    int evenCount = count_if(numbers.begin(), numbers.end(),
+                             [](int n) { return n % 2 == 0; });
+    cout << "\\n偶数个数: " << evenCount << endl;
+    
+    // transform - 转换
+    vector<int> squares(numbers.size());
+    transform(numbers.begin(), numbers.end(), squares.begin(),
+              [](int n) { return n * n; });
+    
+    cout << "\\n平方数: ";
+    for (int s : squares) {
+        cout << s << " ";
+    }
+    cout << endl;
+    
+    return 0;
+}`,
+      expectedOutput: '=== 基本 Lambda ===\n5 + 3 = 8\n5 * 3 = 15\n...'
     }
   ],
 
@@ -1541,6 +2214,140 @@ func main() {
     fmt.Println("\\n所有任务完成")
 }`,
       expectedOutput: '=== Goroutine 示例 ===\n数字: 1\n字母: A\n...'
+    },
+    {
+      id: 'go-map',
+      title: 'Map 映射',
+      description: 'map 操作',
+      code: `// Go Map
+package main
+
+import "fmt"
+
+func main() {
+    // 创建 map
+    ages := make(map[string]int)
+    
+    // 添加键值对
+    ages["Alice"] = 25
+    ages["Bob"] = 30
+    ages["Charlie"] = 28
+    
+    fmt.Println("=== Map 基础 ===")
+    fmt.Println("Ages:", ages)
+    fmt.Println("Alice:", ages["Alice"])
+    
+    // 字面量创建
+    scores := map[string]int{
+        "Math":    95,
+        "English": 88,
+        "Science": 92,
+    }
+    fmt.Println("\\nScores:", scores)
+    
+    // 检查键是否存在
+    value, exists := ages["David"]
+    if exists {
+        fmt.Println("David:", value)
+    } else {
+        fmt.Println("David 不存在")
+    }
+    
+    // 删除键
+    delete(ages, "Bob")
+    fmt.Println("\\n删除 Bob 后:", ages)
+    
+    // 遍历 map
+    fmt.Println("\\n=== 遍历 Map ===")
+    for name, age := range ages {
+        fmt.Printf("%s: %d 岁\\n", name, age)
+    }
+    
+    // 只遍历键
+    fmt.Println("\\n所有键:")
+    for name := range scores {
+        fmt.Printf("- %s\\n", name)
+    }
+    
+    // map 长度
+    fmt.Printf("\\nMap 长度: %d\\n", len(ages))
+}`,
+      expectedOutput: '=== Map 基础 ===\nAges: map[Alice:25 Bob:30 Charlie:28]\n...'
+    },
+    {
+      id: 'go-interface',
+      title: '接口',
+      description: 'interface 定义和实现',
+      code: `// Go 接口
+package main
+
+import "fmt"
+
+// 定义接口
+type Shape interface {
+    Area() float64
+    Perimeter() float64
+}
+
+// 矩形
+type Rectangle struct {
+    Width  float64
+    Height float64
+}
+
+func (r Rectangle) Area() float64 {
+    return r.Width * r.Height
+}
+
+func (r Rectangle) Perimeter() float64 {
+    return 2 * (r.Width + r.Height)
+}
+
+// 圆形
+type Circle struct {
+    Radius float64
+}
+
+func (c Circle) Area() float64 {
+    return 3.14159 * c.Radius * c.Radius
+}
+
+func (c Circle) Perimeter() float64 {
+    return 2 * 3.14159 * c.Radius
+}
+
+// 使用接口的函数
+func printShapeInfo(s Shape) {
+    fmt.Printf("面积: %.2f, 周长: %.2f\\n", s.Area(), s.Perimeter())
+}
+
+func main() {
+    // 创建形状
+    rect := Rectangle{Width: 10, Height: 5}
+    circle := Circle{Radius: 7}
+    
+    fmt.Println("=== 矩形 ===")
+    fmt.Printf("宽: %.0f, 高: %.0f\\n", rect.Width, rect.Height)
+    printShapeInfo(rect)
+    
+    fmt.Println("\\n=== 圆形 ===")
+    fmt.Printf("半径: %.0f\\n", circle.Radius)
+    printShapeInfo(circle)
+    
+    // 接口切片
+    fmt.Println("\\n=== 多个形状 ===")
+    shapes := []Shape{
+        Rectangle{Width: 3, Height: 4},
+        Circle{Radius: 5},
+        Rectangle{Width: 6, Height: 8},
+    }
+    
+    for i, shape := range shapes {
+        fmt.Printf("形状 %d: ", i+1)
+        printShapeInfo(shape)
+    }
+}`,
+      expectedOutput: '=== 矩形 ===\n宽: 10, 高: 5\n面积: 50.00, 周长: 30.00\n...'
     }
   ],
 
@@ -2122,6 +2929,69 @@ console.log("\\nString box:", stringBox.getValue());
 const numberBox = new Box<number>(123);
 console.log("Number box:", numberBox.getValue());`,
       expectedOutput: 'Hello\n42\n...'
+    },
+    {
+      id: 'ts-decorators',
+      title: '装饰器',
+      description: 'Decorator 使用',
+      code: `// TypeScript 装饰器（实验性功能）
+// 注意：需要在 tsconfig.json 中启用 experimentalDecorators
+
+// 方法装饰器
+function log(target: any, propertyKey: string, descriptor: PropertyDescriptor) {
+  const originalMethod = descriptor.value;
+  
+  descriptor.value = function(...args: any[]) {
+    console.log(\`调用 \${propertyKey}, 参数: \${JSON.stringify(args)}\`);
+    const result = originalMethod.apply(this, args);
+    console.log(\`返回: \${result}\`);
+    return result;
+  };
+  
+  return descriptor;
+}
+
+// 类装饰器
+function sealed(constructor: Function) {
+  console.log(\`类 \${constructor.name} 被密封\`);
+  Object.seal(constructor);
+  Object.seal(constructor.prototype);
+}
+
+@sealed
+class Calculator {
+  add(a: number, b: number): number {
+    return a + b;
+  }
+  
+  multiply(a: number, b: number): number {
+    return a * b;
+  }
+}
+
+// 使用
+const calc = new Calculator();
+console.log("\\n5 + 3 =", calc.add(5, 3));
+console.log("4 * 7 =", calc.multiply(4, 7));
+
+// 属性装饰器示例
+class Person {
+  private _name: string = "";
+  
+  get name(): string {
+    return this._name;
+  }
+  
+  set name(value: string) {
+    console.log(\`设置 name: \${value}\`);
+    this._name = value;
+  }
+}
+
+const person = new Person();
+person.name = "Alice";
+console.log("\\nName:", person.name);`,
+      expectedOutput: '类 Calculator 被密封\n5 + 3 = 8\n4 * 7 = 28\n...'
     }
   ],
 

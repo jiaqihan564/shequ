@@ -52,7 +52,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MonacoEditor from '@/components/code/MonacoEditor.vue'
 import { getSharedSnippet } from '@/utils/code-api'
-import { showToast } from '@/utils/toast'
+import { toast } from '@/utils/toast'
 import type { CodeSnippet } from '@/types/code'
 
 const route = useRoute()
@@ -75,7 +75,17 @@ const monacoLanguage = computed(() => {
     cpp: 'cpp',
     c: 'c',
     go: 'go',
-    rust: 'rust'
+    rust: 'rust',
+    php: 'php',
+    typescript: 'typescript',
+    ruby: 'ruby',
+    swift: 'swift',
+    kotlin: 'kotlin',
+    bash: 'shell',
+    lua: 'lua',
+    scala: 'scala',
+    haskell: 'haskell',
+    perl: 'perl'
   }
   return langMap[snippet.value.language] || 'plaintext'
 })

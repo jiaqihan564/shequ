@@ -8,7 +8,8 @@ import type {
   CodeSnippetsResponse,
   CodeExecutionsResponse,
   ShareSnippetResponse,
-  LanguageInfo
+  LanguageInfo,
+  PublicSnippetsResponse
 } from '@/types/code'
 
 // 创建 axios 实例
@@ -139,6 +140,20 @@ export async function getSharedSnippet(token: string): Promise<CodeSnippet> {
  */
 export async function getSupportedLanguages(): Promise<LanguageInfo[]> {
   const response = await request.get<LanguageInfo[]>(`${API_PREFIX}/code/languages`)
+  return response.data
+}
+
+/**
+ * 获取公开的代码片段列表
+ */
+export async function getPublicSnippets(
+  page = 1,
+  pageSize = 20,
+  language?: string
+): Promise<PublicSnippetsResponse> {
+  const response = await request.get<PublicSnippetsResponse>(`${API_PREFIX}/code/public`, {
+    params: { page, page_size: pageSize, language }
+  })
   return response.data
 }
 

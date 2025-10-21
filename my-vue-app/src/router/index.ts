@@ -29,6 +29,7 @@ const ResourceUploadView = () => import('@/views/resource/ResourceUploadView.vue
 const CodeEditorView = () => import('@/views/code/CodeEditorView.vue')
 const CodeHistoryView = () => import('@/views/code/CodeHistoryView.vue')
 const CodeShareView = () => import('@/views/code/CodeShareView.vue')
+const CodeSquareView = () => import('@/views/code/CodeSquareView.vue')
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/home' },
@@ -182,6 +183,12 @@ const routes: RouteRecordRaw[] = [
         name: 'code-editor',
         component: CodeEditorView,
         meta: { title: '在线编程', requiresAuth: true }
+      },
+      {
+        path: 'code-square',
+        name: 'code-square',
+        component: CodeSquareView,
+        meta: { title: '代码广场', requiresAuth: true }
       },
       {
         path: 'code-history',

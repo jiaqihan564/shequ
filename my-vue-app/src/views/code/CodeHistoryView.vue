@@ -151,7 +151,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   getSnippets,
@@ -198,6 +198,19 @@ onMounted(() => {
     loadExecutions()
   } else {
     loadSnippets()
+  }
+})
+
+// 监听 tab 切换，自动加载对应数据
+watch(activeTab, (newTab) => {
+  if (newTab === 'executions') {
+    if (executions.value.length === 0) {
+      loadExecutions()
+    }
+  } else if (newTab === 'snippets') {
+    if (snippets.value.length === 0) {
+      loadSnippets()
+    }
   }
 })
 

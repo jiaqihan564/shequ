@@ -43,6 +43,7 @@
           <div class="nav-divider"></div>
           <div class="nav-section-title">在线编程</div>
           <RouterLink to="/code-editor" class="nav-item" active-class="active">💻 代码编辑器</RouterLink>
+          <RouterLink to="/code-square" class="nav-item" active-class="active">🎯 代码广场</RouterLink>
           <RouterLink to="/code-history" class="nav-item" active-class="active">📚 代码历史</RouterLink>
           
           <!-- 所有用户可见：资源中心 -->

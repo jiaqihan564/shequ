@@ -30,6 +30,15 @@
         </div>
       </div>
 
+      <!-- JVM 语言编码提示 -->
+      <div v-if="isJVMLanguage" class="encoding-warning">
+        <span class="warning-icon">⚠️</span>
+        <span class="warning-text">
+          当前 {{ currentLanguageName }} 环境可能不完全支持中文字符显示。
+          建议使用英文或拼音，或参考<a href="#" @click.prevent="showEncodingHelp">编码解决方案</a>。
+        </span>
+      </div>
+
       <div class="editor-workspace">
         <div class="editor-panel">
           <div class="panel-header">
@@ -106,6 +115,7 @@ import LanguageSelector from '@/components/code/LanguageSelector.vue'
 import CodeExampleSelector from '@/components/code/CodeExampleSelector.vue'
 import { executeCode, saveSnippet } from '@/utils/code-api'
 import { toast } from '@/utils/toast'
+import { codeExamples } from '@/data/code-examples'
 import type { LanguageInfo, CodeExample } from '@/types/code'
 
 const router = useRouter()
@@ -156,8 +166,32 @@ const monacoLanguage = computed(() => {
   return langMap[selectedLanguage.value] || 'plaintext'
 })
 
+// 检查是否为 JVM 语言
+const isJVMLanguage = computed(() => {
+  return ['java', 'scala', 'kotlin'].includes(selectedLanguage.value)
+})
+
+const currentLanguageName = computed(() => {
+  return currentLanguage.value?.name || selectedLanguage.value
+})
+
 function onLanguageChange(langId: string, language: LanguageInfo) {
   currentLanguage.value = language
+  
+  // 自动加载新语言的第一个示例代码
+  const examples = codeExamples[langId]
+  if (examples && examples.length > 0) {
+    const firstExample = examples[0]
+    code.value = firstExample.code
+    stdin.value = firstExample.stdin || ''
+    // 清空输出
+    output.value = ''
+    errorMessage.value = ''
+    executionTime.value = null
+    memoryUsage.value = null
+    
+    toast.info(`已切换到 ${language.name}，并加载示例代码`)
+  }
 }
 
 function handleLoadExample(example: CodeExample) {
@@ -258,6 +292,10 @@ function showHistory() {
   router.push('/code-history?tab=executions')
 }
 
+function showEncodingHelp() {
+  toast.info('JVM语言编码提示：\n1. 建议使用英文字符串和注释\n2. 或使用拼音代替中文\n3. 后端已尝试设置UTF-8编码\n4. 如需大量中文，推荐使用Python或JavaScript', 8000)
+}
+
 // 键盘快捷键
 function handleKeydown(e: KeyboardEvent) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -332,6 +370,38 @@ onUnmounted(() => {
   gap: 8px;
   margin-left: auto;
   flex-shrink: 0;
+}
+
+.encoding-warning {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #856404;
+}
+
+.warning-icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.warning-text {
+  line-height: 1.5;
+}
+
+.warning-text a {
+  color: #0056b3;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.warning-text a:hover {
+  color: #004085;
 }
 
 .editor-workspace {

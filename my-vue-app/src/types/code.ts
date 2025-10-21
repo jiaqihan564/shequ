@@ -22,6 +22,19 @@ export interface CodeSnippetListItem {
   updated_at: string
 }
 
+export interface CodeSnippetWithUser {
+  id: number
+  user_id: number
+  username: string
+  title: string
+  language: string
+  code: string
+  description: string
+  share_token?: string
+  created_at: string
+  updated_at: string
+}
+
 export interface CodeExecution {
   id: number
   snippet_id?: number
@@ -90,6 +103,13 @@ export interface CodeSnippetsResponse {
 
 export interface CodeExecutionsResponse {
   items: CodeExecution[]
+  total: number
+  page: number
+  page_size: number
+}
+
+export interface PublicSnippetsResponse {
+  items: CodeSnippetWithUser[]
   total: number
   page: number
   page_size: number
