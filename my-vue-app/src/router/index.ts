@@ -58,31 +58,31 @@ const routes: RouteRecordRaw[] = [
         path: 'cumulative-stats',
         name: 'cumulative-stats',
         component: CumulativeStatsView,
-        meta: { title: '全站累计', requiresAuth: true }
+        meta: { title: '全站累计', requiresAuth: true, requiresAdmin: true }
       },
       {
         path: 'daily-metrics',
         name: 'daily-metrics',
         component: DailyMetricsView,
-        meta: { title: '每日指标', requiresAuth: true }
+        meta: { title: '每日指标', requiresAuth: true, requiresAdmin: true }
       },
       {
         path: 'realtime-metrics',
         name: 'realtime-metrics',
         component: RealtimeMetricsView,
-        meta: { title: '实时监控', requiresAuth: true }
+        meta: { title: '实时监控', requiresAuth: true, requiresAdmin: true }
       },
       {
         path: 'user-stats',
         name: 'user-stats',
         component: UserStatsView,
-        meta: { title: '用户统计', requiresAuth: true }
+        meta: { title: '用户统计', requiresAuth: true, requiresAdmin: true }
       },
       {
         path: 'api-stats',
         name: 'api-stats',
         component: ApiStatsView,
-        meta: { title: 'API统计', requiresAuth: true }
+        meta: { title: 'API统计', requiresAuth: true, requiresAdmin: true }
       },
       {
         path: 'login-history',
@@ -106,7 +106,7 @@ const routes: RouteRecordRaw[] = [
         path: 'location-distribution',
         name: 'location-distribution',
         component: LocationDistributionView,
-        meta: { title: '地区分布', requiresAuth: true }
+        meta: { title: '地区分布', requiresAuth: true, requiresAdmin: true }
       },
       {
         path: 'chatroom',
@@ -185,15 +185,41 @@ const router = createRouter({
 
 router.beforeEach((to, _from, next) => {
   const requiresAuth = to.matched.some(r => r.meta?.requiresAuth)
+  const requiresAdmin = to.matched.some(r => r.meta?.requiresAdmin)
   const isAuthenticated = !!(
     localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
   )
 
+  // 检查是否需要认证
   if (requiresAuth && !isAuthenticated) {
     next({ path: '/login', query: { redirect: to.fullPath } })
     return
   }
 
+  // 检查是否需要管理员权限
+  if (requiresAdmin && isAuthenticated) {
+    const userInfo = localStorage.getItem('user_info') || sessionStorage.getItem('user_info')
+    if (userInfo) {
+      try {
+        const user = JSON.parse(userInfo)
+        if (user.role !== 'admin') {
+          // 非管理员访问管理员页面，重定向到首页
+          console.warn('需要管理员权限')
+          next('/home')
+          return
+        }
+      } catch (error) {
+        console.error('解析用户信息失败:', error)
+        next('/login')
+        return
+      }
+    } else {
+      next('/login')
+      return
+    }
+  }
+
+  // 已登录用户访问登录/注册页面，重定向到首页
   if ((to.path === '/login' || to.path === '/register') && isAuthenticated) {
     next('/home')
     return

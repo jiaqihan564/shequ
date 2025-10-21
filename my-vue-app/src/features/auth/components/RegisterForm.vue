@@ -223,6 +223,7 @@ import {
   validateConfirmPassword,
   VALIDATION_RULES
 } from '@/utils/validation'
+import { detectCurrentRegion } from '@/utils/geo'
 
 const emit = defineEmits<{
   success: [data: any]
@@ -338,7 +339,27 @@ const handleSubmit = async (event: Event) => {
 
   isSubmitting.value = true
   try {
-    const result = await register(formData)
+    // 获取地理位置，失败时使用默认值（山东乳山）
+    let province = '山东'
+    let city = '乳山'
+    
+    try {
+      const region = await detectCurrentRegion(false, { timeoutMs: 3000 })
+      if (region && region.province) {
+        province = region.province
+        city = region.city || city  // 如果城市为空，使用默认值
+      }
+      console.log('注册地理位置:', { province, city, source: region?.source })
+    } catch (geoError) {
+      console.warn('获取地理位置失败，使用默认地区（山东乳山）:', geoError)
+    }
+    
+    // 调用注册API，传递地区信息
+    const result = await register({
+      ...formData,
+      province,
+      city
+    })
     emit('success', result)
   } catch (error) {
     console.error('注册失败:', error)

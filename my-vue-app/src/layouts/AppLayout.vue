@@ -5,23 +5,31 @@
         <nav class="nav">
           <RouterLink to="/home" class="nav-item" active-class="active">📱 首页</RouterLink>
           <RouterLink to="/profile" class="nav-item" active-class="active">👤 个人资料</RouterLink>
-          <div class="nav-divider"></div>
-          <div class="nav-section-title">数据中心</div>
-          <RouterLink to="/cumulative-stats" class="nav-item" active-class="active">🌐 全站累计</RouterLink>
-          <RouterLink to="/daily-metrics" class="nav-item" active-class="active">📅 每日指标</RouterLink>
-          <RouterLink to="/realtime-metrics" class="nav-item" active-class="active">⚡ 实时监控</RouterLink>
-          <div class="nav-divider"></div>
-          <div class="nav-section-title">统计分析</div>
-          <RouterLink to="/user-stats" class="nav-item" active-class="active">👥 用户统计</RouterLink>
-          <RouterLink to="/api-stats" class="nav-item" active-class="active">📊 API统计</RouterLink>
+          
+          <!-- 仅管理员可见：统计分析模块 -->
+          <template v-if="isUserAdmin">
+            <div class="nav-divider"></div>
+            <div class="nav-section-title">数据中心</div>
+            <RouterLink to="/cumulative-stats" class="nav-item" active-class="active">🌐 全站累计</RouterLink>
+            <RouterLink to="/daily-metrics" class="nav-item" active-class="active">📅 每日指标</RouterLink>
+            <RouterLink to="/realtime-metrics" class="nav-item" active-class="active">⚡ 实时监控</RouterLink>
+            <div class="nav-divider"></div>
+            <div class="nav-section-title">统计分析</div>
+            <RouterLink to="/user-stats" class="nav-item" active-class="active">👥 用户统计</RouterLink>
+            <RouterLink to="/api-stats" class="nav-item" active-class="active">📊 API统计</RouterLink>
+            <div class="nav-divider"></div>
+            <div class="nav-section-title">地理分布</div>
+            <RouterLink to="/location-distribution" class="nav-item" active-class="active">🌏 地区分布</RouterLink>
+          </template>
+          
+          <!-- 所有用户可见：历史记录 -->
           <div class="nav-divider"></div>
           <div class="nav-section-title">历史记录</div>
           <RouterLink to="/login-history" class="nav-item" active-class="active">🔐 登录历史</RouterLink>
           <RouterLink to="/operation-history" class="nav-item" active-class="active">📋 操作历史</RouterLink>
           <RouterLink to="/profile-history" class="nav-item" active-class="active">📝 资料修改</RouterLink>
-          <div class="nav-divider"></div>
-          <div class="nav-section-title">地理分布</div>
-          <RouterLink to="/location-distribution" class="nav-item" active-class="active">🌏 地区分布</RouterLink>
+          
+          <!-- 所有用户可见：社交功能 -->
           <div class="nav-divider"></div>
           <div class="nav-section-title">社交互动</div>
           <RouterLink to="/chatroom" class="nav-item" active-class="active">💬 聊天室</RouterLink>
@@ -30,6 +38,8 @@
             <el-badge v-if="unreadCount > 0" :value="unreadCount" type="danger" />
           </RouterLink>
           <RouterLink to="/articles" class="nav-item" active-class="active">📝 技术文章</RouterLink>
+          
+          <!-- 所有用户可见：资源中心 -->
           <div class="nav-divider"></div>
           <div class="nav-section-title">资源分享</div>
           <RouterLink to="/resources" class="nav-item" active-class="active">📦 资源中心</RouterLink>
@@ -85,6 +95,7 @@ import { useRouter, RouterLink, useRoute } from 'vue-router'
 import UserMenu from '@/shared/ui/UserMenu.vue'
 import type { User } from '@/types'
 import { logout, getUnreadMessageCount } from '@/utils/api'
+import { isAdmin } from '@/utils/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -93,6 +104,9 @@ const showAvatar = ref(true)
 const menuOpen = ref(false)
 const anchorEl = ref<HTMLElement | null>(null)
 const unreadCount = ref(0)
+
+// 检查用户是否为管理员
+const isUserAdmin = computed(() => isAdmin(user.value))
 
 let unreadTimer: number | null = null
 
