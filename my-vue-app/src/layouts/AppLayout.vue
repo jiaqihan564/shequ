@@ -39,6 +39,12 @@
           </RouterLink>
           <RouterLink to="/articles" class="nav-item" active-class="active">📝 技术文章</RouterLink>
           
+          <!-- 所有用户可见：在线编程 -->
+          <div class="nav-divider"></div>
+          <div class="nav-section-title">在线编程</div>
+          <RouterLink to="/code-editor" class="nav-item" active-class="active">💻 代码编辑器</RouterLink>
+          <RouterLink to="/code-history" class="nav-item" active-class="active">📚 代码历史</RouterLink>
+          
           <!-- 所有用户可见：资源中心 -->
           <div class="nav-divider"></div>
           <div class="nav-section-title">资源分享</div>

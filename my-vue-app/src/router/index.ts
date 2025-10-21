@@ -26,6 +26,9 @@ const MessageChatView = () => import('@/views/message/MessageChatView.vue')
 const ResourceListView = () => import('@/views/resource/ResourceListView.vue')
 const ResourceDetailView = () => import('@/views/resource/ResourceDetailView.vue')
 const ResourceUploadView = () => import('@/views/resource/ResourceUploadView.vue')
+const CodeEditorView = () => import('@/views/code/CodeEditorView.vue')
+const CodeHistoryView = () => import('@/views/code/CodeHistoryView.vue')
+const CodeShareView = () => import('@/views/code/CodeShareView.vue')
 
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/home' },
@@ -173,8 +176,26 @@ const routes: RouteRecordRaw[] = [
         name: 'resource-detail',
         component: ResourceDetailView,
         meta: { title: '资源详情', requiresAuth: true }
+      },
+      {
+        path: 'code-editor',
+        name: 'code-editor',
+        component: CodeEditorView,
+        meta: { title: '在线编程', requiresAuth: true }
+      },
+      {
+        path: 'code-history',
+        name: 'code-history',
+        component: CodeHistoryView,
+        meta: { title: '代码历史', requiresAuth: true }
       }
     ]
+  },
+  {
+    path: '/code-share/:token',
+    name: 'code-share',
+    component: CodeShareView,
+    meta: { title: '分享代码' }
   }
 ]
 
