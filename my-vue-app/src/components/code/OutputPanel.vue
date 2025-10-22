@@ -12,14 +12,10 @@
           错误
         </button>
       </div>
-      <div v-if="executionTime !== null || memoryUsage !== null" class="stats">
-        <span v-if="executionTime !== null" class="stat-item">
+      <div v-if="executionTime !== null" class="stats">
+        <span class="stat-item">
           <span class="stat-label">执行时间:</span>
           <span class="stat-value">{{ executionTime }}ms</span>
-        </span>
-        <span v-if="memoryUsage !== null" class="stat-item">
-          <span class="stat-label">内存:</span>
-          <span class="stat-value">{{ formatMemory(memoryUsage) }}</span>
         </span>
         <span class="stat-item">
           <span
@@ -57,7 +53,6 @@ interface Props {
   output?: string
   error?: string
   executionTime?: number | null
-  memoryUsage?: number | null
   status?: 'success' | 'error' | 'timeout'
 }
 
@@ -65,7 +60,6 @@ const props = withDefaults(defineProps<Props>(), {
   output: '',
   error: '',
   executionTime: null,
-  memoryUsage: null,
   status: 'success'
 })
 
@@ -83,14 +77,6 @@ const statusText = computed(() => {
       return '未知'
   }
 })
-
-function formatMemory(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
-}
 </script>
 
 <style scoped>

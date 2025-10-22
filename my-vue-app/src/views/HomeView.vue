@@ -10,6 +10,10 @@
           <router-link to="/articles/create" class="btn primary">✏️ 发布文章</router-link>
           <router-link to="/articles" class="btn ghost">📚 浏览文章</router-link>
         </div>
+        <div class="hero-actions secondary">
+          <router-link to="/chatroom" class="btn secondary">💬 聊天室</router-link>
+          <router-link to="/danmaku-chat" class="btn secondary">🎬 弹幕聊天</router-link>
+        </div>
       </div>
     </section>
 
@@ -161,14 +165,16 @@ function onVisibility() {
 }
 .hero-body {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: space-between;
   gap: 16px;
   padding: 18px;
 }
 .hero-text {
   display: grid;
   gap: 6px;
+  text-align: center;
+  width: 100%;
 }
 .title {
   font-size: 22px;
@@ -218,6 +224,21 @@ function onVisibility() {
 }
 .btn.ghost:hover {
   background: #f9fafb;
+}
+.btn.secondary {
+  background: rgba(99, 102, 241, 0.1);
+  color: var(--color-primary);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  font-size: 14px;
+  padding: 8px 14px;
+}
+.btn.secondary:hover {
+  background: rgba(99, 102, 241, 0.15);
+  border-color: rgba(99, 102, 241, 0.3);
+  transform: translateY(-1px);
+}
+.hero-actions.secondary {
+  margin-top: 4px;
 }
 
 .stats-grid {

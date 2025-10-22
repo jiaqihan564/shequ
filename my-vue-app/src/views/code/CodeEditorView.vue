@@ -69,7 +69,6 @@
           :output="output"
           :error="errorMessage"
           :execution-time="executionTime"
-          :memory-usage="memoryUsage"
           :status="executionStatus"
         />
       </div>
@@ -91,7 +90,7 @@
           <div class="form-group">
             <label class="checkbox-label">
               <input v-model="saveIsPublic" type="checkbox" />
-              公开分享
+              公开分享（保存后自动生成分享链接）
             </label>
           </div>
           <div class="modal-actions">
@@ -103,22 +102,59 @@
         </form>
       </div>
     </div>
+
+    <!-- 分享链接对话框 -->
+    <div v-if="showShareLink" class="modal-overlay" @click="showShareLink = false">
+      <div class="modal-content share-link-modal" @click.stop>
+        <h3>🎉 分享链接已生成</h3>
+        <p class="share-tip">您的代码片段已公开，可以通过以下链接分享：</p>
+        
+        <div class="share-link-container">
+          <input 
+            :value="shareLink" 
+            readonly 
+            class="form-input share-link-input"
+            @click="selectShareLink"
+          />
+          <button class="btn btn-primary copy-btn" @click="copyShareLink">
+            📋 复制链接
+          </button>
+        </div>
+
+        <div class="share-actions">
+          <button class="btn btn-secondary" @click="openShareLink">
+            🔗 在新标签页中打开
+          </button>
+          <button class="btn btn-secondary" @click="viewMySnippets">
+            📚 查看我的代码
+          </button>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-primary" @click="showShareLink = false">
+            完成
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted }
+ from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import MonacoEditor from '@/components/code/MonacoEditor.vue'
 import OutputPanel from '@/components/code/OutputPanel.vue'
 import LanguageSelector from '@/components/code/LanguageSelector.vue'
 import CodeExampleSelector from '@/components/code/CodeExampleSelector.vue'
-import { executeCode, saveSnippet } from '@/utils/code-api'
+import { executeCode, saveSnippet, generateShareLink, getSnippetById } from '@/utils/code-api'
 import { toast } from '@/utils/toast'
 import { codeExamples } from '@/data/code-examples'
 import type { LanguageInfo, CodeExample } from '@/types/code'
 
 const router = useRouter()
+const route = useRoute()
 
 const selectedLanguage = ref('python')
 const code = ref(`# Python 示例代码
@@ -132,7 +168,6 @@ const stdin = ref('')
 const output = ref('')
 const errorMessage = ref('')
 const executionTime = ref<number | null>(null)
-const memoryUsage = ref<number | null>(null)
 const executionStatus = ref<'success' | 'error' | 'timeout'>('success')
 const isRunning = ref(false)
 
@@ -140,6 +175,9 @@ const showSave = ref(false)
 const saveTitle = ref('')
 const saveDescription = ref('')
 const saveIsPublic = ref(false)
+const showShareLink = ref(false)
+const shareLink = ref('')
+const shareToken = ref('')
 
 const currentLanguage = ref<LanguageInfo | null>(null)
 
@@ -188,7 +226,6 @@ function onLanguageChange(langId: string, language: LanguageInfo) {
     output.value = ''
     errorMessage.value = ''
     executionTime.value = null
-    memoryUsage.value = null
     
     toast.info(`已切换到 ${language.name}，并加载示例代码`)
   }
@@ -221,7 +258,6 @@ async function runCode() {
   output.value = ''
   errorMessage.value = ''
   executionTime.value = null
-  memoryUsage.value = null
 
   try {
     const result = await executeCode({
@@ -233,7 +269,6 @@ async function runCode() {
     output.value = result.output
     errorMessage.value = result.error || ''
     executionTime.value = result.execution_time
-    memoryUsage.value = result.memory_usage
     executionStatus.value = result.status
 
     if (result.status === 'success') {
@@ -270,15 +305,31 @@ async function saveCode() {
   }
 
   try {
-    await saveSnippet({
+    const snippet = await saveSnippet({
       title: saveTitle.value,
       language: selectedLanguage.value,
       code: code.value,
       description: saveDescription.value,
       is_public: saveIsPublic.value
     })
+    
     toast.success('保存成功')
     showSave.value = false
+    
+    // 如果选择公开，自动生成分享链接
+    if (saveIsPublic.value && snippet.id) {
+      try {
+        const shareResult = await generateShareLink(snippet.id)
+        shareToken.value = shareResult.share_token
+        // 构建完整的分享链接
+        const baseUrl = window.location.origin
+        shareLink.value = `${baseUrl}/code-share/${shareResult.share_token}`
+        showShareLink.value = true
+      } catch (error: any) {
+        console.error('生成分享链接失败:', error)
+        toast.warning('代码已保存，但生成分享链接失败')
+      }
+    }
   } catch (error: any) {
     toast.error('保存失败: ' + (error.message || '未知错误'))
   }
@@ -296,6 +347,43 @@ function showEncodingHelp() {
   toast.info('JVM语言编码提示：\n1. 建议使用英文字符串和注释\n2. 或使用拼音代替中文\n3. 后端已尝试设置UTF-8编码\n4. 如需大量中文，推荐使用Python或JavaScript', 8000)
 }
 
+// 分享链接功能
+function selectShareLink(event: Event) {
+  const input = event.target as HTMLInputElement
+  input.select()
+}
+
+async function copyShareLink() {
+  try {
+    await navigator.clipboard.writeText(shareLink.value)
+    toast.success('分享链接已复制到剪贴板')
+  } catch (error) {
+    // 降级方案：使用传统方法
+    const textArea = document.createElement('textarea')
+    textArea.value = shareLink.value
+    textArea.style.position = 'fixed'
+    textArea.style.left = '-999999px'
+    document.body.appendChild(textArea)
+    textArea.select()
+    try {
+      document.execCommand('copy')
+      toast.success('分享链接已复制到剪贴板')
+    } catch (e) {
+      toast.error('复制失败，请手动复制链接')
+    }
+    document.body.removeChild(textArea)
+  }
+}
+
+function openShareLink() {
+  window.open(shareLink.value, '_blank')
+}
+
+function viewMySnippets() {
+  showShareLink.value = false
+  router.push('/code-history?tab=snippets')
+}
+
 // 键盘快捷键
 function handleKeydown(e: KeyboardEvent) {
   if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -304,8 +392,42 @@ function handleKeydown(e: KeyboardEvent) {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   window.addEventListener('keydown', handleKeydown)
+  
+  // 检查是否从 query 参数加载代码片段
+  const snippetId = route.query.snippet_id
+  if (snippetId) {
+    try {
+      const snippet = await getSnippetById(Number(snippetId))
+      selectedLanguage.value = snippet.language
+      code.value = snippet.code
+      saveTitle.value = snippet.title
+      saveDescription.value = snippet.description || ''
+      saveIsPublic.value = snippet.is_public
+      toast.success(`已加载代码片段: ${snippet.title}`)
+    } catch (error: any) {
+      toast.error('加载代码片段失败: ' + (error.message || '未知错误'))
+    }
+  }
+  // 检查是否是从分享页面复制代码
+  else if (route.query.fork === 'true' && route.query.code) {
+    try {
+      const language = route.query.language as string
+      const codeContent = decodeURIComponent(route.query.code as string)
+      selectedLanguage.value = language || 'python'
+      code.value = codeContent
+      
+      // 如果有标题，也加载标题
+      if (route.query.title) {
+        saveTitle.value = decodeURIComponent(route.query.title as string)
+      }
+      
+      toast.success('已复制代码到编辑器')
+    } catch (error) {
+      console.error('加载代码失败:', error)
+    }
+  }
 })
 
 onUnmounted(() => {
@@ -580,6 +702,64 @@ onUnmounted(() => {
   margin-top: 20px;
 }
 
+/* 分享链接对话框样式 */
+.share-link-modal {
+  max-width: 600px;
+}
+
+.share-link-modal h3 {
+  color: #52c41a;
+  font-size: 20px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.share-tip {
+  color: #666;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.share-link-container {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+  align-items: stretch;
+}
+
+.share-link-input {
+  flex: 1;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  color: #1890ff;
+  background: #f0f5ff;
+  border-color: #91d5ff;
+  cursor: pointer;
+}
+
+.share-link-input:focus {
+  background: #e6f7ff;
+  border-color: #1890ff;
+}
+
+.copy-btn {
+  flex-shrink: 0;
+  padding: 8px 20px;
+  white-space: nowrap;
+}
+
+.share-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.share-actions .btn {
+  flex: 1;
+  font-size: 13px;
+}
+
 @media (max-width: 1024px) {
   .editor-workspace {
     grid-template-columns: 1fr;
@@ -615,6 +795,27 @@ onUnmounted(() => {
   .btn {
     flex: 1;
     min-width: auto;
+  }
+
+  /* 移动端分享对话框优化 */
+  .share-link-container {
+    flex-direction: column;
+  }
+
+  .share-link-input {
+    font-size: 12px;
+  }
+
+  .copy-btn {
+    width: 100%;
+  }
+
+  .share-actions {
+    flex-direction: column;
+  }
+
+  .share-actions .btn {
+    width: 100%;
   }
 }
 </style>

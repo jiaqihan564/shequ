@@ -536,9 +536,32 @@ onMounted(() => {
 
 <style scoped>
 .article-detail-container {
-  max-width: 1000px;
+  width: 100%;
+  max-width: none;
   margin: 0 auto;
-  padding: 20px;
+  padding: 20px 40px;
+}
+
+/* 响应式宽度设计 */
+@media (min-width: 768px) {
+  .article-detail-container {
+    width: 100%;
+    padding: 20px 60px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .article-detail-container {
+    width: 100%;
+    padding: 20px 80px;
+  }
+}
+
+@media (min-width: 1600px) {
+  .article-detail-container {
+    width: 100%;
+    padding: 20px 120px;
+  }
 }
 
 .loading-container {

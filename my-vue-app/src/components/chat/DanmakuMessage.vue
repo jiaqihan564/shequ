@@ -6,40 +6,32 @@
     :style="{ 
       top: `${track * trackHeight}px`,
       animationDuration: `${duration}s`,
-      backgroundColor: bgColor
+      background: bgColor
     }"
-    @mouseenter="onHover"
-    @mouseleave="onLeave"
+    @mouseenter="handleDanmakuEnter"
+    @mouseleave="handleDanmakuLeave"
   >
     <span class="message-content">{{ message.content }}</span>
-    
-    <!-- 鼠标悬停桥接元素（填补间隙） -->
-    <div 
-      v-if="showCard" 
-      class="hover-bridge"
-      @mouseenter="onHover"
-      @mouseleave="onLeave"
-    ></div>
     
     <!-- 用户信息卡片 -->
     <div 
       v-if="showCard" 
       class="user-info-card"
-      @mouseenter="onHover"
-      @mouseleave="onLeave"
+      @mouseenter="handleCardEnter"
+      @mouseleave="handleCardLeave"
     >
       <div class="card-header">
-        <img :src="avatarUrl" :alt="message.nickname || message.username" class="avatar" />
-        <div class="user-info">
-          <div class="nickname">{{ message.nickname || message.username }}</div>
-          <div class="username">@{{ message.username }}</div>
+        <img :src="avatarUrl" :alt="message.nickname || message.username" class="card-avatar" />
+        <div class="card-user-info">
+          <div class="card-nickname">{{ message.nickname || message.username }}</div>
+          <div class="card-username">@{{ message.username }}</div>
         </div>
       </div>
       <div class="card-divider"></div>
       <div class="card-content">
         <div class="info-item">
-          <span class="label">📅 发送时间:</span>
-          <span class="value">{{ formattedTime }}</span>
+          <span class="label">📅 发送时间</span>
+          <span class="value">{{ formattedFullTime }}</span>
         </div>
       </div>
     </div>
@@ -47,7 +39,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 interface ChatMessage {
   id: number
@@ -78,7 +70,8 @@ const emit = defineEmits<{
 const danmakuRef = ref<HTMLElement>()
 const showCard = ref(false)
 const isPaused = ref(false)
-const savedTransform = ref('')
+const isHovering = ref(false)
+let hideTimeout: number | null = null
 
 // 用户头像URL
 const avatarUrl = computed(() => {
@@ -90,60 +83,84 @@ const avatarUrl = computed(() => {
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(props.message.nickname || props.message.username)}&background=667eea&color=fff&size=128`
 })
 
-// 格式化时间
-const formattedTime = computed(() => {
+// 格式化时间（完整）
+const formattedFullTime = computed(() => {
   const date = new Date(props.message.send_time)
-  const now = new Date()
-  const diff = now.getTime() - date.getTime()
-  
-  if (diff < 60000) { // 1分钟内
-    return '刚刚'
-  } else if (diff < 3600000) { // 1小时内
-    return `${Math.floor(diff / 60000)}分钟前`
-  } else if (diff < 86400000) { // 24小时内
-    return `${Math.floor(diff / 3600000)}小时前`
-  } else {
-    return date.toLocaleString('zh-CN', {
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  })
 })
 
-// 根据用户ID生成背景颜色
+// 根据用户ID生成背景颜色 - 现代化渐变配色
 const bgColor = computed(() => {
-  const colors = [
-    'rgba(102, 126, 234, 0.75)',
-    'rgba(255, 107, 107, 0.75)',
-    'rgba(78, 205, 196, 0.75)',
-    'rgba(69, 183, 209, 0.75)',
-    'rgba(255, 160, 122, 0.75)',
-    'rgba(152, 216, 200, 0.75)',
-    'rgba(247, 220, 111, 0.75)',
-    'rgba(187, 143, 206, 0.75)'
+  const gradients = [
+    'linear-gradient(135deg, rgba(99, 102, 241, 0.85) 0%, rgba(139, 92, 246, 0.85) 100%)', // 靛紫渐变
+    'linear-gradient(135deg, rgba(236, 72, 153, 0.85) 0%, rgba(219, 39, 119, 0.85) 100%)', // 粉红渐变
+    'linear-gradient(135deg, rgba(14, 165, 233, 0.85) 0%, rgba(6, 182, 212, 0.85) 100%)', // 天蓝渐变
+    'linear-gradient(135deg, rgba(16, 185, 129, 0.85) 0%, rgba(5, 150, 105, 0.85) 100%)', // 翠绿渐变
+    'linear-gradient(135deg, rgba(251, 146, 60, 0.85) 0%, rgba(249, 115, 22, 0.85) 100%)', // 橙色渐变
+    'linear-gradient(135deg, rgba(168, 85, 247, 0.85) 0%, rgba(147, 51, 234, 0.85) 100%)', // 紫色渐变
+    'linear-gradient(135deg, rgba(234, 179, 8, 0.85) 0%, rgba(202, 138, 4, 0.85) 100%)', // 金黄渐变
+    'linear-gradient(135deg, rgba(239, 68, 68, 0.85) 0%, rgba(220, 38, 38, 0.85) 100%)' // 红色渐变
   ]
-  return colors[props.message.user_id % colors.length]
+  return gradients[props.message.user_id % gradients.length]
 })
 
-const onHover = () => {
+// 处理弹幕鼠标进入
+const handleDanmakuEnter = () => {
+  // 清除可能存在的隐藏定时器
+  if (hideTimeout) {
+    clearTimeout(hideTimeout)
+    hideTimeout = null
+  }
+  
+  // 设置状态
+  isHovering.value = true
   showCard.value = true
   isPaused.value = true
-  console.log('鼠标悬停 - 显示用户卡片')
 }
 
-const onLeave = (event: MouseEvent) => {
-  // 检查鼠标是否移动到用户信息卡片，如果是则不隐藏
-  const relatedTarget = event.relatedTarget as HTMLElement
-  if (relatedTarget && danmakuRef.value?.contains(relatedTarget)) {
-    console.log('鼠标移动到子元素（用户卡片），保持显示')
-    return
+// 处理弹幕鼠标离开
+const handleDanmakuLeave = () => {
+  isHovering.value = false
+  
+  // 延迟100ms检查，给鼠标移动到卡片的时间
+  hideTimeout = window.setTimeout(() => {
+    if (!isHovering.value) {
+      showCard.value = false
+      isPaused.value = false
+    }
+  }, 100)
+}
+
+// 处理卡片鼠标进入
+const handleCardEnter = () => {
+  // 清除隐藏定时器
+  if (hideTimeout) {
+    clearTimeout(hideTimeout)
+    hideTimeout = null
   }
   
-  console.log('鼠标离开 - 隐藏用户卡片')
-  showCard.value = false
-  isPaused.value = false
+  // 标记为悬停状态
+  isHovering.value = true
+}
+
+// 处理卡片鼠标离开
+const handleCardLeave = () => {
+  isHovering.value = false
+  
+  // 延迟检查，避免子元素间移动触发
+  hideTimeout = window.setTimeout(() => {
+    if (!isHovering.value) {
+      showCard.value = false
+      isPaused.value = false
+    }
+  }, 100)
 }
 
 onMounted(() => {
@@ -154,29 +171,43 @@ onMounted(() => {
     })
   }
 })
+
+onUnmounted(() => {
+  // 清理定时器
+  if (hideTimeout) {
+    clearTimeout(hideTimeout)
+    hideTimeout = null
+  }
+})
 </script>
 
 <style scoped>
 .danmaku-item {
   position: absolute;
   left: 100%;
-  padding: 8px 16px;
-  border-radius: 24px;
+  padding: 10px 20px;
+  border-radius: 28px;
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: #fff;
   text-shadow: 
-    1px 1px 3px rgba(0, 0, 0, 0.9),
-    -1px -1px 3px rgba(0, 0, 0, 0.9);
-  backdrop-filter: blur(8px);
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    0 1px 3px rgba(0, 0, 0, 0.8);
+  backdrop-filter: blur(12px) saturate(150%);
   white-space: nowrap;
   animation: danmaku-scroll linear forwards;
   cursor: pointer;
-  transition: background-color 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 10;
   pointer-events: auto;
   will-change: transform;
   user-select: none;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 
+    0 4px 12px rgba(0, 0, 0, 0.25),
+    0 2px 6px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  letter-spacing: 0.3px;
 }
 
 @keyframes danmaku-scroll {
@@ -190,111 +221,149 @@ onMounted(() => {
 
 .danmaku-item.paused {
   animation-play-state: paused !important;
+  z-index: 1000 !important;
 }
 
 .danmaku-item:hover,
 .danmaku-item.paused {
-  background-color: rgba(102, 126, 234, 0.95) !important;
-  box-shadow: 0 8px 20px rgba(102, 126, 234, 0.8) !important;
-  z-index: 1000 !important;
-  filter: brightness(1.15) !important;
-  outline: 2px solid rgba(255, 255, 255, 0.3);
-  outline-offset: 2px;
-  animation-play-state: paused !important;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.95) 0%, rgba(139, 92, 246, 0.95) 100%) !important;
+  box-shadow: 
+    0 12px 32px rgba(99, 102, 241, 0.6),
+    0 6px 16px rgba(139, 92, 246, 0.4),
+    0 0 0 3px rgba(255, 255, 255, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 
 .message-content {
   position: relative;
   z-index: 1;
-}
-
-/* 鼠标悬停桥接元素 */
-.hover-bridge {
-  position: absolute;
-  top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  width: max(100%, 300px);
-  height: 16px;
-  z-index: 10000;
-  pointer-events: auto;
-  /* 调试用：取消注释可以看到桥接区域 */
-  /* background: rgba(255, 0, 0, 0.2); */
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
 }
 
 /* 用户信息卡片 */
 .user-info-card {
   position: absolute;
-  top: calc(100% + 12px);
+  top: calc(100% + 16px);
   left: 50%;
   transform: translateX(-50%);
-  width: 280px;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(102, 126, 234, 0.3);
+  width: 300px;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+  border-radius: 16px;
+  box-shadow: 
+    0 12px 40px rgba(0, 0, 0, 0.25),
+    0 6px 20px rgba(0, 0, 0, 0.15),
+    0 0 0 1px rgba(99, 102, 241, 0.15);
   padding: 0;
   z-index: 10001 !important;
-  animation: cardFadeIn 0.2s ease;
+  animation: cardFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: auto;
+  overflow: hidden;
+}
+
+/* 卡片顶部装饰 */
+.user-info-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1 0%, #8b5cf6 50%, #6366f1 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s linear infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 200% 0%;
+  }
 }
 
 @keyframes cardFadeIn {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(-8px);
+    transform: translateX(-50%) translateY(-12px) scale(0.95);
   }
   to {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateX(-50%) translateY(0) scale(1);
   }
 }
 
 .card-header {
   display: flex;
   align-items: center;
-  padding: 16px;
-  gap: 12px;
+  padding: 20px;
+  gap: 14px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.05) 0%, rgba(139, 92, 246, 0.05) 100%);
 }
 
-.avatar {
-  width: 48px;
-  height: 48px;
+.card-avatar {
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #667eea;
+  border: 3px solid transparent;
+  background: linear-gradient(white, white) padding-box,
+              linear-gradient(135deg, #6366f1, #8b5cf6) border-box;
   flex-shrink: 0;
+  box-shadow: 
+    0 4px 12px rgba(99, 102, 241, 0.2),
+    0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
 }
 
-.user-info {
+.card-avatar:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 
+    0 6px 18px rgba(99, 102, 241, 0.3),
+    0 3px 9px rgba(0, 0, 0, 0.15);
+}
+
+.card-user-info {
   flex: 1;
   min-width: 0;
 }
 
-.nickname {
-  font-size: 15px;
-  font-weight: 600;
-  color: #111827;
-  margin-bottom: 4px;
+.card-nickname {
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 5px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  letter-spacing: 0.3px;
 }
 
-.username {
+.card-username {
   font-size: 13px;
-  color: #6b7280;
+  color: #64748b;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-weight: 600;
 }
 
 .card-divider {
   height: 1px;
-  background: linear-gradient(90deg, transparent, #e5e7eb, transparent);
+  background: linear-gradient(90deg, 
+    transparent 0%, 
+    rgba(99, 102, 241, 0.15) 25%, 
+    rgba(139, 92, 246, 0.15) 75%, 
+    transparent 100%);
 }
 
 .card-content {
-  padding: 12px 16px;
+  padding: 16px 20px 20px;
+  background: white;
 }
 
 .info-item {
@@ -302,15 +371,31 @@ onMounted(() => {
   justify-content: space-between;
   align-items: center;
   font-size: 13px;
+  padding: 10px 12px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.04) 0%, rgba(139, 92, 246, 0.04) 100%);
+  border-radius: 10px;
+  border: 1px solid rgba(99, 102, 241, 0.08);
+  transition: all 0.2s ease;
+}
+
+.info-item:hover {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(139, 92, 246, 0.08) 100%);
+  border-color: rgba(99, 102, 241, 0.15);
+  transform: translateX(3px);
 }
 
 .label {
-  color: #6b7280;
+  color: #64748b;
+  font-weight: 600;
 }
 
 .value {
-  color: #111827;
-  font-weight: 500;
+  color: #1e293b;
+  font-weight: 700;
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 </style>
 

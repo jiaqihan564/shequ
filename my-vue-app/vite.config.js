@@ -57,21 +57,7 @@ export default defineConfig({
         target: 'http://127.0.0.1:3001',
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => {
-          console.log('[Vite Proxy] 代理请求:', path, '-> http://127.0.0.1:3001' + path)
-          return path
-        },
-        configure: (proxy, options) => {
-          proxy.on('error', (err, req, res) => {
-            console.error('[Vite Proxy] 代理错误:', err)
-          })
-          proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('[Vite Proxy] 发送请求到后端:', req.method, req.url)
-          })
-          proxy.on('proxyRes', (proxyRes, req, res) => {
-            console.log('[Vite Proxy] 收到后端响应:', proxyRes.statusCode, req.url)
-          })
-        }
+        rewrite: (path) => path
       },
       // 开发环境：将 /news 代理到本地 8787（Cloudflare Workers 开发端口）
       '/news': {
@@ -92,14 +78,29 @@ export default defineConfig({
       compress: {
         drop_console: true,
         drop_debugger: true,
-        pure_funcs: ['console.log', 'console.info', 'console.debug']
+        pure_funcs: ['console.log', 'console.info', 'console.debug'],
+        passes: 2 // 优化：多次压缩以获得更好的结果
+      },
+      mangle: {
+        safari10: true // 兼容Safari 10
       }
+    },
+    // 优化：提高chunk大小警告阈值
+    chunkSizeWarningLimit: 1000,
+    // 优化：启用CSS代码拆分
+    cssCodeSplit: true,
+    // 优化：资源内联阈值（小于4KB的资源内联为base64）
+    assetsInlineLimit: 4096,
+    // 优化：启用模块预加载
+    modulePreload: {
+      polyfill: true
     },
     rollupOptions: {
       output: {
         chunkFileNames: 'assets/js/[name]-[hash].js',
         entryFileNames: 'assets/js/[name]-[hash].js',
         assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
+        // 优化：手动配置chunk分割策略
         manualChunks(id) {
           // Vue 核心库
           if (id.includes('node_modules/vue/') || id.includes('node_modules/@vue/')) {
@@ -180,19 +181,35 @@ export default defineConfig({
           if (id.includes('/src/views/history/')) {
             return 'views-history'
           }
-        }
+          if (id.includes('/src/views/code/')) {
+            return 'views-code'
+          }
+        },
+        // 优化：配置最小chunk大小，避免产生过多小文件
+        experimentalMinChunkSize: 20000 // 20KB
       }
-    },
-    chunkSizeWarningLimit: 1000,
-    // 启用CSS代码拆分
-    cssCodeSplit: true,
-    // 启用资源内联阈值
-    assetsInlineLimit: 4096
+    }
   },
   css: {
     devSourcemap: true
   },
   optimizeDeps: {
-    include: ['vue', 'vue-router', 'pinia', 'axios', '@vueuse/core']
+    include: [
+      'vue', 
+      'vue-router', 
+      'pinia', 
+      'axios', 
+      '@vueuse/core',
+      'element-plus',
+      'markdown-it',
+      'highlight.js'
+    ],
+    // 优化：排除不需要预构建的包
+    exclude: ['monaco-editor']
+  },
+  // 优化：启用Gzip压缩构建（需要后端支持）
+  esbuild: {
+    // 移除生产环境的console和debugger
+    drop: ['console', 'debugger']
   }
 })

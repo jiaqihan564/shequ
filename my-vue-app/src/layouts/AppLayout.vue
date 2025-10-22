@@ -33,6 +33,7 @@
           <div class="nav-divider"></div>
           <div class="nav-section-title">社交互动</div>
           <RouterLink to="/chatroom" class="nav-item" active-class="active">💬 聊天室</RouterLink>
+          <RouterLink to="/danmaku-chat" class="nav-item" active-class="active">🎬 弹幕聊天室</RouterLink>
           <RouterLink to="/messages" class="nav-item" active-class="active">
             ✉️ 私信
             <el-badge v-if="unreadCount > 0" :value="unreadCount" type="danger" />

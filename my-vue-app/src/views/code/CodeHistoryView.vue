@@ -96,9 +96,6 @@
             <span v-if="execution.execution_time" class="stat">
               耗时: {{ execution.execution_time }}ms
             </span>
-            <span v-if="execution.memory_usage" class="stat">
-              内存: {{ formatMemory(execution.memory_usage) }}
-            </span>
           </div>
           <details class="execution-details">
             <summary>查看详情</summary>
@@ -138,13 +135,34 @@
 
     <!-- 分享对话框 -->
     <div v-if="shareDialogVisible" class="modal-overlay" @click="shareDialogVisible = false">
-      <div class="modal-content" @click.stop>
-        <h3>分享链接</h3>
-        <div class="share-content">
-          <input :value="shareUrl" readonly class="share-input" ref="shareInput" />
-          <button class="btn btn-primary" @click="copyShareLink">复制链接</button>
+      <div class="modal-content share-link-modal" @click.stop>
+        <h3>🎉 分享链接已生成</h3>
+        <p class="share-tip">通过以下链接分享您的代码片段：</p>
+        
+        <div class="share-link-container">
+          <input 
+            :value="shareUrl" 
+            readonly 
+            class="share-input" 
+            ref="shareInput"
+            @click="selectShareInput"
+          />
+          <button class="btn btn-primary copy-btn" @click="copyShareLink">
+            📋 复制链接
+          </button>
         </div>
-        <button class="btn btn-secondary" @click="shareDialogVisible = false">关闭</button>
+
+        <div class="share-actions">
+          <button class="btn btn-secondary" @click="openShareLink">
+            🔗 在新标签页中打开
+          </button>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-primary" @click="shareDialogVisible = false">
+            完成
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -244,7 +262,8 @@ async function loadExecutions(page = 1) {
 
 async function loadSnippet(id: number) {
   try {
-    const snippet = await getSnippetById(id)
+    // 验证代码片段是否存在
+    await getSnippetById(id)
     // 跳转到编辑器并加载代码
     router.push({
       path: '/code-editor',
@@ -260,19 +279,41 @@ async function loadSnippet(id: number) {
 async function shareSnippet(id: number) {
   try {
     const response = await generateShareLink(id)
-    shareUrl.value = window.location.origin + response.share_url
+    // 构建完整的分享链接
+    const baseUrl = window.location.origin
+    shareUrl.value = `${baseUrl}/code-share/${response.share_token}`
     shareDialogVisible.value = true
   } catch (error: any) {
     toast.error('生成分享链接失败: ' + (error.message || '未知错误'))
   }
 }
 
-function copyShareLink() {
+function selectShareInput() {
   if (shareInput.value) {
     shareInput.value.select()
-    document.execCommand('copy')
-    toast.success('链接已复制到剪贴板')
   }
+}
+
+async function copyShareLink() {
+  try {
+    await navigator.clipboard.writeText(shareUrl.value)
+    toast.success('分享链接已复制到剪贴板')
+  } catch (error) {
+    // 降级方案：使用传统方法
+    if (shareInput.value) {
+      shareInput.value.select()
+      try {
+        document.execCommand('copy')
+        toast.success('分享链接已复制到剪贴板')
+      } catch (e) {
+        toast.error('复制失败，请手动复制链接')
+      }
+    }
+  }
+}
+
+function openShareLink() {
+  window.open(shareUrl.value, '_blank')
 }
 
 async function deleteSnippetConfirm(id: number) {
@@ -302,13 +343,6 @@ function formatDate(dateStr: string): string {
   })
 }
 
-function formatMemory(bytes: number): string {
-  if (bytes === 0) return '0 B'
-  const k = 1024
-  const sizes = ['B', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i]
-}
 </script>
 
 <style scoped>
@@ -624,18 +658,72 @@ function formatMemory(bytes: number): string {
   margin-bottom: 16px;
 }
 
-.share-content {
+/* 分享链接对话框样式 */
+.share-link-modal {
+  max-width: 600px;
+}
+
+.share-link-modal h3 {
+  color: #52c41a;
+  font-size: 20px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.share-tip {
+  color: #666;
+  margin-bottom: 20px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.share-link-container {
   display: flex;
   gap: 8px;
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+  align-items: stretch;
 }
 
 .share-input {
   flex: 1;
   padding: 8px 12px;
-  border: 1px solid #d9d9d9;
+  border: 1px solid #91d5ff;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 13px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  color: #1890ff;
+  background: #f0f5ff;
+  cursor: pointer;
+}
+
+.share-input:focus {
+  outline: none;
+  background: #e6f7ff;
+  border-color: #1890ff;
+  box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+}
+
+.copy-btn {
+  flex-shrink: 0;
+  padding: 8px 20px;
+  white-space: nowrap;
+}
+
+.share-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.share-actions .btn {
+  flex: 1;
+  font-size: 13px;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
 }
 
 @media (max-width: 768px) {
@@ -649,6 +737,27 @@ function formatMemory(bytes: number): string {
 
   .btn-sm {
     flex: 1;
+  }
+
+  /* 移动端分享对话框优化 */
+  .share-link-container {
+    flex-direction: column;
+  }
+
+  .share-input {
+    font-size: 12px;
+  }
+
+  .copy-btn {
+    width: 100%;
+  }
+
+  .share-actions {
+    flex-direction: column;
+  }
+
+  .share-actions .btn {
+    width: 100%;
   }
 }
 </style>

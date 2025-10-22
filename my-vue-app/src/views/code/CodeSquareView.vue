@@ -48,12 +48,13 @@
     <div v-else class="snippets-grid">
       <div v-for="snippet in snippets" :key="snippet.id" class="snippet-card">
         <div class="card-header">
-          <div class="header-left">
+          <div class="header-top">
             <h3 class="snippet-title" @click="viewSnippet(snippet)">{{ snippet.title }}</h3>
-            <span class="language-badge">{{ snippet.language }}</span>
+            <span class="author-badge">@{{ snippet.username }}</span>
           </div>
-          <div class="header-right">
-            <span class="author">@{{ snippet.username }}</span>
+          <div class="header-bottom">
+            <span class="language-badge">{{ getLanguageDisplayName(snippet.language) }}</span>
+            <span class="time-badge">{{ formatDate(snippet.created_at) }}</span>
           </div>
         </div>
 
@@ -62,22 +63,26 @@
         </div>
 
         <div class="code-preview">
+          <div class="code-header">
+            <span class="code-icon">📝</span>
+            <span class="code-label">代码预览</span>
+          </div>
           <pre><code>{{ getCodePreview(snippet.code) }}</code></pre>
         </div>
 
         <div class="card-footer">
-          <div class="meta-info">
-            <span class="meta-item">创建于: {{ formatDate(snippet.created_at) }}</span>
-          </div>
           <div class="card-actions">
-            <button class="btn-sm btn-success" @click="runSnippet(snippet)">
-              运行代码
+            <button class="action-btn run-btn" @click="runSnippet(snippet)" title="运行代码">
+              <span class="btn-icon">▶️</span>
+              <span class="btn-text">运行</span>
             </button>
-            <button class="btn-sm btn-secondary" @click="viewSnippet(snippet)">
-              查看完整代码
+            <button class="action-btn view-btn" @click="viewSnippet(snippet)" title="查看完整代码">
+              <span class="btn-icon">👁️</span>
+              <span class="btn-text">查看</span>
             </button>
-            <button class="btn-sm btn-primary" @click="forkSnippet(snippet)">
-              复制到编辑器
+            <button class="action-btn fork-btn" @click="forkSnippet(snippet)" title="复制到编辑器">
+              <span class="btn-icon">📋</span>
+              <span class="btn-text">复制</span>
             </button>
           </div>
         </div>
@@ -129,9 +134,14 @@
           <div v-if="executionResult" class="section">
             <label class="section-label">
               输出结果
-              <span v-if="executionResult.execution_time" class="meta-text">
-                (耗时: {{ executionResult.execution_time }}ms)
-              </span>
+              <div class="execution-stats">
+                <span v-if="executionResult.execution_time" class="stat-badge time-stat">
+                  ⏱️ {{ executionResult.execution_time }}ms
+                </span>
+                <span :class="['stat-badge', 'status-stat', executionResult.status]">
+                  {{ getStatusText(executionResult.status) }}
+                </span>
+              </div>
             </label>
             <div :class="['output-display', executionResult.status]">
               <pre v-if="executionResult.output">{{ executionResult.output }}</pre>
@@ -181,7 +191,7 @@ const stdin = ref('')
 const executionResult = ref<ExecuteCodeResponse | null>(null)
 const isRunning = ref(false)
 
-// 常用语言列表
+// 所有支持的语言列表（共17种）
 const languages = [
   'python',
   'javascript',
@@ -192,7 +202,14 @@ const languages = [
   'rust',
   'typescript',
   'php',
-  'ruby'
+  'ruby',
+  'swift',
+  'kotlin',
+  'bash',
+  'lua',
+  'scala',
+  'haskell',
+  'perl'
 ]
 
 const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
@@ -271,7 +288,14 @@ function getLanguageDisplayName(lang: string): string {
     rust: 'Rust',
     typescript: 'TypeScript',
     php: 'PHP',
-    ruby: 'Ruby'
+    ruby: 'Ruby',
+    swift: 'Swift',
+    kotlin: 'Kotlin',
+    bash: 'Bash',
+    lua: 'Lua',
+    scala: 'Scala',
+    haskell: 'Haskell',
+    perl: 'Perl'
   }
   return displayNames[lang] || lang
 }
@@ -299,6 +323,19 @@ function formatDate(dateStr: string): string {
       month: '2-digit',
       day: '2-digit'
     })
+  }
+}
+
+function getStatusText(status: 'success' | 'error' | 'timeout'): string {
+  switch (status) {
+    case 'success':
+      return '✅ 成功'
+    case 'error':
+      return '❌ 错误'
+    case 'timeout':
+      return '⏰ 超时'
+    default:
+      return '未知'
   }
 }
 
@@ -334,7 +371,6 @@ async function executeCurrentCode() {
       output: '',
       error: error.message || '执行失败',
       execution_time: 0,
-      memory_usage: 0,
       status: 'error'
     }
   } finally {
@@ -389,21 +425,22 @@ function closeRunDialog() {
 
 .filter-group {
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 12px;
-  flex-wrap: wrap;
 }
 
 .filter-label {
   font-weight: 600;
   color: #374151;
   font-size: 14px;
+  margin-bottom: 4px;
 }
 
 .language-filters {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
 }
 
 .filter-btn {
@@ -411,21 +448,26 @@ function closeRunDialog() {
   border: 1px solid #d1d5db;
   background: #fff;
   border-radius: 20px;
-  font-size: 14px;
+  font-size: 13px;
   cursor: pointer;
   transition: all 0.2s;
   color: #374151;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
 .filter-btn:hover {
   border-color: #9ca3af;
   background: #f9fafb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .filter-btn.active {
-  background: #4f46e5;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
   border-color: #4f46e5;
   color: #fff;
+  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
 }
 
 .loading,
@@ -460,127 +502,272 @@ function closeRunDialog() {
 }
 
 .snippet-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-  transition: all 0.3s;
+  background: linear-gradient(to bottom, #ffffff 0%, #fafbfc 100%);
+  border-radius: 16px;
+  padding: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   border: 1px solid #e5e7eb;
+  overflow: hidden;
 }
 
 .snippet-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.15);
+  transform: translateY(-4px);
+  border-color: #c7d2fe;
 }
 
 .card-header {
+  padding: 20px 20px 16px 20px;
+  background: linear-gradient(135deg, #f8f9ff 0%, #ffffff 100%);
+  border-bottom: 2px solid #f0f1f5;
+}
+
+.header-top {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
   gap: 12px;
-}
-
-.header-left {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  flex: 1;
-  min-width: 0;
+  margin-bottom: 12px;
 }
 
 .snippet-title {
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 19px;
+  font-weight: 700;
   color: #1f2937;
   margin: 0;
   cursor: pointer;
-  transition: color 0.2s;
+  transition: all 0.2s;
   word-break: break-word;
+  flex: 1;
+  line-height: 1.4;
 }
 
 .snippet-title:hover {
   color: #4f46e5;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
+.author-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+  color: #fff;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);
+}
+
+.header-bottom {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .language-badge {
-  display: inline-block;
-  padding: 4px 12px;
-  background: #eef2ff;
-  color: #4f46e5;
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  background: linear-gradient(135deg, #eef2ff 0%, #e0e7ff 100%);
+  color: #4338ca;
+  border-radius: 14px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border: 1.5px solid #c7d2fe;
+}
+
+.time-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  background: #f3f4f6;
+  color: #6b7280;
   border-radius: 12px;
   font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  align-self: flex-start;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-}
-
-.author {
-  font-size: 13px;
-  color: #6b7280;
   font-weight: 500;
 }
 
 .snippet-description {
-  color: #6b7280;
+  color: #4b5563;
   font-size: 14px;
-  margin-bottom: 12px;
-  line-height: 1.6;
+  line-height: 1.7;
+  padding: 0 20px 12px 20px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  font-weight: 400;
 }
 
 .code-preview {
-  background: #1e293b;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  margin: 0 20px 16px 20px;
+  border-radius: 12px;
   overflow: hidden;
+  border: 2px solid #334155;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  height: 280px;
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: rgba(51, 65, 85, 0.5);
+  border-bottom: 1px solid #475569;
+  flex-shrink: 0;
+}
+
+.code-icon {
+  font-size: 14px;
+}
+
+.code-label {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .code-preview pre {
   margin: 0;
-  overflow-x: auto;
+  padding: 16px;
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
 }
 
 .code-preview code {
   color: #e2e8f0;
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 13px;
-  line-height: 1.6;
+  line-height: 1.7;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.code-preview pre::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.code-preview pre::-webkit-scrollbar-track {
+  background: #0f172a;
+}
+
+.code-preview pre::-webkit-scrollbar-thumb {
+  background: #475569;
+  border-radius: 4px;
+}
+
+.code-preview pre::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
 }
 
 .card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding-top: 12px;
+  padding: 16px 20px;
+  background: #fafbfc;
   border-top: 1px solid #e5e7eb;
-}
-
-.meta-info {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-}
-
-.meta-item {
-  font-size: 12px;
-  color: #9ca3af;
 }
 
 .card-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
+  justify-content: stretch;
+}
+
+.action-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.action-btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s;
+}
+
+.action-btn:hover::before {
+  width: 200px;
+  height: 200px;
+}
+
+.btn-icon {
+  font-size: 16px;
+  position: relative;
+  z-index: 1;
+}
+
+.btn-text {
+  position: relative;
+  z-index: 1;
+}
+
+.run-btn {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.3);
+}
+
+.run-btn:hover {
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);
+  transform: translateY(-2px);
+}
+
+.view-btn {
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(99, 102, 241, 0.3);
+}
+
+.view-btn:hover {
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.4);
+  transform: translateY(-2px);
+}
+
+.fork-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.3);
+}
+
+.fork-btn:hover {
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+  transform: translateY(-2px);
+}
+
+.action-btn:active {
+  transform: translateY(0);
 }
 
 .pagination {
@@ -737,17 +924,61 @@ function closeRunDialog() {
 }
 
 .section-label {
-  display: block;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   font-weight: 600;
   color: #374151;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
   font-size: 14px;
 }
 
-.meta-text {
-  font-weight: 400;
-  color: #6b7280;
-  font-size: 13px;
+.execution-stats {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.stat-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.time-stat {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1e40af;
+  border: 1px solid #93c5fd;
+}
+
+
+.status-stat {
+  font-weight: 700;
+}
+
+.status-stat.success {
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  color: #065f46;
+  border: 1px solid #6ee7b7;
+}
+
+.status-stat.error {
+  background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%);
+  color: #991b1b;
+  border: 1px solid #fca5a5;
+}
+
+.status-stat.timeout {
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #92400e;
+  border: 1px solid #fcd34d;
 }
 
 .code-display {
@@ -835,6 +1066,46 @@ function closeRunDialog() {
 }
 
 @media (max-width: 768px) {
+  .code-square-view {
+    padding: 12px;
+  }
+
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .page-header .btn {
+    width: 100%;
+  }
+
+  .filters-section {
+    padding: 16px;
+  }
+
+  .filter-btn {
+    font-size: 12px;
+    padding: 5px 12px;
+  }
+
+  .card-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .action-btn {
+    width: 100%;
+  }
+
+  .btn-icon {
+    font-size: 18px;
+  }
+
+  .btn-text {
+    font-size: 14px;
+  }
+
   .modal-content {
     max-width: 100%;
     max-height: 100vh;

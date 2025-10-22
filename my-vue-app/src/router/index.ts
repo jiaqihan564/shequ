@@ -17,6 +17,7 @@ const DailyMetricsView = () => import('@/views/stats/DailyMetricsView.vue')
 const RealtimeMetricsView = () => import('@/views/stats/RealtimeMetricsView.vue')
 const LocationDistributionView = () => import('@/views/location/LocationDistributionView.vue')
 const ChatRoomView = () => import('@/views/chat/ChatRoomView.vue')
+const DanmakuChatView = () => import('@/views/chat/DanmakuChatView.vue')
 const ArticleListView = () => import('@/views/article/ArticleListView.vue')
 const ArticleDetailView = () => import('@/views/article/ArticleDetailView.vue')
 const ArticleEditorView = () => import('@/views/article/ArticleEditorView.vue')
@@ -40,6 +41,18 @@ const routes: RouteRecordRaw[] = [
     name: 'reset-password',
     component: ResetPasswordView,
     meta: { title: '重置密码' }
+  },
+  {
+    path: '/chatroom',
+    name: 'chatroom',
+    component: ChatRoomView,
+    meta: { title: '聊天室', requiresAuth: true }
+  },
+  {
+    path: '/danmaku-chat',
+    name: 'danmaku-chat',
+    component: DanmakuChatView,
+    meta: { title: '弹幕聊天室', requiresAuth: true }
   },
   {
     path: '/',
@@ -111,12 +124,6 @@ const routes: RouteRecordRaw[] = [
         name: 'location-distribution',
         component: LocationDistributionView,
         meta: { title: '地区分布', requiresAuth: true, requiresAdmin: true }
-      },
-      {
-        path: 'chatroom',
-        name: 'chatroom',
-        component: ChatRoomView,
-        meta: { title: '聊天室', requiresAuth: true }
       },
       {
         path: 'articles',

@@ -61,7 +61,7 @@ export interface ExecuteCodeResponse {
   output: string
   error?: string
   execution_time: number  // 毫秒
-  memory_usage: number    // 字节
+  memory_usage?: number   // 字节（已废弃，不再使用）
   status: 'success' | 'error' | 'timeout'
   snippet_id?: number
 }
