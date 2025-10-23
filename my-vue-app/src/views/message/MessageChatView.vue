@@ -34,6 +34,7 @@
             v-for="(msg, index) in messages"
             :key="msg.id"
             :class="['message-wrapper', msg.is_self ? 'self' : 'other']"
+            :ref="el => { if (index === messages.length - 1) lastMessageRef = el }"
           >
             <!-- 时间分隔线 -->
             <div
@@ -165,6 +166,7 @@ const hasMore = ref(false)
 const messageListRef = ref<HTMLElement>()
 const scrollbarRef = ref<any>()
 const messagesAreaRef = ref<HTMLElement>()
+let lastMessageRef: any = null
 
 let pollTimer: number | null = null
 
@@ -227,6 +229,10 @@ async function initChat() {
 
     // 加载消息
     await loadMessages()
+    
+    // 额外的滚动保障，确保组件完全挂载后滚动到底部
+    await nextTick()
+    setTimeout(() => scrollToBottom(), 300)
   } catch (error: any) {
     toast.error(error.message || '加载会话失败')
     router.back()
@@ -250,9 +256,16 @@ async function loadMessages() {
       console.log('第一条消息:', messages.value[0])
     }
 
-    // 滚动到底部
+    // 确保DOM完全更新后滚动到底部
     await nextTick()
-    scrollToBottom()
+    await nextTick()
+    // 延迟滚动，确保消息列表完全渲染
+    setTimeout(() => {
+      console.log('🔄 开始滚动到最后一条消息，消息数量:', messages.value.length)
+      scrollToBottom(false)
+    }, 100)
+    // 再次平滑滚动，确保万无一失
+    setTimeout(() => scrollToBottom(true), 400)
   } catch (error: any) {
     toast.error(error.message || '加载消息失败')
   } finally {
@@ -339,17 +352,54 @@ async function pollNewMessages() {
   }
 }
 
-// 滚动到底部
+// 滚动到底部 - 增强版，支持多种滚动方法
 function scrollToBottom(smooth = true) {
-  if (scrollbarRef.value) {
-    const scrollContainer = scrollbarRef.value.$refs.wrap
-    if (scrollContainer) {
-      scrollContainer.scrollTo({
-        top: scrollContainer.scrollHeight,
-        behavior: smooth ? 'smooth' : 'auto'
+  // 方法1: 使用scrollIntoView滚动到最后一条消息（最可靠）
+  const scrollToLastMessage = () => {
+    if (lastMessageRef && typeof lastMessageRef.scrollIntoView === 'function') {
+      lastMessageRef.scrollIntoView({
+        behavior: smooth ? 'smooth' : 'auto',
+        block: 'end'
       })
+      console.log('✅ 使用scrollIntoView滚动到最后一条消息')
+      return true
     }
+    return false
   }
+  
+  // 方法2: 使用scrollbar容器滚动到底部（备用方案）
+  const scrollByContainer = () => {
+    if (scrollbarRef.value) {
+      const scrollContainer = scrollbarRef.value.$refs.wrap
+      if (scrollContainer) {
+        scrollContainer.scrollTo({
+          top: scrollContainer.scrollHeight,
+          behavior: smooth ? 'smooth' : 'auto'
+        })
+        console.log('✅ 使用scrollContainer滚动到底部')
+        return true
+      }
+    }
+    return false
+  }
+  
+  // 立即尝试方法1
+  if (scrollToLastMessage()) return
+  
+  // 方法1失败，尝试方法2
+  if (scrollByContainer()) return
+  
+  // 都失败了，延迟重试
+  console.log('⚠️ 首次滚动失败，延迟重试...')
+  setTimeout(() => {
+    scrollToLastMessage() || scrollByContainer()
+  }, 100)
+  setTimeout(() => {
+    scrollToLastMessage() || scrollByContainer()
+  }, 300)
+  setTimeout(() => {
+    scrollToLastMessage() || scrollByContainer()
+  }, 500)
 }
 
 // 返回

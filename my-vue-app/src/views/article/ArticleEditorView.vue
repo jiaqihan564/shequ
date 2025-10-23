@@ -327,7 +327,20 @@ function togglePreview() {
 }
 
 // 图片上传功能
+let savedCursorPosition = 0 // 保存光标位置
+
 function selectImage() {
+  // 在选择图片前保存当前光标位置
+  const textarea = contentEditor.value?.$el?.querySelector('textarea')
+  if (textarea) {
+    savedCursorPosition = textarea.selectionStart || 0
+    console.log('保存光标位置:', savedCursorPosition)
+    console.log('当前内容长度:', form.content.length)
+    console.log('光标位置是否有效:', savedCursorPosition <= form.content.length)
+  } else {
+    console.error('未找到textarea元素')
+  }
+  
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
@@ -371,32 +384,57 @@ function insertImageMarkdown(url: string, alt: string = '图片') {
   // 尝试在光标位置插入
   const textarea = contentEditor.value?.$el?.querySelector('textarea')
   if (textarea) {
-    const pos = textarea.selectionStart || 0
+    // 使用保存的光标位置
+    const pos = savedCursorPosition
+    console.log('插入图片 - 保存的光标位置:', pos)
+    console.log('插入图片 - 当前内容长度:', form.content.length)
+    
     const before = form.content.substring(0, pos)
     const after = form.content.substring(pos)
     
+    console.log('插入图片 - 光标前内容:', before.substring(Math.max(0, before.length - 50)))
+    console.log('插入图片 - 光标后内容:', after.substring(0, 50))
+    
     // 插入时确保前后有换行
     const needsNewlineBefore = pos > 0 && before[before.length - 1] !== '\n'
-    const needsNewlineAfter = after.length > 0 && after[0] !== '\n'
+    // 确保图片后面总是有换行，这样光标可以定位到新行
+    const suffix = '\n'
     
     const prefix = needsNewlineBefore ? '\n' : ''
-    const suffix = needsNewlineAfter ? '\n' : ''
     const fullMarkdown = prefix + markdown + suffix
     
+    console.log('插入图片 - 完整markdown:', fullMarkdown)
+    
+    // 计算新的光标位置（在图片markdown之后）
+    const newPos = pos + prefix.length + markdown.length
+    
     form.content = before + fullMarkdown + after
+    
+    console.log('插入图片 - 新光标位置:', newPos)
 
-    // 恢复光标位置（在插入的Markdown之后）
+    // 将光标定位到插入的图片markdown之后
     nextTick(() => {
-      textarea.focus()
-      const newPos = pos + prefix.length + markdown.length
-      textarea.selectionStart = textarea.selectionEnd = newPos
-      
-      // 滚动到光标位置
-      textarea.scrollTop = textarea.scrollHeight * (newPos / form.content.length)
+      // 等待 DOM 更新后再设置光标
+      nextTick(() => {
+        textarea.focus()
+        // 使用 setSelectionRange 方法设置光标位置
+        textarea.setSelectionRange(newPos, newPos)
+        
+        // 改进滚动：确保光标位置可见
+        // 计算光标所在行的大致位置
+        const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight) || 20
+        const lines = form.content.substring(0, newPos).split('\n').length
+        const cursorTop = lines * lineHeight
+        
+        // 如果光标不在可视区域内，滚动到合适位置
+        if (cursorTop < textarea.scrollTop || cursorTop > textarea.scrollTop + textarea.clientHeight) {
+          textarea.scrollTop = Math.max(0, cursorTop - textarea.clientHeight / 2)
+        }
+      })
     })
   } else {
     // 降级：追加到末尾
-    form.content += (form.content ? '\n\n' : '') + markdown
+    form.content += (form.content ? '\n\n' : '') + markdown + '\n'
   }
 }
 
