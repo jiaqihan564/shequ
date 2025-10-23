@@ -90,16 +90,17 @@
     </div>
 
     <!-- 分页 -->
-    <div v-if="total > pageSize" class="pagination">
-      <button class="btn btn-secondary" :disabled="page === 1" @click="goToPage(page - 1)">
-        上一页
-      </button>
-      <span class="page-info">
-        第 {{ page }} 页 / 共 {{ totalPages }} 页 ({{ total }} 条)
-      </span>
-      <button class="btn btn-secondary" :disabled="page >= totalPages" @click="goToPage(page + 1)">
-        下一页
-      </button>
+    <div v-if="total > 0" class="pagination-container">
+      <el-pagination
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :page-sizes="[6, 12, 24, 36]"
+        :total="total"
+        background
+        layout="sizes, prev, pager, next, total"
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange"
+      />
     </div>
 
     <!-- 运行代码对话框 -->
@@ -180,7 +181,7 @@ const router = useRouter()
 const snippets = ref<CodeSnippetWithUser[]>([])
 const loading = ref(false)
 const page = ref(1)
-const pageSize = ref(20)
+const pageSize = ref(6)
 const total = ref(0)
 const selectedLanguage = ref('')
 
@@ -236,16 +237,31 @@ async function loadSnippets() {
 }
 
 function filterByLanguage(language: string) {
+  // 先滚动到顶部，避免数据变化导致的视觉问题
+  window.scrollTo({ top: 0, behavior: 'smooth' })
   selectedLanguage.value = language
   page.value = 1 // 重置到第一页
   loadSnippets()
 }
 
-function goToPage(newPage: number) {
+function handlePageChange(newPage: number) {
+  // 先滚动到顶部，避免滚动时数据变化导致页面撕裂
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+  // 然后更新页码并加载数据
   page.value = newPage
   loadSnippets()
-  // 滚动到顶部
+}
+
+function handleSizeChange(newSize: number) {
+  // 先滚动到顶部，避免滚动时数据变化导致页面撕裂
   window.scrollTo({ top: 0, behavior: 'smooth' })
+  pageSize.value = newSize
+  page.value = 1
+  loadSnippets()
+}
+
+function goToPage(newPage: number) {
+  handlePageChange(newPage)
 }
 
 function viewSnippet(snippet: CodeSnippetWithUser) {
@@ -770,17 +786,11 @@ function closeRunDialog() {
   transform: translateY(0);
 }
 
-.pagination {
+.pagination-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 20px;
   padding: 30px 0;
-}
-
-.page-info {
-  font-size: 14px;
-  color: #6b7280;
 }
 
 /* 按钮样式 */

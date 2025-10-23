@@ -244,17 +244,23 @@ async function loadCategories() {
 }
 
 function handleFilterChange() {
+  // 先滚动到顶部，避免数据变化导致的视觉问题
+  window.scrollTo({ top: 0, behavior: 'smooth' })
   query.page = 1
   loadResources()
 }
 
 function handleSearch() {
+  // 先滚动到顶部，避免数据变化导致的视觉问题
+  window.scrollTo({ top: 0, behavior: 'smooth' })
   query.keyword = searchKeyword.value
   query.page = 1
   loadResources()
 }
 
 function handleCategoryTagClick(categoryId: number | null) {
+  // 先滚动到顶部，避免数据变化导致的视觉问题
+  window.scrollTo({ top: 0, behavior: 'smooth' })
   query.category_id = categoryId || undefined
   query.page = 1
   loadResources()
@@ -265,12 +271,15 @@ function goToDetail(id: number) {
 }
 
 function handlePageChange(newPage: number) {
+  // 先滚动到顶部，避免滚动时数据变化导致页面撕裂
+  window.scrollTo({ top: 0, behavior: 'smooth' })
   query.page = newPage
   loadResources()
-  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 function handleSizeChange(newSize: number) {
+  // 先滚动到顶部，避免滚动时数据变化导致页面撕裂
+  window.scrollTo({ top: 0, behavior: 'smooth' })
   query.page_size = newSize
   query.page = 1
   page.value = 1

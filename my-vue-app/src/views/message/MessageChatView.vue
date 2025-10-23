@@ -167,7 +167,6 @@ const scrollbarRef = ref<any>()
 const messagesAreaRef = ref<HTMLElement>()
 
 let pollTimer: number | null = null
-let lastMessageId = 0
 
 // 当前用户信息
 const currentUserInfo = computed(() => {
@@ -249,7 +248,6 @@ async function loadMessages() {
     console.log('私信消息数据:', messages.value)
     if (messages.value.length > 0) {
       console.log('第一条消息:', messages.value[0])
-      lastMessageId = messages.value[messages.value.length - 1].id
     }
 
     // 滚动到底部
@@ -320,7 +318,6 @@ async function pollNewMessages() {
     const newMessages = result.messages || []
 
     if (newMessages.length > messages.value.length) {
-      const oldLength = messages.value.length
       messages.value = newMessages
       
       // 如果有新消息且不是自己发的，滚动到底部

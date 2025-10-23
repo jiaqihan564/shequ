@@ -93,7 +93,7 @@
           :page-size="pageSize"
           :total="total"
           layout="prev, pager, next"
-          @current-change="loadArticles"
+          @current-change="handlePageChange"
           style="margin-top: 20px; text-align: center"
         />
       </el-card>
@@ -206,6 +206,12 @@ async function loadArticles() {
   } catch (error: any) {
     console.error('加载文章失败:', error)
   }
+}
+
+function handlePageChange() {
+  // 先滚动到顶部，避免滚动时数据变化导致页面撕裂
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+  loadArticles()
 }
 
 async function startChat() {

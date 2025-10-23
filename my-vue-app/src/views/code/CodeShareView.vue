@@ -52,7 +52,6 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import MonacoEditor from '@/components/code/MonacoEditor.vue'
 import { getSharedSnippet } from '@/utils/code-api'
-import { toast } from '@/utils/toast'
 import type { CodeSnippet } from '@/types/code'
 
 const route = useRoute()

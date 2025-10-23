@@ -6,7 +6,7 @@ import MarkdownIt from 'markdown-it'
 import hljs from 'highlight.js'
 
 // 配置markdown-it实例
-const md = new MarkdownIt({
+const md: MarkdownIt = new MarkdownIt({
   html: true,        // 允许HTML标签
   linkify: true,     // 自动转换URL为链接
   typographer: true, // 启用排版优化（引号、破折号等）

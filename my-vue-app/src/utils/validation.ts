@@ -163,13 +163,6 @@ export function validateConfirmPassword(password: string, confirmPassword: strin
 }
 
 /**
- * 验证手机号
- */
-export function validatePhone(phone: string): string | null {
-  return validateField(phone, VALIDATION_RULES.phone)
-}
-
-/**
  * 通用表单验证函数
  */
 export function validateField(value: any, rules: ValidationRule[]): string | null {
@@ -247,7 +240,7 @@ export function debounce<T extends (...args: any[]) => any>(
   func: T,
   delay: number
 ): (...args: Parameters<T>) => void {
-  let timeoutId: number
+  let timeoutId: ReturnType<typeof setTimeout>
 
   return (...args: Parameters<T>) => {
     clearTimeout(timeoutId)
@@ -255,20 +248,3 @@ export function debounce<T extends (...args: any[]) => any>(
   }
 }
 
-/**
- * 节流函数
- */
-export function throttle<T extends (...args: any[]) => any>(
-  func: T,
-  delay: number
-): (...args: Parameters<T>) => void {
-  let lastCall = 0
-
-  return (...args: Parameters<T>) => {
-    const now = Date.now()
-    if (now - lastCall >= delay) {
-      lastCall = now
-      func(...args)
-    }
-  }
-}

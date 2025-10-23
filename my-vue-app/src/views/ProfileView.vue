@@ -235,7 +235,6 @@ import {
   getCurrentUser,
   updateUser,
   uploadImage,
-  updateUserAvatar,
   getAvatarHistory
 } from '@/utils/api'
 import { readDetectedRegion, detectCurrentRegion } from '@/utils/geo'
@@ -387,12 +386,17 @@ async function onPickAvatar(event: Event) {
   }
   try {
     uploading.value = true
+    // 上传头像文件（后端会自动更新数据库）
     const url = await uploadImage(file)
     // 立即更新预览
     form.avatar = url
-    // 保存到后端
-    const updated = await updateUserAvatar(url)
+    // 从服务器重新获取最新的用户信息（包括头像URL）
+    const updated = await getCurrentUser()
     initialUser.value = updated
+    // 同步表单数据
+    if (updated && updated.avatar) {
+      form.avatar = updated.avatar
+    }
     showToast('success', '头像已更新')
   } catch (e: any) {
     showToast('error', e?.message || '头像上传失败')

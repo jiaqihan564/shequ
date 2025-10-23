@@ -280,12 +280,16 @@ async function loadMetadata() {
 
 // 筛选变化
 function handleFilterChange() {
+  // 先滚动到顶部，避免数据变化导致的视觉问题
+  window.scrollTo({ top: 0, behavior: 'smooth' })
   query.page = 1
   loadArticles()
 }
 
 // 搜索
 function handleSearch() {
+  // 先滚动到顶部，避免数据变化导致的视觉问题
+  window.scrollTo({ top: 0, behavior: 'smooth' })
   query.keyword = searchKeyword.value
   query.page = 1
   loadArticles()
@@ -293,6 +297,8 @@ function handleSearch() {
 
 // 标签点击
 function handleTagClick(tagId: number) {
+  // 先滚动到顶部，避免数据变化导致的视觉问题
+  window.scrollTo({ top: 0, behavior: 'smooth' })
   if (query.tag_id === tagId) {
     query.tag_id = undefined
   } else {
@@ -304,13 +310,16 @@ function handleTagClick(tagId: number) {
 
 // 翻页
 function goToPage(newPage: number) {
+  // 先滚动到顶部，避免滚动时数据变化导致页面撕裂
+  window.scrollTo({ top: 0, behavior: 'smooth' })
   query.page = newPage
   loadArticles()
-  window.scrollTo({ top: 0, behavior: 'smooth' })
 }
 
 // 页面大小变化
 function handleSizeChange(newSize: number) {
+  // 先滚动到顶部，避免滚动时数据变化导致页面撕裂
+  window.scrollTo({ top: 0, behavior: 'smooth' })
   query.page_size = newSize
   query.page = 1
   page.value = 1

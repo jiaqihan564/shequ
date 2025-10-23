@@ -11,7 +11,7 @@ export function isAdmin(user: User | null): boolean {
 /**
  * 检查用户是否有指定权限
  */
-export function hasPermission(user: User | null, permission: string): boolean {
+export function hasPermission(user: User | null, _permission: string): boolean {
   if (!user) return false
   
   // 管理员拥有所有权限

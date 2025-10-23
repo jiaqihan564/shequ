@@ -1358,7 +1358,6 @@ export async function startConversation(userId: number): Promise<StartConversati
 import type {
   Resource,
   ResourceListResponse,
-  ResourceListItem,
   ResourceCategory,
   CreateResourceRequest,
   InitUploadRequest,

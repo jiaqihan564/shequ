@@ -146,7 +146,7 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import * as echarts from 'echarts'
 import {
-  Refresh, TrendCharts, UserFilled, SuccessFilled, Timer, User, Connection, Clock
+  Refresh, TrendCharts, UserFilled, SuccessFilled, Timer, User, Connection
 } from '@element-plus/icons-vue'
 import { getDailyMetrics } from '@/utils/api'
 import toast from '@/utils/toast'

@@ -307,11 +307,6 @@ function renderChart() {
   })
 }
 
-function calculatePercentage(current: number, total: number): number {
-  if (!total || total === 0) return 0
-  return Math.min(Math.round((current / total) * 100), 100)
-}
-
 function getCpuColor(usage: number): string {
   if (usage >= 80) return '#f56c6c'
   if (usage >= 60) return '#e6a23c'

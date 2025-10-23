@@ -200,7 +200,7 @@ function getUserIcon(statKey: string) {
   return icons[statKey] || UserFilled
 }
 
-function getUserColor(statKey: string) {
+function getUserColor(_statKey: string) {
   return '#409eff'
 }
 
@@ -236,11 +236,11 @@ function getSecurityColor(statKey: string) {
 }
 
 // 内容数据图标和颜色
-function getContentIcon(statKey: string) {
+function getContentIcon(_statKey: string) {
   return Document
 }
 
-function getContentColor(statKey: string) {
+function getContentColor(_statKey: string) {
   return '#409eff'
 }
 

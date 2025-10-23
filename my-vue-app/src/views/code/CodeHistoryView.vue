@@ -49,22 +49,17 @@
           </div>
         </div>
       </div>
-      <div v-if="snippetsTotal > snippets.length" class="pagination">
-        <button
-          class="btn btn-secondary"
-          :disabled="snippetsPage === 1"
-          @click="loadSnippets(snippetsPage - 1)"
-        >
-          上一页
-        </button>
-        <span class="page-info">第 {{ snippetsPage }} 页，共 {{ snippetsTotalPages }} 页</span>
-        <button
-          class="btn btn-secondary"
-          :disabled="snippetsPage >= snippetsTotalPages"
-          @click="loadSnippets(snippetsPage + 1)"
-        >
-          下一页
-        </button>
+      <div v-if="snippetsTotal > 0" class="pagination-container">
+        <el-pagination
+          v-model:current-page="snippetsPage"
+          v-model:page-size="snippetsPageSize"
+          :page-sizes="[6, 12, 24, 36]"
+          :total="snippetsTotal"
+          background
+          layout="sizes, prev, pager, next, total"
+          @current-change="handleSnippetsPageChange"
+          @size-change="handleSnippetsPageSizeChange"
+        />
       </div>
     </div>
 
@@ -114,22 +109,17 @@
           </details>
         </div>
       </div>
-      <div v-if="executionsTotal > executions.length" class="pagination">
-        <button
-          class="btn btn-secondary"
-          :disabled="executionsPage === 1"
-          @click="loadExecutions(executionsPage - 1)"
-        >
-          上一页
-        </button>
-        <span class="page-info">第 {{ executionsPage }} 页，共 {{ executionsTotalPages }} 页</span>
-        <button
-          class="btn btn-secondary"
-          :disabled="executionsPage >= executionsTotalPages"
-          @click="loadExecutions(executionsPage + 1)"
-        >
-          下一页
-        </button>
+      <div v-if="executionsTotal > 0" class="pagination-container">
+        <el-pagination
+          v-model:current-page="executionsPage"
+          v-model:page-size="executionsPageSize"
+          :page-sizes="[6, 12, 24, 36]"
+          :total="executionsTotal"
+          background
+          layout="sizes, prev, pager, next, total"
+          @current-change="handleExecutionsPageChange"
+          @size-change="handleExecutionsPageSizeChange"
+        />
       </div>
     </div>
 
@@ -189,13 +179,13 @@ const activeTab = ref<'snippets' | 'executions'>('snippets')
 const snippets = ref<CodeSnippetListItem[]>([])
 const snippetsLoading = ref(false)
 const snippetsPage = ref(1)
-const snippetsPageSize = ref(20)
+const snippetsPageSize = ref(6)
 const snippetsTotal = ref(0)
 
 const executions = ref<CodeExecution[]>([])
 const executionsLoading = ref(false)
 const executionsPage = ref(1)
-const executionsPageSize = ref(20)
+const executionsPageSize = ref(6)
 const executionsTotal = ref(0)
 
 const shareDialogVisible = ref(false)
@@ -258,6 +248,34 @@ async function loadExecutions(page = 1) {
   } finally {
     executionsLoading.value = false
   }
+}
+
+function handleSnippetsPageChange(newPage: number) {
+  // 先滚动到顶部，避免滚动时数据变化导致页面撕裂
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+  loadSnippets(newPage)
+}
+
+function handleSnippetsPageSizeChange(newSize: number) {
+  // 先滚动到顶部，避免滚动时数据变化导致页面撕裂
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+  snippetsPageSize.value = newSize
+  snippetsPage.value = 1
+  loadSnippets(1)
+}
+
+function handleExecutionsPageChange(newPage: number) {
+  // 先滚动到顶部，避免滚动时数据变化导致页面撕裂
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+  loadExecutions(newPage)
+}
+
+function handleExecutionsPageSizeChange(newSize: number) {
+  // 先滚动到顶部，避免滚动时数据变化导致页面撕裂
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+  executionsPageSize.value = newSize
+  executionsPage.value = 1
+  loadExecutions(1)
 }
 
 async function loadSnippet(id: number) {
@@ -605,17 +623,11 @@ function formatDate(dateStr: string): string {
   color: #ff4d4f;
 }
 
-.pagination {
+.pagination-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  gap: 16px;
-  margin-top: 20px;
-}
-
-.page-info {
-  font-size: 14px;
-  color: #666;
+  padding: 30px 0;
 }
 
 .btn {
