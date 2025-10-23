@@ -2722,13 +2722,13 @@ echo "Trim: '" . trim($text) . "'\\n";
 echo "Upper: '" . strtoupper($text) . "'\\n";
 echo "Lower: '" . strtolower($text) . "'\\n";
 
-// Split and join
+// 分割和连接
 $sentence = "PHP,JavaScript,Python";
 $languages = explode(",", $sentence);
 echo "\\nSplit: " . print_r($languages, true);
 echo "Join: " . implode(" | ", $languages) . "\\n";
 
-// Search and replace
+// 搜索和替换
 $message = "I love PHP programming";
 echo "\\nContains 'PHP': " . (strpos($message, "PHP") !== false ? "Yes" : "No") . "\\n";
 echo "Replace: " . str_replace("PHP", "Python", $message) . "\\n";
@@ -2826,7 +2826,7 @@ const admin: Admin = {
 console.log("User:", user);
 console.log("Admin:", admin);
 
-// Function with interface
+// 带接口的函数
 function printUser(user: User): void {
   console.log(\`\\nUser: \${user.username} (ID: \${user.id})\`);
   if (user.email) {
@@ -3283,7 +3283,7 @@ print("5 + 3 = \\(add(a: 5, b: 3))")
 print(greet(name: "Alice"))
 print(greet())
 
-// Function with multiple returns
+// 多返回值函数
 func calculate(a: Int, b: Int) -> (sum: Int, product: Int) {
     return (a + b, a * b)
 }
@@ -3457,7 +3457,7 @@ fun main() {
     val user = User(1, "Charlie", "charlie@example.com")
     println("\\nUser: $user")
     
-    // Copy with modification
+    // 带修改的复制
     val user2 = user.copy(name = "David")
     println("User2: $user2")
 }`,
@@ -3839,7 +3839,7 @@ object Main extends App {
   println(describe("hello"))
   println(describe(42))
   
-  // Match with conditions
+  // 条件匹配
   def grade(score: Int): String = score match {
     case s if s >= 90 => "A"
     case s if s >= 80 => "B"

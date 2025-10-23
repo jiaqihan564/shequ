@@ -264,7 +264,7 @@ async function loadMessages() {
 
 // 加载更多消息
 async function loadMoreMessages() {
-  // TODO: 实现分页加载
+  // 待实现：分页加载
   toast.info('功能开发中')
 }
 
@@ -306,7 +306,7 @@ function handleEnterSend(event: KeyboardEvent) {
   sendMessage()
 }
 
-// Ctrl+Enter 换行
+// 插入换行符
 function insertNewLine() {
   messageInput.value += '\n'
 }

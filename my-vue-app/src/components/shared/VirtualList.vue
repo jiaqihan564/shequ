@@ -44,7 +44,7 @@ const emit = defineEmits<{
   visibleRangeChange: [start: number, end: number]
 }>()
 
-// Refs
+// 引用
 const containerRef = ref<HTMLElement | null>(null)
 const scrollTop = ref(0)
 const containerHeight = ref(0)
@@ -78,7 +78,7 @@ const containerStyle = computed(() => {
   return {
     height,
     overflow: 'auto',
-    position: 'relative'
+    position: 'relative' as const
   }
 })
 
@@ -87,10 +87,10 @@ const contentStyle = computed(() => {
   const offset = visibleRange.value.start * props.itemHeight
   return {
     transform: `translateY(${offset}px)`,
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0
+    position: 'absolute' as const,
+    top: '0',
+    left: '0',
+    right: '0'
   }
 })
 

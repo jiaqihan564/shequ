@@ -282,7 +282,7 @@ function insertDocImageMarkdown(url: string, alt: string = '图片') {
   }
 }
 
-// Markdown文档导入
+// 导入文档文件
 function selectDocMdFile() {
   docMdFileInput.value?.click()
 }

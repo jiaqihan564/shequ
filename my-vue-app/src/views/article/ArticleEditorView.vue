@@ -317,7 +317,7 @@ function removeCodeBlock(index: number) {
   form.code_blocks.splice(index, 1)
 }
 
-// Markdown预览
+// 预览内容
 const previewContent = computed(() => {
   return renderMarkdown(form.content)
 })
@@ -400,7 +400,7 @@ function insertImageMarkdown(url: string, alt: string = '图片') {
   }
 }
 
-// Markdown文件导入功能
+// 导入文件
 function selectMdFile() {
   mdFileInput.value?.click()
 }

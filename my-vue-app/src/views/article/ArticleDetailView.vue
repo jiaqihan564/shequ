@@ -325,7 +325,7 @@ const shareLink = computed(() => {
   return ''
 })
 
-// Markdown渲染
+// 渲染文章内容
 const renderedContent = computed(() => {
   if (!article.value) return ''
   return renderMarkdown(article.value.content)
