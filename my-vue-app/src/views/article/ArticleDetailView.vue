@@ -348,6 +348,14 @@ async function loadComments(articleId: number) {
   try {
     const response = await getArticleComments(articleId)
     comments.value = response.comments || []
+    
+    // 调试日志：检查评论数据结构
+    console.log('加载文章评论成功:', {
+      total: response.total,
+      commentsCount: comments.value.length,
+      firstComment: comments.value[0],
+      hasReplies: comments.value.some(c => c.replies && c.replies.length > 0)
+    })
   } catch (error) {
     console.error('加载评论失败:', error)
     // 确保即使加载失败也能显示空的评论区

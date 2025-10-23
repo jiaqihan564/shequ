@@ -285,9 +285,13 @@ async function sendMessage() {
     // 重新加载消息
     await loadMessages()
     
-    // 确保滚动到最新消息（发送后立即滚动）
+    // 确保滚动到最新消息（使用多次nextTick和更长延迟确保DOM完全更新）
     await nextTick()
-    setTimeout(() => scrollToBottom(true), 100)
+    await nextTick()
+    // 立即滚动一次（无动画）
+    scrollToBottom(false)
+    // 再延迟滚动一次（带动画），确保内容完全渲染
+    setTimeout(() => scrollToBottom(true), 300)
     
     // 触发全局未读数刷新事件
     window.dispatchEvent(new Event('refresh-unread-count'))

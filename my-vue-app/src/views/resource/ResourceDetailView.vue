@@ -243,6 +243,14 @@ async function loadComments(resourceId: number) {
     const response = await getResourceComments(resourceId)
     comments.value = response.comments || []
     commentCount.value = response.total || 0
+    
+    // 调试日志：检查评论数据结构
+    console.log('加载评论成功:', {
+      total: response.total,
+      commentsCount: comments.value.length,
+      firstComment: comments.value[0],
+      hasReplies: comments.value.some(c => c.replies && c.replies.length > 0)
+    })
   } catch (error) {
     console.error('加载评论失败:', error)
     comments.value = []

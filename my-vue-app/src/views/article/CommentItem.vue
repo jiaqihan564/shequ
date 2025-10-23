@@ -60,7 +60,7 @@
       </div>
 
       <!-- 递归显示子评论 -->
-      <div v-if="comment.replies && comment.replies.length > 0" class="replies-list">
+      <div v-if="comment.replies && Array.isArray(comment.replies) && comment.replies.length > 0" class="replies-list">
         <CommentItem
           v-for="reply in comment.replies"
           :key="reply.id"
@@ -251,6 +251,27 @@ function formatDate(dateString: string): string {
   margin-top: 16px;
   padding-left: 20px;
   border-left: 2px solid #ebeef5;
+  /* 防止深层嵌套时溢出 */
+  max-width: 100%;
+  overflow: visible;
+}
+
+/* 限制最大嵌套缩进，避免内容被挤到屏幕外 */
+.comment-item.is-reply .replies-list {
+  padding-left: 12px;
+}
+
+.comment-item.is-reply .replies-list .replies-list {
+  padding-left: 8px;
+}
+
+.comment-item.is-reply .replies-list .replies-list .replies-list {
+  padding-left: 4px;
+}
+
+/* 超过4层嵌套后不再增加缩进 */
+.comment-item.is-reply .replies-list .replies-list .replies-list .replies-list {
+  padding-left: 0;
 }
 
 /* 响应式设计 */
