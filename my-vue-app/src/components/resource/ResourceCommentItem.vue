@@ -39,12 +39,14 @@
       <!-- 回复输入框 -->
       <div v-if="showReplyBox" class="reply-input-box">
         <el-input
+          ref="replyInputRef"
           v-model="replyContent"
           type="textarea"
           :rows="3"
           :placeholder="`回复 @${comment.user?.nickname}...`"
           maxlength="500"
           show-word-limit
+          @keydown="handleReplyKeydown"
         />
         <div class="reply-actions">
           <el-button size="small" @click="cancelReply">取消</el-button>
@@ -75,7 +77,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { ChatDotRound } from '@element-plus/icons-vue'
 import { postResourceComment } from '@/utils/api'
@@ -102,17 +104,29 @@ const emit = defineEmits<{
 
 const showReplyBox = ref(false)
 const replyContent = ref('')
+const replyInputRef = ref()
 
-function toggleReplyBox() {
+async function toggleReplyBox() {
   showReplyBox.value = !showReplyBox.value
   if (!showReplyBox.value) {
     replyContent.value = ''
+  } else {
+    // 等待 DOM 更新后聚焦到输入框
+    await nextTick()
+    replyInputRef.value?.focus()
   }
 }
 
 function cancelReply() {
   showReplyBox.value = false
   replyContent.value = ''
+}
+
+function handleReplyKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault()
+    submitReply()
+  }
 }
 
 async function submitReply() {
@@ -219,6 +233,7 @@ function formatDate(dateString: string): string {
   color: #606266;
   line-height: 1.6;
   word-break: break-word;
+  white-space: pre-wrap; /* 保留换行符并自动换行 */
 }
 
 .comment-actions {

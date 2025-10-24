@@ -153,6 +153,7 @@
             placeholder="发表你的评论..."
             maxlength="500"
             show-word-limit
+            @keydown="handleCommentKeydown"
           />
           <el-button
             type="primary"
@@ -372,6 +373,13 @@ async function handleLike() {
     toast.success(isLiked ? '点赞成功' : '取消点赞')
   } catch (error: any) {
     toast.error(error.message || '操作失败')
+  }
+}
+
+function handleCommentKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault()
+    handlePostComment()
   }
 }
 

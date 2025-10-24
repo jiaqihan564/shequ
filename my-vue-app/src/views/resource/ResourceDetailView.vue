@@ -128,6 +128,7 @@
             placeholder="发表你的评论..."
             maxlength="500"
             show-word-limit
+            @keydown="handleCommentKeydown"
           />
           <el-button
             type="primary"
@@ -296,6 +297,13 @@ async function handleLike() {
 }
 
 // 评论功能
+function handleCommentKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter' && !event.shiftKey) {
+    event.preventDefault()
+    submitComment()
+  }
+}
+
 async function submitComment() {
   if (!resource.value || !newComment.value.trim()) {
     toast.warning('请输入评论内容')
