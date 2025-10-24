@@ -192,7 +192,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { Download, Star, StarFilled, ChatDotRound, Share, CopyDocument } from '@element-plus/icons-vue'
-import { getResourceDetail, toggleResourceLike, getResourceDownload, postResourceComment, getResourceComments } from '@/utils/api'
+import { getResourceDetail, toggleResourceLike, getResourceDownload, getResourceProxyDownloadUrl, postResourceComment, getResourceComments } from '@/utils/api'
 import { renderMarkdown } from '@/utils/markdown'
 import type { Resource, ResourceComment } from '@/types/resource'
 import toast from '@/utils/toast'
@@ -264,11 +264,13 @@ async function handleDownload() {
   
   try {
     toast.info('正在准备下载...')
-    const result = await getResourceDownload(resource.value.id)
+    
+    // 使用代理下载URL（支持大文件和断点续传）
+    const downloadUrl = getResourceProxyDownloadUrl(resource.value.id)
     
     // 创建隐藏的a标签触发下载
     const link = document.createElement('a')
-    link.href = result.download_url
+    link.href = downloadUrl
     link.download = resource.value.file_name
     link.style.display = 'none'
     document.body.appendChild(link)

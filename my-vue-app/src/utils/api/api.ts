@@ -1447,6 +1447,16 @@ export async function getResourceDownload(id: number): Promise<{ download_url: s
 }
 
 /**
+ * 代理下载资源（支持大文件和断点续传）
+ */
+export function getResourceProxyDownloadUrl(id: number): string {
+  const baseURL = api.defaults.baseURL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'
+  // 使用正确的token key，并同时检查localStorage和sessionStorage
+  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || ''
+  return `${baseURL}/resources/${id}/proxy-download?token=${encodeURIComponent(token)}`
+}
+
+/**
  * 获取资源分类
  */
 export async function getResourceCategories(): Promise<ResourceCategory[]> {
