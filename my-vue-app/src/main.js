@@ -46,9 +46,6 @@ app.config.warnHandler = (msg, instance, trace) => {
   console.warn('Vue 警告:', msg, trace)
 }
 
-// 全局属性
-app.config.globalProperties.$log = console.log
-
 // 性能监控
 if (import.meta.env.DEV) {
   app.config.performance = true

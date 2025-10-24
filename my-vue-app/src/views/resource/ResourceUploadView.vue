@@ -193,7 +193,6 @@ async function loadCategories() {
 
 function handleFileChange(file: UploadFile) {
   selectedFile.value = file.raw as File
-  console.log('选择文件:', file.name, file.size)
   
   // 如果标题为空，自动设置为文件名（去掉扩展名）
   if (!form.title.trim()) {
@@ -201,7 +200,6 @@ function handleFileChange(file: UploadFile) {
     const lastDotIndex = fileName.lastIndexOf('.')
     const nameWithoutExtension = lastDotIndex > 0 ? fileName.substring(0, lastDotIndex) : fileName
     form.title = nameWithoutExtension
-    console.log('自动设置标题为:', nameWithoutExtension)
   }
 }
 
@@ -233,11 +231,6 @@ function selectDocImage() {
   const textarea = documentEditor.value?.$el?.querySelector('textarea')
   if (textarea) {
     savedDocCursorPosition = textarea.selectionStart || 0
-    console.log('保存文档光标位置:', savedDocCursorPosition)
-    console.log('当前文档内容长度:', form.document.length)
-    console.log('光标位置是否有效:', savedDocCursorPosition <= form.document.length)
-  } else {
-    console.error('未找到文档textarea元素')
   }
   
   const input = document.createElement('input')
@@ -288,9 +281,6 @@ function insertDocImageMarkdown(url: string, alt: string = '图片') {
     const before = form.document.substring(0, pos)
     const after = form.document.substring(pos)
     
-    console.log('插入文档图片 - 光标前内容:', before.substring(Math.max(0, before.length - 50)))
-    console.log('插入文档图片 - 光标后内容:', after.substring(0, 50))
-    
     // 插入时确保前后有换行
     const needsNewlineBefore = pos > 0 && before[before.length - 1] !== '\n'
     // 确保图片后面总是有换行，这样光标可以定位到新行
@@ -299,14 +289,10 @@ function insertDocImageMarkdown(url: string, alt: string = '图片') {
     const prefix = needsNewlineBefore ? '\n' : ''
     const fullMarkdown = prefix + markdown + suffix
     
-    console.log('插入文档图片 - 完整markdown:', fullMarkdown)
-    
     // 计算新的光标位置（在图片markdown之后）
     const newPos = pos + prefix.length + markdown.length
     
     form.document = before + fullMarkdown + after
-    
-    console.log('插入文档图片 - 新光标位置:', newPos)
     
     // 将光标定位到插入的图片markdown之后
     nextTick(() => {
@@ -396,22 +382,17 @@ async function handleSubmit() {
   uploadStatus.value = ''
 
   try {
-    console.log('开始上传资源文件...')
-    
     // 1. 上传文件（使用分片上传）
     toast.info('正在上传文件，请稍候...')
     const storagePath = await uploadFileWithChunks(
       selectedFile.value,
       (progress) => {
         uploadProgress.value = progress
-        console.log('上传进度:', progress + '%')
       }
     )
     uploadedStoragePath.value = storagePath
-    console.log('文件上传成功，路径:', storagePath)
 
     // 2. 上传预览图到资源专用桶
-    console.log('开始上传预览图，共', imageFileList.value.length, '张')
     const imageUrls: string[] = []
     
     for (let i = 0; i < imageFileList.value.length; i++) {
@@ -422,17 +403,14 @@ async function handleSubmit() {
           
           const url = await uploadResourceImage(imgFile.raw)
           imageUrls.push(url)
-          console.log('预览图上传成功:', url)
         } catch (e: any) {
           console.error('上传预览图失败:', e)
           toast.warning(`第 ${i + 1} 张图片上传失败，已跳过`)
         }
       }
     }
-    console.log('预览图上传完成，共', imageUrls.length, '张')
 
     // 3. 创建资源记录
-    console.log('创建资源记录...')
     toast.info('正在保存资源信息...')
     
     const result = await createResource({
@@ -448,10 +426,9 @@ async function handleSubmit() {
       tags: form.tags
     })
 
-    uploadStatus.value = 'success'
+    uploadStatus.value = 'success'    
     uploadProgress.value = 100
     toast.success('资源发布成功！')
-    console.log('资源创建成功，ID:', result.resource_id)
     
     setTimeout(() => router.push(`/resources/${result.resource_id}`), 1500)
   } catch (error: any) {

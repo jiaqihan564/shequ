@@ -249,19 +249,12 @@ async function loadMessages() {
   try {
     const result = await getConversationMessages(conversationId.value, 50)
     messages.value = result.messages || []
-    
-    // 调试：查看消息数据结构
-    console.log('私信消息数据:', messages.value)
-    if (messages.value.length > 0) {
-      console.log('第一条消息:', messages.value[0])
-    }
 
     // 确保DOM完全更新后滚动到底部
     await nextTick()
     await nextTick()
     // 延迟滚动，确保消息列表完全渲染
     setTimeout(() => {
-      console.log('🔄 开始滚动到最后一条消息，消息数量:', messages.value.length)
       scrollToBottom(false)
     }, 100)
     // 再次平滑滚动，确保万无一失
@@ -361,7 +354,6 @@ function scrollToBottom(smooth = true) {
         behavior: smooth ? 'smooth' : 'auto',
         block: 'end'
       })
-      console.log('✅ 使用scrollIntoView滚动到最后一条消息')
       return true
     }
     return false
@@ -376,7 +368,6 @@ function scrollToBottom(smooth = true) {
           top: scrollContainer.scrollHeight,
           behavior: smooth ? 'smooth' : 'auto'
         })
-        console.log('✅ 使用scrollContainer滚动到底部')
         return true
       }
     }
@@ -390,7 +381,6 @@ function scrollToBottom(smooth = true) {
   if (scrollByContainer()) return
   
   // 都失败了，延迟重试
-  console.log('⚠️ 首次滚动失败，延迟重试...')
   setTimeout(() => {
     scrollToLastMessage() || scrollByContainer()
   }, 100)

@@ -13,6 +13,7 @@ import type {
   AvatarHistoryList
 } from '@/types'
 import type { NewsItem, FetchNewsParams } from '@/types'
+import { logger } from '../ui/logger'
 
 // 创建axios实例
 const api: AxiosInstance = axios.create({
@@ -128,7 +129,7 @@ api.interceptors.response.use(
     
     // 处理请求取消
     if (axios.isCancel(error)) {
-      console.log('请求已取消:', error.message)
+      logger.debug('请求已取消:', error.message)
       return Promise.reject(createAppError('REQUEST_CANCELLED', '请求已取消'))
     }
     
@@ -359,7 +360,7 @@ export async function register(registerData: RegisterForm): Promise<RegisterResp
 
     throw createAppError('REGISTER_FAILED', response.data.message || '注册失败')
   } catch (error) {
-    console.error('API: 注册请求失败:', error)
+    logger.error('API: 注册请求失败:', error)
     throw error
   }
 }
@@ -371,7 +372,7 @@ export async function logout(): Promise<void> {
   try {
     await api.post('/auth/logout')
   } catch (error) {
-    console.error('登出请求失败:', error)
+    logger.error('登出请求失败:', error)
   } finally {
     clearAuthTokens()
   }
@@ -672,7 +673,7 @@ export async function fetchNews(params: FetchNewsParams = {}): Promise<NewsItem[
     oldKeys.forEach(key => {
       if (localStorage.getItem(key)) {
         localStorage.removeItem(key)
-        console.log(`已清除旧缓存: ${key}`)
+        logger.debug(`已清除旧缓存: ${key}`)
       }
     })
   }
@@ -727,7 +728,7 @@ export async function fetchNews(params: FetchNewsParams = {}): Promise<NewsItem[
         }
       }
     } catch (e) {
-      console.log('NewsAPI请求失败，回退到模拟数据:', e)
+      logger.debug('NewsAPI请求失败，回退到模拟数据:', e)
     }
   }
 
@@ -789,11 +790,11 @@ export async function fetchNews(params: FetchNewsParams = {}): Promise<NewsItem[
       } catch (e) {
         void e
       }
-      return mockFromRss.slice(0, pageSize)
-    } catch (e) {
-      console.log('RSS新闻获取失败，回退到模拟数据:', e)
+        return mockFromRss.slice(0, pageSize)
+      } catch (e) {
+        logger.debug('RSS新闻获取失败，回退到模拟数据:', e)
+      }
     }
-  }
 
   // 模拟外部新闻源（全国热点）；发布时间按当前时间倒序 1-5 分钟内
   const now = Date.now()
@@ -836,10 +837,7 @@ export async function fetchNews(params: FetchNewsParams = {}): Promise<NewsItem[
     const url = pick(newsUrls, i) // 使用真实的新闻网站链接
     const id = `n_${btoa(url).replace(/=+$/g, '')}_${i}`
     
-    // 调试：打印生成的URL
-    if (import.meta.env.DEV) {
-      console.log(`生成新闻 ${i}: ${title} -> ${url}`)
-    }
+    logger.debug(`生成新闻 ${i}: ${title} -> ${url}`)
     
     return { id, title, source, url, imageUrl, publishedAt: ts, summary: '' }
   })
@@ -1611,7 +1609,7 @@ export function useRequestCleanup(): void {
     const cleanup = () => {
       const count = getPendingRequestCount()
       if (count > 0) {
-        console.log(`组件卸载，取消 ${count} 个pending请求`)
+        logger.debug(`组件卸载，取消 ${count} 个pending请求`)
         cancelAllRequests()
       }
     }

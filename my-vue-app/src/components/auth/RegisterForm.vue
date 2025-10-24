@@ -295,11 +295,11 @@ const toggleConfirmPassword = () => {
 }
 
 const showTerms = () => {
-  console.log('显示用户协议')
+  // TODO: 实现用户协议对话框
 }
 
 const showPrivacy = () => {
-  console.log('显示隐私政策')
+  // TODO: 实现隐私政策对话框
 }
 
 const switchToLogin = () => {
@@ -349,9 +349,8 @@ const handleSubmit = async (event: Event) => {
         province = region.province
         city = region.city || city  // 如果城市为空，使用默认值
       }
-      console.log('注册地理位置:', { province, city, source: region?.source })
     } catch (geoError) {
-      console.warn('获取地理位置失败，使用默认地区（山东乳山）:', geoError)
+      void geoError // 获取地理位置失败，使用默认地区
     }
     
     // 调用注册API，传递地区信息

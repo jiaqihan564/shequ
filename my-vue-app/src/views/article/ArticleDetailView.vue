@@ -302,7 +302,7 @@ import {
 } from '@/utils/api'
 import type { ArticleDetail, ArticleComment } from '@/types'
 import toast from '@/utils/toast'
-import CommentItem from './CommentItem.vue'
+import CommentItem from '@/components/article/CommentItem.vue'
 import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
 import { renderMarkdown } from '@/utils/markdown'
 

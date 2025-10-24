@@ -300,11 +300,10 @@ const handleLogin = async () => {
         if (gaodeData.status === '1' && gaodeData.province) {
           province = gaodeData.province
           city = gaodeData.city || gaodeData.province
-          console.log('高德IP定位成功:', { province, city })
         }
       }
     } catch (e1) {
-      console.warn('高德定位失败，尝试备用方案', e1)
+      void e1 // 忽略错误，尝试备用方案
       
       // 方案2：使用太平洋IP定位（免费无限制）
       try {
@@ -315,11 +314,10 @@ const handleLogin = async () => {
           if (pconlineData.pro) {
             province = pconlineData.pro
             city = pconlineData.city || pconlineData.pro
-            console.log('太平洋IP定位成功:', { province, city })
           }
         }
       } catch (e2) {
-        console.warn('所有IP定位方案失败，使用浏览器定位', e2)
+        void e2 // 所有IP定位方案失败，使用默认值
         
         // 方案3：浏览器地理位置（需要用户授权）
         // 这里暂时不使用，避免弹窗干扰
@@ -334,12 +332,6 @@ const handleLogin = async () => {
       province,
       city
     }
-    
-    console.log('登录数据:', { 
-      username: loginData.username, 
-      province: loginData.province, 
-      city: loginData.city 
-    })
     
     const response = await login(loginData)
     if (form.rememberMe) {

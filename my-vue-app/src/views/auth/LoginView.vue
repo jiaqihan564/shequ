@@ -8,7 +8,7 @@
 <script setup lang="ts">
 import { useRouter } from 'vue-router'
 
-import LoginForm from '@/features/auth/components/LoginForm.vue'
+import LoginForm from '@/components/auth/LoginForm.vue'
 import { detectCurrentRegion } from '@/utils/geo'
 import { ensureRegionsLoaded } from '@/utils/regions'
 import { toast } from '@/utils/toast'

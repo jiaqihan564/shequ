@@ -159,7 +159,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import {
   getSnippets,
@@ -191,13 +191,6 @@ const executionsTotal = ref(0)
 const shareDialogVisible = ref(false)
 const shareUrl = ref('')
 const shareInput = ref<HTMLInputElement>()
-
-const snippetsTotalPages = computed(() =>
-  Math.ceil(snippetsTotal.value / snippetsPageSize.value)
-)
-const executionsTotalPages = computed(() =>
-  Math.ceil(executionsTotal.value / executionsPageSize.value)
-)
 
 onMounted(() => {
   const tab = route.query.tab as string

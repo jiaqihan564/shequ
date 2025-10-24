@@ -170,7 +170,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { getPublicSnippets, executeCode } from '@/utils/code-api'
 import { toast } from '@/utils/toast'
@@ -212,8 +212,6 @@ const languages = [
   'haskell',
   'perl'
 ]
-
-const totalPages = computed(() => Math.ceil(total.value / pageSize.value))
 
 onMounted(() => {
   loadSnippets()
@@ -258,10 +256,6 @@ function handleSizeChange(newSize: number) {
   pageSize.value = newSize
   page.value = 1
   loadSnippets()
-}
-
-function goToPage(newPage: number) {
-  handlePageChange(newPage)
 }
 
 function viewSnippet(snippet: CodeSnippetWithUser) {
@@ -618,6 +612,7 @@ function closeRunDialog() {
   padding: 0 20px 12px 20px;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   font-weight: 400;

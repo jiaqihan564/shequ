@@ -10,15 +10,20 @@ export function isAdmin(user: User | null): boolean {
 
 /**
  * 检查用户是否有指定权限
+ * @param user 用户对象
+ * @param permission 权限字符串（预留参数，用于未来权限系统扩展）
+ * @returns 当前仅检查是否为管理员
  */
-export function hasPermission(user: User | null, _permission: string): boolean {
+export function hasPermission(user: User | null, permission?: string): boolean {
+  void permission // 预留参数，未来可用于细粒度权限控制
+  
   if (!user) return false
   
   // 管理员拥有所有权限
   if (user.role === 'admin') return true
   
-  // 可以在这里扩展更多权限检查逻辑
-  // 例如：基于 permission 字符串检查特定权限
+  // TODO: 实现基于 permission 字符串的细粒度权限检查
+  // 例如：检查用户是否有特定的操作权限（edit, delete, create等）
   
   return false
 }
