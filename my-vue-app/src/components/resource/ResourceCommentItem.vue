@@ -162,6 +162,12 @@ function formatDate(dateString: string): string {
   const date = new Date(dateString)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
+  
+  // 修复：如果时间差为负数或接近0，显示"刚刚"
+  if (diff <= 0) {
+    return '刚刚'
+  }
+  
   const days = Math.floor(diff / (1000 * 60 * 60 * 24))
 
   if (days === 0) {
