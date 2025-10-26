@@ -161,7 +161,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import * as echarts from 'echarts'
+import echarts from '@/utils/echarts'
 import {
   Refresh, Monitor, Clock, UserFilled, Cpu, Odometer,
   TrendCharts, CircleCheck, Warning

@@ -144,7 +144,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import * as echarts from 'echarts'
+import echarts from '@/utils/echarts'
 import {
   Refresh, TrendCharts, UserFilled, SuccessFilled, Timer, User, Connection
 } from '@element-plus/icons-vue'

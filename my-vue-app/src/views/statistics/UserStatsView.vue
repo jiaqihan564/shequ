@@ -58,7 +58,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import * as echarts from 'echarts'
+import echarts from '@/utils/echarts'
 
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import { getUserStatistics, getStatisticsOverview } from '@/utils/api'

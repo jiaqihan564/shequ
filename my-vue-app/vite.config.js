@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
+import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -21,6 +22,7 @@ export default defineConfig({
         '@vueuse/core',
         '@vueuse/head'
       ],
+      resolvers: [ElementPlusResolver()],
       dts: true,
       eslintrc: {
         enabled: true
@@ -31,7 +33,8 @@ export default defineConfig({
       dts: true,
       dirs: ['src/components'],
       extensions: ['vue'],
-      deep: true
+      deep: true,
+      resolvers: [ElementPlusResolver()]
     })
   ],
   resolve: {

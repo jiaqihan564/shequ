@@ -86,8 +86,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
-import * as echarts from 'echarts'
-import 'echarts-gl'
+import echarts from '@/utils/echarts'
 
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import { getLocationDistribution } from '@/utils/api'
