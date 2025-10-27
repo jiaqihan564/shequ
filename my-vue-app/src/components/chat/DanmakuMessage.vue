@@ -1,24 +1,26 @@
 <template>
   <div 
-    ref="danmakuRef"
-    class="danmaku-item"
-    :class="{ paused: isPaused }"
+    class="danmaku-wrapper"
     :style="{ 
       top: `${track * trackHeight}px`,
-      animationDuration: `${duration}s`,
-      background: bgColor
+      animationDuration: `${duration}s`
     }"
-    @mouseenter="handleDanmakuEnter"
-    @mouseleave="handleDanmakuLeave"
+    @mouseenter="handleEnter"
+    @mouseleave="handleLeave"
   >
-    <span class="message-content">{{ message.content }}</span>
+    <div 
+      ref="danmakuRef"
+      class="danmaku-item"
+      :class="{ paused: isPaused }"
+      :style="{ background: bgColor }"
+    >
+      <span class="message-content">{{ message.content }}</span>
+    </div>
     
     <!-- 用户信息卡片 -->
     <div 
-      v-if="showCard" 
+      v-show="showCard" 
       class="user-info-card"
-      @mouseenter="handleCardEnter"
-      @mouseleave="handleCardLeave"
     >
       <div class="card-header">
         <img :src="avatarUrl" :alt="message.nickname || message.username" class="card-avatar" />
@@ -39,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 
 interface ChatMessage {
   id: number
@@ -70,8 +72,6 @@ const emit = defineEmits<{
 const danmakuRef = ref<HTMLElement>()
 const showCard = ref(false)
 const isPaused = ref(false)
-const isHovering = ref(false)
-let hideTimeout: number | null = null
 
 // 用户头像URL
 const avatarUrl = computed(() => {
@@ -111,56 +111,16 @@ const bgColor = computed(() => {
   return gradients[props.message.user_id % gradients.length]
 })
 
-// 处理弹幕鼠标进入
-const handleDanmakuEnter = () => {
-  // 清除可能存在的隐藏定时器
-  if (hideTimeout) {
-    clearTimeout(hideTimeout)
-    hideTimeout = null
-  }
-  
-  // 设置状态
-  isHovering.value = true
+// 处理鼠标进入（包裹容器）
+const handleEnter = () => {
   showCard.value = true
   isPaused.value = true
 }
 
-// 处理弹幕鼠标离开
-const handleDanmakuLeave = () => {
-  isHovering.value = false
-  
-  // 延迟100ms检查，给鼠标移动到卡片的时间
-  hideTimeout = window.setTimeout(() => {
-    if (!isHovering.value) {
-      showCard.value = false
-      isPaused.value = false
-    }
-  }, 100)
-}
-
-// 处理卡片鼠标进入
-const handleCardEnter = () => {
-  // 清除隐藏定时器
-  if (hideTimeout) {
-    clearTimeout(hideTimeout)
-    hideTimeout = null
-  }
-  
-  // 标记为悬停状态
-  isHovering.value = true
-}
-
-// 处理卡片鼠标离开
-const handleCardLeave = () => {
-  isHovering.value = false
-  
-  // 延迟检查，避免子元素间移动触发
-  hideTimeout = window.setTimeout(() => {
-    if (!isHovering.value) {
-      showCard.value = false
-      isPaused.value = false
-    }
-  }, 100)
+// 处理鼠标离开（包裹容器）
+const handleLeave = () => {
+  showCard.value = false
+  isPaused.value = false
 }
 
 onMounted(() => {
@@ -171,20 +131,22 @@ onMounted(() => {
     })
   }
 })
-
-onUnmounted(() => {
-  // 清理定时器
-  if (hideTimeout) {
-    clearTimeout(hideTimeout)
-    hideTimeout = null
-  }
-})
 </script>
 
 <style scoped>
-.danmaku-item {
+/* 包裹容器 - 负责定位和动画 */
+.danmaku-wrapper {
   position: absolute;
   left: 100%;
+  display: inline-block;
+  animation: danmaku-scroll linear forwards;
+  z-index: 10;
+  pointer-events: auto;
+  will-change: transform;
+}
+
+/* 弹幕元素 - 负责样式和视觉效果 */
+.danmaku-item {
   padding: 10px 20px;
   border-radius: 28px;
   font-size: 16px;
@@ -195,12 +157,8 @@ onUnmounted(() => {
     0 1px 3px rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(12px) saturate(150%);
   white-space: nowrap;
-  animation: danmaku-scroll linear forwards;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  z-index: 10;
-  pointer-events: auto;
-  will-change: transform;
   user-select: none;
   border: 1px solid rgba(255, 255, 255, 0.15);
   box-shadow: 
@@ -219,7 +177,8 @@ onUnmounted(() => {
   }
 }
 
-.danmaku-item.paused {
+/* 暂停状态 - 暂停包裹容器的动画并提升层级 */
+.danmaku-wrapper:has(.danmaku-item.paused) {
   animation-play-state: paused !important;
   z-index: 1000 !important;
 }
@@ -256,9 +215,16 @@ onUnmounted(() => {
     0 0 0 1px rgba(99, 102, 241, 0.15);
   padding: 0;
   z-index: 10001 !important;
-  animation: cardFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   pointer-events: auto;
   overflow: hidden;
+  opacity: 1;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+/* 隐藏状态 - 通过 v-show 控制 */
+.user-info-card[style*="display: none"] {
+  opacity: 0;
+  pointer-events: none;
 }
 
 /* 卡片顶部装饰 */
@@ -274,23 +240,24 @@ onUnmounted(() => {
   animation: shimmer 3s linear infinite;
 }
 
+/* 填补弹幕和卡片之间的间隙，防止鼠标移动时触发 mouseleave */
+.user-info-card::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  height: 16px;
+  pointer-events: auto;
+}
+
 @keyframes shimmer {
   0% {
     background-position: 0% 0%;
   }
   100% {
     background-position: 200% 0%;
-  }
-}
-
-@keyframes cardFadeIn {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(-12px) scale(0.95);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0) scale(1);
   }
 }
 

@@ -67,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 
 import DanmakuMessage from '@/components/chat/DanmakuMessage.vue'
@@ -195,6 +195,12 @@ const sendMessage = async () => {
     toast.error(error?.message || '发送失败')
   } finally {
     sending.value = false
+    // 重新聚焦到输入框，使用 nextTick 和延迟确保焦点正确设置
+    nextTick(() => {
+      setTimeout(() => {
+        messageInputRef.value?.focus()
+      }, 100)
+    })
   }
 }
 
