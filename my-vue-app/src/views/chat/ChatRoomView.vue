@@ -75,6 +75,7 @@
     <footer class="chatroom-footer">
       <div class="input-container">
         <input
+          ref="messageInputRef"
           v-model="messageInput"
           type="text"
           class="message-input"
@@ -140,6 +141,7 @@ interface User {
 const loading = ref(false)
 const sending = ref(false)
 const messageInput = ref('')
+const messageInputRef = ref<HTMLInputElement>()
 const onlineCount = ref(0)
 const messages = ref<ChatMessage[]>([])
 const lastMessageId = ref(0)
@@ -386,6 +388,13 @@ onMounted(() => {
   onlineInterval = window.setInterval(() => {
     updateOnlineCount()
   }, 5000)
+
+  // 自动聚焦到输入框
+  nextTick(() => {
+    setTimeout(() => {
+      messageInputRef.value?.focus()
+    }, 100)
+  })
 })
 
 // 组件卸载时清理定时器

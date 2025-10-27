@@ -105,6 +105,7 @@
     <el-footer class="chat-footer" height="auto">
       <div class="input-container">
         <el-input
+          ref="messageInputRef"
           v-model="messageInput"
           type="textarea"
           :rows="3"
@@ -160,6 +161,7 @@ const loadingMessages = ref(false)
 const sending = ref(false)
 const messages = ref<PrivateMessage[]>([])
 const messageInput = ref('')
+const messageInputRef = ref<any>()
 const otherUser = ref<ConversationUser | null>(null)
 const conversationId = ref<number | null>(null)
 const hasMore = ref(false)
@@ -233,6 +235,13 @@ async function initChat() {
     // 额外的滚动保障，确保组件完全挂载后滚动到底部
     await nextTick()
     setTimeout(() => scrollToBottom(), 300)
+
+    // 自动聚焦到输入框
+    nextTick(() => {
+      setTimeout(() => {
+        messageInputRef.value?.focus()
+      }, 100)
+    })
   } catch (error: any) {
     toast.error(error.message || '加载会话失败')
     router.back()
