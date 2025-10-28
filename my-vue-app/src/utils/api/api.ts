@@ -1053,6 +1053,8 @@ export async function getChatMessages(limit: number = 50, beforeId: number = 0):
 
 /**
  * 获取新聊天消息（轮询）
+ * @deprecated Use WebSocket (useChatWebSocket composable) for real-time messages
+ * Kept for backward compatibility only
  */
 export async function getNewChatMessages(afterId: number): Promise<any> {
   const response = await api.get<ApiResponse<any>>('/chat/messages/new', {
@@ -1079,6 +1081,8 @@ export async function deleteChatMessage(messageId: number): Promise<void> {
 
 /**
  * 获取在线用户数
+ * @deprecated Use WebSocket (useChatWebSocket composable) for real-time online count
+ * Kept for backward compatibility only
  */
 export async function getOnlineCount(): Promise<number> {
   const response = await api.get<ApiResponse<{ count: number }>>('/chat/online-count')
@@ -1092,14 +1096,12 @@ export async function getOnlineCount(): Promise<number> {
 
 /**
  * 用户下线
+ * @deprecated WebSocket automatically handles disconnections
+ * This function is no longer needed and does nothing
  */
 export async function userOffline(): Promise<void> {
-  try {
-    await api.post('/chat/offline')
-  } catch (error) {
-    // 忽略错误，因为这是清理操作
-    console.warn('下线通知失败:', error)
-  }
+  // No-op: WebSocket handles disconnections automatically
+  console.info('userOffline() is deprecated - WebSocket handles disconnections automatically')
 }
 
 // ========================================

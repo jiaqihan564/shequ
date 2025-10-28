@@ -9,9 +9,17 @@
         <h2 class="title">💬 全局聊天室</h2>
         <p class="subtitle">实时弹幕聊天</p>
       </div>
-      <div class="online-info">
-        <span class="online-dot"></span>
-        <span class="online-count">{{ onlineCount }}人在线</span>
+      <div class="header-right">
+        <div class="connection-status" :class="connectionStatus">
+          <span class="status-dot"></span>
+          <span class="status-text">
+            {{ connectionStatus === 'connected' ? '已连接' : connectionStatus === 'connecting' ? '连接中' : '未连接' }}
+          </span>
+        </div>
+        <div class="online-info">
+          <span class="online-dot"></span>
+          <span class="online-count">{{ onlineCount }}人在线</span>
+        </div>
       </div>
     </header>
 
@@ -104,17 +112,12 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
-import { 
-  getChatMessages, 
-  getNewChatMessages, 
-  sendChatMessage, 
-  getOnlineCount,
-  userOffline
-} from '@/utils/api'
+import { useChatWebSocket } from '@/composables/useChatWebSocket'
+import { getChatMessages } from '@/utils/api'
 import { toast } from '@/utils/toast'
 
 const router = useRouter()
@@ -143,11 +146,20 @@ const loading = ref(false)
 const sending = ref(false)
 const messageInput = ref('')
 const messageInputRef = ref<HTMLInputElement>()
-const onlineCount = ref(0)
-const messages = ref<ChatMessage[]>([])
-const lastMessageId = ref(0)
 const messagesContainer = ref<HTMLElement>()
 const currentUser = ref<User | null>(null)
+
+// WebSocket integration
+const { 
+  messages: wsMessages, 
+  onlineCount, 
+  connectionStatus, 
+  sendMessage: wsSendMessage 
+} = useChatWebSocket()
+
+// Use WebSocket messages
+const messages = wsMessages
+const lastMessageId = ref(0)
 
 // 用户信息卡片相关
 const hoveredMessage = ref<ChatMessage | null>(null)
@@ -156,7 +168,7 @@ const isCardHovered = ref(false)
 let hoverTimeout: number | null = null
 
 const canSend = computed(() => {
-  return messageInput.value.trim().length > 0 && !sending.value
+  return messageInput.value.trim().length > 0 && !sending.value && connectionStatus.value === 'connected'
 })
 
 // 判断是否是自己的消息
@@ -278,7 +290,7 @@ const scrollToBottom = () => {
   })
 }
 
-// 发送消息
+// 发送消息 (via WebSocket)
 const sendMessage = async () => {
   if (!canSend.value) return
   
@@ -287,14 +299,14 @@ const sendMessage = async () => {
   
   sending.value = true
   try {
-    await sendChatMessage(content)
+    await wsSendMessage(content)
     messageInput.value = ''
-    toast.success('发送成功')
+    // WebSocket will broadcast the message back
   } catch (error: any) {
-    toast.error(error?.message || '发送失败')
+    toast.error(error?.message || 'Failed to send message')
   } finally {
     sending.value = false
-    // 重新聚焦到输入框，使用 nextTick 和延迟确保焦点正确设置
+    // Refocus on input
     nextTick(() => {
       setTimeout(() => {
         messageInputRef.value?.focus()
@@ -303,17 +315,17 @@ const sendMessage = async () => {
   }
 }
 
-// 加载初始消息
+// 加载初始消息（历史消息，WebSocket 连接后会接收新消息）
 const loadInitialMessages = async () => {
   loading.value = true
   try {
     const result = await getChatMessages(100)
     const msgs = result.messages || []
     
-    // 初始化消息列表
-    messages.value = msgs
+    // 填充到 WebSocket 消息列表
+    messages.value.push(...msgs)
     
-    // 初始化lastMessageId
+    // 更新 lastMessageId
     if (msgs.length > 0) {
       lastMessageId.value = msgs[msgs.length - 1].id
     }
@@ -321,64 +333,23 @@ const loadInitialMessages = async () => {
     // 滚动到底部
     scrollToBottom()
   } catch (error: any) {
-    toast.error(error?.message || '加载消息失败')
+    toast.error(error?.message || 'Failed to load messages')
   } finally {
     loading.value = false
   }
 }
 
-// 轮询新消息
-let pollInterval: number | null = null
-const pollNewMessages = async () => {
-  try {
-    const result = await getNewChatMessages(lastMessageId.value)
-    const newMsgs = result.messages || []
-    
-    if (newMsgs.length > 0) {
-      // 添加新消息到列表
-      messages.value.push(...newMsgs)
-      lastMessageId.value = newMsgs[newMsgs.length - 1].id
-      
-      // 滚动到底部
-      scrollToBottom()
-      
-      // 限制消息列表长度，避免内存占用过大
-      if (messages.value.length > 200) {
-        messages.value = messages.value.slice(-200)
-      }
-    }
-  } catch (error) {
-    // 静默失败，避免频繁提示
-    console.error('轮询新消息失败:', error)
-  }
-}
-
-// 更新在线人数
-const updateOnlineCount = async () => {
-  try {
-    const count = await getOnlineCount()
-    onlineCount.value = count
-  } catch (error) {
-    console.error('获取在线人数失败:', error)
-  }
-}
+// Auto-scroll when new messages arrive
+watch(() => messages.value.length, () => {
+  nextTick(() => {
+    scrollToBottom()
+  })
+})
 
 // 返回
 const goBack = () => {
   router.back()
 }
-
-// 处理页面关闭
-const handleBeforeUnload = () => {
-  // 使用 sendBeacon 确保请求能发出去（即使页面关闭）
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
-  if (token) {
-    navigator.sendBeacon(import.meta.env.VITE_API_BASE_URL + '/chat/offline')
-  }
-}
-
-// 在线人数更新定时器
-let onlineInterval: number | null = null
 
 onMounted(() => {
   // 加载当前用户信息
@@ -388,25 +359,11 @@ onMounted(() => {
       currentUser.value = JSON.parse(userInfo)
     }
   } catch (error) {
-    console.error('获取用户信息失败:', error)
+    console.error('Failed to get user info:', error)
   }
 
-  // 加载初始消息
+  // 加载历史消息
   loadInitialMessages()
-  
-  // 启动轮询（每1秒，更实时）
-  pollInterval = window.setInterval(() => {
-    pollNewMessages()
-  }, 1000)
-  
-  // 更新在线人数（每5秒）
-  updateOnlineCount()
-  onlineInterval = window.setInterval(() => {
-    updateOnlineCount()
-  }, 5000)
-
-  // 监听页面关闭/刷新事件
-  window.addEventListener('beforeunload', handleBeforeUnload)
 
   // 自动聚焦到输入框
   nextTick(() => {
@@ -414,22 +371,6 @@ onMounted(() => {
       messageInputRef.value?.focus()
     }, 100)
   })
-})
-
-// 组件卸载时清理定时器
-onUnmounted(() => {
-  if (pollInterval) {
-    clearInterval(pollInterval)
-    pollInterval = null
-  }
-  if (onlineInterval) {
-    clearInterval(onlineInterval)
-    onlineInterval = null
-  }
-  // 移除事件监听
-  window.removeEventListener('beforeunload', handleBeforeUnload)
-  // 组件卸载时发送下线通知
-  userOffline()
 })
 </script>
 
@@ -554,6 +495,68 @@ onUnmounted(() => {
   margin: 0;
   font-weight: 500;
   letter-spacing: 1px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.connection-status.connected {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.connection-status.connecting {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.connection-status.disconnected {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.connection-status.connected .status-dot {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.connection-status.connecting .status-dot {
+  background: #fbbf24;
+  box-shadow: 0 0 8px #fbbf24;
+}
+
+.connection-status.disconnected .status-dot {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+}
+
+.status-text {
+  font-size: 12px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .online-info {

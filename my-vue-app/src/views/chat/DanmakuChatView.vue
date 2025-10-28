@@ -9,9 +9,17 @@
         <h2 class="title">💬 弹幕聊天室</h2>
         <p class="subtitle">实时弹幕效果</p>
       </div>
-      <div class="online-info">
-        <span class="online-dot"></span>
-        <span class="online-count">{{ onlineCount }}人在线</span>
+      <div class="header-right">
+        <div class="connection-status" :class="connectionStatus">
+          <span class="status-dot"></span>
+          <span class="status-text">
+            {{ connectionStatus === 'connected' ? '已连接' : connectionStatus === 'connecting' ? '连接中' : '未连接' }}
+          </span>
+        </div>
+        <div class="online-info">
+          <span class="online-dot"></span>
+          <span class="online-count">{{ onlineCount }}人在线</span>
+        </div>
       </div>
     </header>
 
@@ -67,18 +75,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import DanmakuMessage from '@/components/chat/DanmakuMessage.vue'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
-import { 
-  getChatMessages, 
-  getNewChatMessages, 
-  sendChatMessage, 
-  getOnlineCount,
-  userOffline
-} from '@/utils/api'
+import { useChatWebSocket } from '@/composables/useChatWebSocket'
+import { getChatMessages } from '@/utils/api'
 import { toast } from '@/utils/toast'
 
 const router = useRouter()
@@ -105,10 +108,17 @@ const loading = ref(false)
 const sending = ref(false)
 const messageInput = ref('')
 const messageInputRef = ref<HTMLInputElement>()
-const onlineCount = ref(0)
 const activeDanmakus = ref<Danmaku[]>([])
 const lastMessageId = ref(0)
 const danmakuContainer = ref<HTMLElement>()
+
+// WebSocket integration
+const { 
+  messages: wsMessages, 
+  onlineCount, 
+  connectionStatus, 
+  sendMessage: wsSendMessage 
+} = useChatWebSocket()
 
 // 配置
 const trackCount = 8 // 弹幕轨道数量
@@ -121,7 +131,7 @@ const tracks = ref<{ occupied: boolean; lastEndTime: number }[]>(
 )
 
 const canSend = computed(() => {
-  return messageInput.value.trim().length > 0 && !sending.value
+  return messageInput.value.trim().length > 0 && !sending.value && connectionStatus.value === 'connected'
 })
 
 // 查找可用轨道
@@ -180,7 +190,7 @@ const onDanmakuFinished = (id: number) => {
   }
 }
 
-// 发送消息
+// 发送消息 (via WebSocket)
 const sendMessage = async () => {
   if (!canSend.value) return
   
@@ -189,14 +199,14 @@ const sendMessage = async () => {
   
   sending.value = true
   try {
-    await sendChatMessage(content)
+    await wsSendMessage(content)
     messageInput.value = ''
-    toast.success('发送成功')
+    // WebSocket will broadcast the message back
   } catch (error: any) {
-    toast.error(error?.message || '发送失败')
+    toast.error(error?.message || 'Failed to send message')
   } finally {
     sending.value = false
-    // 重新聚焦到输入框，使用 nextTick 和延迟确保焦点正确设置
+    // Refocus on input
     nextTick(() => {
       setTimeout(() => {
         messageInputRef.value?.focus()
@@ -224,75 +234,29 @@ const loadInitialMessages = async () => {
       }
     }
   } catch (error: any) {
-    toast.error(error?.message || '加载消息失败')
+    toast.error(error?.message || 'Failed to load messages')
   } finally {
     loading.value = false
   }
 }
 
-// 轮询新消息
-let pollInterval: number | null = null
-const pollNewMessages = async () => {
-  try {
-    const result = await getNewChatMessages(lastMessageId.value)
-    const messages = result.messages || []
-    
-    if (messages.length > 0) {
-      messages.forEach((msg: ChatMessage) => {
-        addDanmaku(msg)
-      })
-      lastMessageId.value = messages[messages.length - 1].id
-    }
-  } catch (error) {
-    // 静默失败，避免频繁提示
-    console.error('轮询新消息失败:', error)
+// Watch for new WebSocket messages and display them as danmaku
+watch(() => wsMessages.value.length, (newLength, oldLength) => {
+  if (newLength > oldLength) {
+    // New message arrived
+    const newMessage = wsMessages.value[newLength - 1]
+    addDanmaku(newMessage)
   }
-}
-
-// 更新在线人数
-const updateOnlineCount = async () => {
-  try {
-    const count = await getOnlineCount()
-    onlineCount.value = count
-  } catch (error) {
-    console.error('获取在线人数失败:', error)
-  }
-}
+})
 
 // 返回
 const goBack = () => {
   router.back()
 }
 
-// 处理页面关闭
-const handleBeforeUnload = () => {
-  // 使用 sendBeacon 确保请求能发出去（即使页面关闭）
-  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
-  if (token) {
-    navigator.sendBeacon(import.meta.env.VITE_API_BASE_URL + '/chat/offline')
-  }
-}
-
-// 在线人数更新定时器
-let onlineInterval: number | null = null
-
 onMounted(() => {
-  // 加载初始消息
+  // 加载历史消息
   loadInitialMessages()
-  
-  // 启动轮询（每1秒，更实时）
-  pollInterval = window.setInterval(() => {
-    pollNewMessages()
-  }, 1000)
-  
-  // 更新在线人数（每5秒）
-  updateOnlineCount()
-  onlineInterval = window.setInterval(() => {
-    updateOnlineCount()
-  }, 5000)
-
-  // 监听页面关闭/刷新事件
-  window.addEventListener('beforeunload', handleBeforeUnload)
 
   // 自动聚焦到输入框
   nextTick(() => {
@@ -300,22 +264,6 @@ onMounted(() => {
       messageInputRef.value?.focus()
     }, 100)
   })
-})
-
-// 组件卸载时清理定时器
-onUnmounted(() => {
-  if (pollInterval) {
-    clearInterval(pollInterval)
-    pollInterval = null
-  }
-  if (onlineInterval) {
-    clearInterval(onlineInterval)
-    onlineInterval = null
-  }
-  // 移除事件监听
-  window.removeEventListener('beforeunload', handleBeforeUnload)
-  // 组件卸载时发送下线通知
-  userOffline()
 })
 </script>
 
@@ -440,6 +388,68 @@ onUnmounted(() => {
   margin: 0;
   font-weight: 500;
   letter-spacing: 1px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.connection-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.connection-status.connected {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+
+.connection-status.connecting {
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.15) 0%, rgba(245, 158, 11, 0.15) 100%);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+}
+
+.connection-status.disconnected {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(220, 38, 38, 0.15) 100%);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.connection-status.connected .status-dot {
+  background: #10b981;
+  box-shadow: 0 0 8px #10b981;
+}
+
+.connection-status.connecting .status-dot {
+  background: #fbbf24;
+  box-shadow: 0 0 8px #fbbf24;
+}
+
+.connection-status.disconnected .status-dot {
+  background: #ef4444;
+  box-shadow: 0 0 8px #ef4444;
+}
+
+.status-text {
+  font-size: 12px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 .online-info {
