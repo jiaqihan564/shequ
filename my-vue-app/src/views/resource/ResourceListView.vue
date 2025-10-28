@@ -143,7 +143,9 @@
     </el-card>
 
     <!-- 资源列表 -->
-    <el-skeleton v-if="loading" :rows="4" animated />
+    <template v-if="loading && resources.length === 0">
+      <SkeletonLoader type="card" :count="6" />
+    </template>
 
     <div v-else-if="resources.length > 0" class="resources-grid">
       <el-card v-for="resource in resources" :key="resource.id" class="resource-card" shadow="hover" @click="goToDetail(resource.id)">
@@ -194,6 +196,12 @@
   </div>
 </template>
 
+<script lang="ts">
+export default {
+  name: 'ResourceListView'
+}
+</script>
+
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
@@ -201,6 +209,7 @@ import { FolderOpened, Upload, Search, Download, View, Star, Document, ChatDotRo
 import { getResources, getResourceCategories } from '@/utils/api'
 import type { ResourceListItem, ResourceCategory } from '@/types/resource'
 import toast from '@/utils/toast'
+import SkeletonLoader from '@/components/shared/SkeletonLoader.vue'
 
 const router = useRouter()
 

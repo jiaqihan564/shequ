@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 import AppLayout from '@/layouts/AppLayout.vue'
+import { isTokenExpired, getStoredToken } from '@/utils/tokenValidator'
 
 const LoginView = () => import('@/views/auth/LoginView.vue')
 const RegisterView = () => import('@/views/auth/RegisterView.vue')
@@ -221,12 +222,29 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const requiresAuth = to.matched.some(r => r.meta?.requiresAuth)
   const requiresAdmin = to.matched.some(r => r.meta?.requiresAdmin)
-  const isAuthenticated = !!(
-    localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
-  )
+  const token = getStoredToken()
+  const isAuthenticated = !!token
 
   // 检查是否需要认证
   if (requiresAuth && !isAuthenticated) {
+    next({ path: '/login', query: { redirect: to.fullPath } })
+    return
+  }
+
+  // 检查 token 是否过期（即使存在）
+  if (requiresAuth && isAuthenticated && isTokenExpired(token)) {
+    // Token 已过期，清除所有认证信息
+    localStorage.removeItem('auth_token')
+    localStorage.removeItem('refresh_token')
+    localStorage.removeItem('user_info')
+    sessionStorage.removeItem('auth_token')
+    sessionStorage.removeItem('refresh_token')
+    sessionStorage.removeItem('user_info')
+    
+    // 保存原路径到 sessionStorage 以便登录后返回
+    sessionStorage.setItem('redirect_after_login', to.fullPath)
+    
+    // 跳转到登录页
     next({ path: '/login', query: { redirect: to.fullPath } })
     return
   }

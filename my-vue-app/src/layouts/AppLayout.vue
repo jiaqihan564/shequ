@@ -90,7 +90,13 @@
         </slot>
       </header>
       <main class="content">
-        <router-view />
+        <router-view v-slot="{ Component, route }">
+          <transition name="fade" mode="out-in">
+            <keep-alive :include="cachedViews" :max="10">
+              <component :is="Component" :key="route.path" />
+            </keep-alive>
+          </transition>
+        </router-view>
       </main>
     </div>
   </div>
@@ -112,6 +118,16 @@ const showAvatar = ref(true)
 const menuOpen = ref(false)
 const anchorEl = ref<HTMLElement | null>(null)
 const unreadCount = ref(0)
+
+// 需要缓存的页面组件
+const cachedViews = ref([
+  'HomeView',
+  'ArticleListView', 
+  'ResourceListView',
+  'ProfileView',
+  'CumulativeStatsView',
+  'ChatRoomView'
+])
 
 // 检查用户是否为管理员
 const isUserAdmin = computed(() => isAdmin(user.value))
@@ -406,5 +422,16 @@ onBeforeUnmount(() => {
 .content > :deep(.container) {
   max-width: 1080px;
   margin: 0 auto;
+}
+
+/* 路由过渡动画 */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.15s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

@@ -53,6 +53,12 @@
   </div>
 </template>
 
+<script lang="ts">
+export default {
+  name: 'HomeView'
+}
+</script>
+
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'

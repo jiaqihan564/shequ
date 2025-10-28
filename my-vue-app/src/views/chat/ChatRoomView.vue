@@ -111,6 +111,12 @@
   </div>
 </template>
 
+<script lang="ts">
+export default {
+  name: 'ChatRoomView'
+}
+</script>
+
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'

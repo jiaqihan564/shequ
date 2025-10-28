@@ -222,6 +222,12 @@
   </div>
 </template>
 
+<script lang="ts">
+export default {
+  name: 'ProfileView'
+}
+</script>
+
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted, watch } from 'vue'
 

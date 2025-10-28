@@ -90,6 +90,9 @@ api.interceptors.request.use(
   }
 )
 
+// 防止重复跳转登录页的标记
+let isRedirectingToLogin = false
+
 // 响应拦截器
 api.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
@@ -148,12 +151,10 @@ api.interceptors.response.use(
       }
     }
 
-    // 处理认证错误
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true
-
-      // 如果是登录请求，直接返回错误，不尝试刷新token
-      if (originalRequest.url?.includes('/auth/login')) {
+    // 处理认证错误（401）
+    if (error.response?.status === 401) {
+      // 如果是登录请求，直接返回错误
+      if (originalRequest?.url?.includes('/auth/login')) {
         const appError = createAppError(
           error.response?.data?.code?.toString() || 'LOGIN_FAILED',
           error.response?.data?.message || '用户名或密码错误',
@@ -162,17 +163,26 @@ api.interceptors.response.use(
         return Promise.reject(appError)
       }
 
-      try {
-        const newToken = await refreshToken()
-        originalRequest.headers.Authorization = `Bearer ${newToken}`
-        return api(originalRequest)
-      } catch (refreshError) {
-        void refreshError
-        // 刷新失败，清除token并跳转到登录页
+      // 其他401错误：token过期或无效
+      if (!isRedirectingToLogin) {
+        isRedirectingToLogin = true
+        
+        // 动态导入 ElMessage（通过 unplugin-auto-import 自动注入）
+        if (typeof ElMessage !== 'undefined') {
+          ElMessage.warning('登录已过期，请重新登录', { duration: 2000 })
+        }
+        
+        // 清除所有认证信息
         clearAuthTokens()
-        window.location.href = '/login'
-        return Promise.reject(createAppError('AUTH_EXPIRED', '认证已过期，请重新登录'))
+        
+        // 延迟2秒后跳转到登录页
+        setTimeout(() => {
+          isRedirectingToLogin = false
+          window.location.href = '/login'
+        }, 2000)
       }
+      
+      return Promise.reject(createAppError('AUTH_EXPIRED', '认证已过期，请重新登录'))
     }
 
     // 处理其他错误

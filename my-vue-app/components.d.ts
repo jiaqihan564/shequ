@@ -60,10 +60,13 @@ declare module 'vue' {
     MonacoEditor: typeof import('./src/components/code/MonacoEditor.vue')['default']
     NewsCarousel: typeof import('./src/components/news/NewsCarousel.vue')['default']
     OutputPanel: typeof import('./src/components/code/OutputPanel.vue')['default']
+    PerformanceMonitor: typeof import('./src/components/shared/PerformanceMonitor.vue')['default']
     RegisterForm: typeof import('./src/components/auth/RegisterForm.vue')['default']
     ResourceCommentItem: typeof import('./src/components/resource/ResourceCommentItem.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
+    SkeletonLoader: typeof import('./src/components/shared/SkeletonLoader.vue')['default']
+    StatsSkeleton: typeof import('./src/components/shared/StatsSkeleton.vue')['default']
     UserIcon: typeof import('./src/components/icons/UserIcon.vue')['default']
     WarningIcon: typeof import('./src/components/icons/WarningIcon.vue')['default']
   }

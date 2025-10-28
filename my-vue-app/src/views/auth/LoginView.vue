@@ -21,7 +21,18 @@ async function onSuccess() {
   // 后台并发，不阻塞跳转；定位采用 IP 兜底优先（更快），并强制简体
   ensureRegionsLoaded().catch(() => {})
   detectCurrentRegion(true, { timeoutMs: 3500, method: 'auto', provider: 'auto' }).catch(() => {})
-  const redirect = (router.currentRoute.value.query.redirect as string) || '/home'
+  
+  // 优先从 sessionStorage 获取保存的重定向路径
+  const savedRedirect = sessionStorage.getItem('redirect_after_login')
+  if (savedRedirect) {
+    sessionStorage.removeItem('redirect_after_login')
+    router.push(savedRedirect)
+    return
+  }
+  
+  // 其次从 query 参数获取
+  const queryRedirect = router.currentRoute.value.query.redirect as string
+  const redirect = queryRedirect || '/home'
   router.push(redirect)
 }
 

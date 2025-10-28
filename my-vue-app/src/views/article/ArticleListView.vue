@@ -136,9 +136,9 @@
     </el-card>
 
     <!-- 加载中 -->
-    <div v-if="loading" v-loading="loading" class="loading-container" element-loading-text="加载中...">
-      <div style="height: 400px"></div>
-    </div>
+    <template v-if="loading && articles.length === 0">
+      <SkeletonLoader type="card" :count="6" />
+    </template>
 
     <!-- 文章列表 -->
     <div v-else-if="articles.length > 0" class="articles-grid">
@@ -220,6 +220,12 @@
   </div>
 </template>
 
+<script lang="ts">
+export default {
+  name: 'ArticleListView'
+}
+</script>
+
 <script setup lang="ts">
 import { ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
@@ -228,6 +234,7 @@ import { getArticles, getArticleCategories, getArticleTags } from '@/utils/api'
 import type { ArticleListItem, ArticleCategory, ArticleTag, ArticleListQuery } from '@/types/article'
 import toast from '@/utils/toast'
 import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
+import SkeletonLoader from '@/components/shared/SkeletonLoader.vue'
 
 const router = useRouter()
 const loading = ref(false)
