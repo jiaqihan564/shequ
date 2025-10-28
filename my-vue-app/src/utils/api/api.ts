@@ -1090,6 +1090,18 @@ export async function getOnlineCount(): Promise<number> {
   throw createAppError('GET_ONLINE_COUNT_FAILED', response.data.message || '获取在线用户数失败')
 }
 
+/**
+ * 用户下线
+ */
+export async function userOffline(): Promise<void> {
+  try {
+    await api.post('/chat/offline')
+  } catch (error) {
+    // 忽略错误，因为这是清理操作
+    console.warn('下线通知失败:', error)
+  }
+}
+
 // ========================================
 // 文章相关API
 // ========================================

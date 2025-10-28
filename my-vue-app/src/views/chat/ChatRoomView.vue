@@ -112,7 +112,8 @@ import {
   getChatMessages, 
   getNewChatMessages, 
   sendChatMessage, 
-  getOnlineCount 
+  getOnlineCount,
+  userOffline
 } from '@/utils/api'
 import { toast } from '@/utils/toast'
 
@@ -367,6 +368,15 @@ const goBack = () => {
   router.back()
 }
 
+// 处理页面关闭
+const handleBeforeUnload = () => {
+  // 使用 sendBeacon 确保请求能发出去（即使页面关闭）
+  const token = localStorage.getItem('token') || sessionStorage.getItem('token')
+  if (token) {
+    navigator.sendBeacon(import.meta.env.VITE_API_BASE_URL + '/chat/offline')
+  }
+}
+
 // 在线人数更新定时器
 let onlineInterval: number | null = null
 
@@ -395,6 +405,9 @@ onMounted(() => {
     updateOnlineCount()
   }, 5000)
 
+  // 监听页面关闭/刷新事件
+  window.addEventListener('beforeunload', handleBeforeUnload)
+
   // 自动聚焦到输入框
   nextTick(() => {
     setTimeout(() => {
@@ -413,6 +426,10 @@ onUnmounted(() => {
     clearInterval(onlineInterval)
     onlineInterval = null
   }
+  // 移除事件监听
+  window.removeEventListener('beforeunload', handleBeforeUnload)
+  // 组件卸载时发送下线通知
+  userOffline()
 })
 </script>
 
