@@ -1,6 +1,7 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
+import { networkInterfaces } from 'os'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
@@ -35,7 +36,55 @@ export default defineConfig({
       extensions: ['vue'],
       deep: true,
       resolvers: [ElementPlusResolver()]
-    })
+    }),
+    // 自定义插件：过滤显示的网络地址
+    {
+      name: 'filter-network-urls',
+      configureServer(server) {
+        // 保存原始的 printUrls 方法
+        const originalPrintUrls = server.printUrls
+        
+        // 重写 printUrls 方法
+        server.printUrls = () => {
+          const { info } = server.config.logger
+          const protocol = server.config.server.https ? 'https' : 'http'
+          const port = server.config.server.port || 3000
+          const base = server.config.base === './' ? '/' : server.config.base
+          
+          // 获取网络接口并过滤
+          const interfaces = networkInterfaces()
+          const validIps = []
+          
+          for (const name of Object.keys(interfaces)) {
+            for (const iface of interfaces[name]) {
+              // 只处理 IPv4 地址
+              if (iface.family === 'IPv4' && !iface.internal) {
+                const ip = iface.address
+                // 过滤掉链路本地地址（169.254.x.x）
+                if (!ip.startsWith('169.254.')) {
+                  validIps.push(ip)
+                }
+              }
+            }
+          }
+          
+          // 打印 Local 地址
+          info(`  ➜ Local:   ${protocol}://localhost:${port}${base}`)
+          
+          // 打印第一个有效的网络地址
+          if (validIps.length > 0) {
+            // 优先选择私有网段地址
+            const privateIp = validIps.find(ip => 
+              ip.startsWith('10.') || 
+              ip.startsWith('192.168.') || 
+              /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(ip)
+            ) || validIps[0]
+            
+            info(`  ➜ Network: ${protocol}://${privateIp}:${port}${base}`)
+          }
+        }
+      }
+    }
   ],
   resolve: {
     alias: {
@@ -153,6 +202,11 @@ export default defineConfig({
           // Highlight.js 代码高亮
           if (id.includes('node_modules/highlight.js/')) {
             return 'highlight'
+          }
+          
+          // Monaco Editor 编辑器（超大文件，单独拆分且优先级最低）
+          if (id.includes('node_modules/monaco-editor/')) {
+            return 'monaco-editor'
           }
           
           // 其他 node_modules 统一打包

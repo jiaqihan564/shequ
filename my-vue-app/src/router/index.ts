@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
 import AppLayout from '@/layouts/AppLayout.vue'
 import { isTokenExpired, getStoredToken } from '@/utils/tokenValidator'
+import { preloadMonacoEditor, smartPreload, clearMonacoCache } from '@/utils/monaco-preloader'
 
 const LoginView = () => import('@/views/auth/LoginView.vue')
 const RegisterView = () => import('@/views/auth/RegisterView.vue')
@@ -282,8 +283,37 @@ router.beforeEach((to, _from, next) => {
 })
 
 router.afterEach(to => {
+  // 设置页面标题
   if (to.meta?.title) {
     document.title = `社区 · ${to.meta.title as string}`
+  }
+
+  // 智能预加载 Monaco Editor
+  const token = getStoredToken()
+  if (token && !isTokenExpired(token)) {
+    const userInfo = localStorage.getItem('user_info') || sessionStorage.getItem('user_info')
+    if (userInfo) {
+      try {
+        const user = JSON.parse(userInfo)
+        const hasUsedCodeEditor = localStorage.getItem('code_editor_used') === 'true'
+        
+        // 判断是否需要预加载
+        if (to.path.startsWith('/code-')) {
+          // 访问代码相关路由，高优先级预加载
+          preloadMonacoEditor('high')
+        } else if (to.name === 'home' && (user.role === 'admin' || hasUsedCodeEditor)) {
+          // 登录后进入首页，智能预加载
+          smartPreload(user.role, hasUsedCodeEditor)
+        }
+      } catch (error) {
+        console.error('[Router] 解析用户信息失败:', error)
+      }
+    }
+  }
+
+  // 用户登出时清除缓存
+  if (to.path === '/login' && !token) {
+    clearMonacoCache()
   }
 })
 

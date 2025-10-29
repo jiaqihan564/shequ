@@ -101,3 +101,32 @@ if (import.meta.env.DEV) {
 }
 
 app.mount('#app')
+
+// 注册 Service Worker（仅生产环境）
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/service-worker.js')
+      .then((registration) => {
+        console.log('[Service Worker] 注册成功:', registration.scope)
+        
+        // 监听更新
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing
+          console.log('[Service Worker] 发现新版本')
+          
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                console.log('[Service Worker] 新版本已安装，刷新页面生效')
+                // 可以在这里提示用户刷新页面
+              }
+            })
+          }
+        })
+      })
+      .catch((error) => {
+        console.error('[Service Worker] 注册失败:', error)
+      })
+  })
+}
