@@ -171,7 +171,9 @@ function stopUnreadPolling() {
 onMounted(() => {
   try {
     const raw = localStorage.getItem('user_info') || sessionStorage.getItem('user_info')
-    if (raw) user.value = JSON.parse(raw)
+    if (raw) {
+      user.value = JSON.parse(raw)
+    }
     
     // 启动未读消息轮询
     startUnreadPolling()
@@ -183,18 +185,12 @@ onMounted(() => {
   window.addEventListener('refresh-unread-count', loadUnreadCount)
   
   // 监听用户更新事件（登录、更新资料、更新头像后触发）
-  const handler = (e: Event) => {
-    const detail = (e as CustomEvent).detail as User
-    if (detail) {
-      user.value = detail
-      showAvatar.value = true
-    }
-  }
-  window.addEventListener('user:updated', handler as EventListener)
-  onBeforeUnmount(() => window.removeEventListener('user:updated', handler as EventListener))
+  window.addEventListener('user:updated', userUpdateHandler as EventListener)
 })
 
 async function onLogout() {
+  // 触发登出事件，让 main.js 处理 WebSocket 断开
+  window.dispatchEvent(new Event('user:logout'))
   await logout()
   router.push('/login')
 }
@@ -227,10 +223,20 @@ function handleClickOutside(event: MouseEvent) {
   }
 }
 
+// 用户更新事件处理器（需要在 onMounted 外部定义以便正确清理）
+const userUpdateHandler = (e: Event) => {
+  const detail = (e as CustomEvent).detail as User
+  if (detail) {
+    user.value = detail
+    showAvatar.value = true
+  }
+}
+
 document.addEventListener('click', handleClickOutside)
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
   window.removeEventListener('refresh-unread-count', loadUnreadCount)
+  window.removeEventListener('user:updated', userUpdateHandler as EventListener)
   stopUnreadPolling()
 })
 </script>

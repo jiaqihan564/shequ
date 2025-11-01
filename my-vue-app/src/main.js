@@ -8,6 +8,8 @@ import router from './router'
 import './style.css'
 import './styles/lazy-load.css'
 import { lazyLoad } from './directives/lazyLoad'
+import { globalChatService } from './services/globalChatService'
+import { getStoredToken } from './utils/tokenValidator'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -101,6 +103,31 @@ if (import.meta.env.DEV) {
 }
 
 app.mount('#app')
+
+// 全局 WebSocket 连接管理
+// 在路由切换后检查认证状态并管理 WebSocket 连接
+router.afterEach(() => {
+  const token = getStoredToken()
+  const isAuthenticated = !!token
+  
+  // 如果用户已认证且 WebSocket 未连接，则连接
+  if (isAuthenticated && globalChatService.connectionStatus.value === 'disconnected') {
+    console.log('[Main] User authenticated, connecting WebSocket')
+    globalChatService.connect()
+  }
+  
+  // 如果用户未认证且 WebSocket 已连接，则断开
+  if (!isAuthenticated && globalChatService.connectionStatus.value !== 'disconnected') {
+    console.log('[Main] User not authenticated, disconnecting WebSocket')
+    globalChatService.disconnect()
+  }
+})
+
+// 监听登出事件
+window.addEventListener('user:logout', () => {
+  console.log('[Main] User logout event, disconnecting WebSocket')
+  globalChatService.disconnect()
+})
 
 // 注册 Service Worker（仅生产环境）
 if (import.meta.env.PROD && 'serviceWorker' in navigator) {

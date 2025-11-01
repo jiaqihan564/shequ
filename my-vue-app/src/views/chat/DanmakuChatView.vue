@@ -50,13 +50,13 @@
           v-model="messageInput"
           type="text"
           class="message-input"
-          placeholder="输入消息内容（最多100字）..."
-          maxlength="100"
+          placeholder="输入消息内容（最多500字）..."
+          maxlength="500"
           @keyup.enter="sendMessage"
           :disabled="sending"
         />
         <div class="input-info">
-          <span class="char-count">{{ messageInput.length }}/100</span>
+          <span class="char-count">{{ messageInput.length }}/500</span>
         </div>
       </div>
       <button 
@@ -80,7 +80,7 @@ import { useRouter } from 'vue-router'
 
 import DanmakuMessage from '@/components/chat/DanmakuMessage.vue'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
-import { useChatWebSocket } from '@/composables/useChatWebSocket'
+import { globalChatService } from '@/services/globalChatService'
 import { getChatMessages } from '@/utils/api'
 import { toast } from '@/utils/toast'
 
@@ -112,13 +112,10 @@ const activeDanmakus = ref<Danmaku[]>([])
 const lastMessageId = ref(0)
 const danmakuContainer = ref<HTMLElement>()
 
-// WebSocket integration
-const { 
-  messages: wsMessages, 
-  onlineCount, 
-  connectionStatus, 
-  sendMessage: wsSendMessage 
-} = useChatWebSocket()
+// WebSocket integration - use global service
+const wsMessages = globalChatService.messages
+const onlineCount = globalChatService.onlineCount
+const connectionStatus = globalChatService.connectionStatus
 
 // 配置
 const trackCount = 8 // 弹幕轨道数量
@@ -199,7 +196,7 @@ const sendMessage = async () => {
   
   sending.value = true
   try {
-    await wsSendMessage(content)
+    await globalChatService.sendMessage(content)
     messageInput.value = ''
     // WebSocket will broadcast the message back
   } catch (error: any) {
@@ -217,10 +214,31 @@ const sendMessage = async () => {
 
 // 加载初始消息
 const loadInitialMessages = async () => {
+  // 如果全局服务已经加载过历史消息，使用现有消息创建弹幕
+  if (globalChatService.isHistoryLoaded() && wsMessages.value.length > 0) {
+    console.log('[DanmakuChat] Using existing messages from global service')
+    // 从现有消息中创建弹幕（最多显示最近30条）
+    const recentMessages = wsMessages.value.slice(-30)
+    for (let i = 0; i < recentMessages.length; i++) {
+      setTimeout(() => {
+        addDanmaku(recentMessages[i])
+      }, i * 100)
+    }
+    if (recentMessages.length > 0) {
+      lastMessageId.value = recentMessages[recentMessages.length - 1].id
+    }
+    return
+  }
+
   loading.value = true
   try {
     const result = await getChatMessages(30)
     const messages = result.messages || []
+    
+    // 标记历史消息已加载
+    if (messages.length > 0) {
+      globalChatService.markHistoryLoaded()
+    }
     
     // 初始化lastMessageId
     if (messages.length > 0) {

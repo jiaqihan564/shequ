@@ -87,13 +87,13 @@
           v-model="messageInput"
           type="text"
           class="message-input"
-          placeholder="输入消息内容（最多100字）..."
-          maxlength="100"
+          placeholder="输入消息内容（最多500字）..."
+          maxlength="500"
           @keyup.enter="sendMessage"
           :disabled="sending"
         />
         <div class="input-info">
-          <span class="char-count">{{ messageInput.length }}/100</span>
+          <span class="char-count">{{ messageInput.length }}/500</span>
         </div>
       </div>
       <button 
@@ -122,7 +122,7 @@ import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
-import { useChatWebSocket } from '@/composables/useChatWebSocket'
+import { globalChatService } from '@/services/globalChatService'
 import { getChatMessages } from '@/utils/api'
 import { toast } from '@/utils/toast'
 
@@ -155,16 +155,11 @@ const messageInputRef = ref<HTMLInputElement>()
 const messagesContainer = ref<HTMLElement>()
 const currentUser = ref<User | null>(null)
 
-// WebSocket integration
-const { 
-  messages: wsMessages, 
-  onlineCount, 
-  connectionStatus, 
-  sendMessage: wsSendMessage 
-} = useChatWebSocket()
+// WebSocket integration - use global service
+const messages = globalChatService.messages
+const onlineCount = globalChatService.onlineCount
+const connectionStatus = globalChatService.connectionStatus
 
-// Use WebSocket messages
-const messages = wsMessages
 const lastMessageId = ref(0)
 
 // 用户信息卡片相关
@@ -305,7 +300,7 @@ const sendMessage = async () => {
   
   sending.value = true
   try {
-    await wsSendMessage(content)
+    await globalChatService.sendMessage(content)
     messageInput.value = ''
     // WebSocket will broadcast the message back
   } catch (error: any) {
@@ -323,6 +318,13 @@ const sendMessage = async () => {
 
 // 加载初始消息（历史消息，WebSocket 连接后会接收新消息）
 const loadInitialMessages = async () => {
+  // 如果全局服务已经加载过历史消息，不重复加载
+  if (globalChatService.isHistoryLoaded()) {
+    console.log('[ChatRoom] Using existing messages from global service')
+    scrollToBottom()
+    return
+  }
+
   loading.value = true
   try {
     const result = await getChatMessages(100)
@@ -330,6 +332,9 @@ const loadInitialMessages = async () => {
     
     // 填充到 WebSocket 消息列表
     messages.value.push(...msgs)
+    
+    // 标记历史消息已加载
+    globalChatService.markHistoryLoaded()
     
     // 更新 lastMessageId
     if (msgs.length > 0) {
