@@ -105,16 +105,10 @@ if (import.meta.env.DEV) {
 app.mount('#app')
 
 // 全局 WebSocket 连接管理
-// 在路由切换后检查认证状态并管理 WebSocket 连接
+// 简化版：只处理用户未认证时的断开连接，连接由 AppLayout 负责
 router.afterEach(() => {
   const token = getStoredToken()
   const isAuthenticated = !!token
-  
-  // 如果用户已认证且 WebSocket 未连接，则连接
-  if (isAuthenticated && globalChatService.connectionStatus.value === 'disconnected') {
-    console.log('[Main] User authenticated, connecting WebSocket')
-    globalChatService.connect()
-  }
   
   // 如果用户未认证且 WebSocket 已连接，则断开
   if (!isAuthenticated && globalChatService.connectionStatus.value !== 'disconnected') {

@@ -1,5 +1,6 @@
 import { ref, type Ref } from 'vue'
 import { toast } from '@/utils/toast'
+import { getStoredToken, isTokenExpired } from '@/utils/tokenValidator'
 
 interface ChatMessage {
   id: number
@@ -39,6 +40,7 @@ class GlobalChatService {
   private reconnectTimeout: number | null = null
   private heartbeatInterval: number | null = null
   private isManualClose = false
+  private isConnecting = false // Lock to prevent concurrent connections
   private hasLoadedHistory = false // Track if history messages have been loaded
 
   // Subscription callbacks
@@ -58,7 +60,7 @@ class GlobalChatService {
   }
 
   private getWebSocketUrl(): string {
-    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+    const token = getStoredToken()
     if (!token) {
       console.error('[GlobalChat] No authentication token found')
       return ''
@@ -67,24 +69,48 @@ class GlobalChatService {
     // Determine WebSocket protocol
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
     
-    // Get base URL from environment or use current host
-    let host = 'localhost:3001'  // Default to backend port 3001
-    if (import.meta.env.VITE_API_BASE_URL) {
-      // Remove protocol from base URL
-      host = import.meta.env.VITE_API_BASE_URL
-        .replace(/^https?:\/\//, '')
-        .replace(/\/$/, '') // Remove trailing slash
-    } else if (window.location.host) {
-      // Use current host if no base URL is configured
-      host = window.location.host
+    // In development with Vite proxy, use relative path to leverage proxy
+    // This avoids CORS issues and automatically handles WebSocket upgrade
+    const isDevelopment = import.meta.env.DEV
+    
+    let wsUrl: string
+    if (isDevelopment) {
+      // Use relative path - Vite proxy will forward to backend
+      // Example: ws://localhost:3000/api/chat/ws -> http://localhost:3001/api/chat/ws
+      wsUrl = `${protocol}//${window.location.host}/api/chat/ws?token=${encodeURIComponent(token)}`
+      console.log('[GlobalChat] Using Vite proxy for WebSocket')
+    } else {
+      // Production: construct full URL from environment variable
+      let host = window.location.host // Default to current host
+      if (import.meta.env.VITE_API_BASE_URL) {
+        // Remove protocol and /api suffix from base URL
+        host = import.meta.env.VITE_API_BASE_URL
+          .replace(/^https?:\/\//, '')
+          .replace(/\/api$/, '')
+      }
+      wsUrl = `${protocol}//${host}/api/chat/ws?token=${encodeURIComponent(token)}`
     }
 
-    const wsUrl = `${protocol}//${host}/api/chat/ws?token=${encodeURIComponent(token)}`
     console.log('[GlobalChat] WebSocket URL:', wsUrl.replace(token, 'TOKEN_HIDDEN'))
     return wsUrl
   }
 
   public connect(): void {
+    // Prevent concurrent connection attempts
+    if (this.isConnecting) {
+      console.log('[GlobalChat] Connection already in progress, skipping')
+      return
+    }
+
+    // Check token validity before attempting connection
+    const token = getStoredToken()
+    if (!token || isTokenExpired(token)) {
+      console.error('[GlobalChat] Invalid or expired token, cannot connect')
+      this.connectionStatus.value = 'disconnected'
+      this.isConnecting = false
+      return
+    }
+
     // Reset manual close flag to allow auto-reconnection
     this.isManualClose = false
     
@@ -115,9 +141,13 @@ class GlobalChatService {
     if (!wsUrl) {
       console.error('[GlobalChat] Failed to construct WebSocket URL')
       this.connectionStatus.value = 'disconnected'
+      this.isConnecting = false
       toast.error('Authentication required. Please login.')
       return
     }
+
+    // Set connecting lock
+    this.isConnecting = true
 
     this.connectionStatus.value = 'connecting'
     console.log('[GlobalChat] Connecting to WebSocket...')
@@ -128,6 +158,7 @@ class GlobalChatService {
       this.ws.onopen = () => {
         this.connectionStatus.value = 'connected'
         this.reconnectAttempts = 0
+        this.isConnecting = false // Release connection lock
         console.log('[GlobalChat] ✅ WebSocket connected successfully')
 
         // Start heartbeat
@@ -196,6 +227,7 @@ class GlobalChatService {
         console.error('[GlobalChat] ❌ WebSocket error:', error)
         console.error('[GlobalChat] WebSocket readyState:', this.ws?.readyState)
         this.connectionStatus.value = 'disconnected'
+        this.isConnecting = false // Release connection lock on error
       }
 
       this.ws.onclose = (event) => {
@@ -205,6 +237,7 @@ class GlobalChatService {
           wasClean: event.wasClean
         })
         this.connectionStatus.value = 'disconnected'
+        this.isConnecting = false // Release connection lock
         this.stopHeartbeat()
 
         // Check if connection closed due to authentication failure
@@ -215,6 +248,14 @@ class GlobalChatService {
           console.error('[GlobalChat] ❌ Authentication failed - token may be expired')
           toast.error('登录已过期，请重新登录')
           // Clear reconnection attempts to prevent auto-reconnect with invalid token
+          this.reconnectAttempts = MAX_RECONNECT_ATTEMPTS
+          return
+        }
+
+        // Check token validity before attempting reconnection
+        const token = getStoredToken()
+        if (!token || isTokenExpired(token)) {
+          console.error('[GlobalChat] ❌ Token expired or missing, stopping reconnection')
           this.reconnectAttempts = MAX_RECONNECT_ATTEMPTS
           return
         }
@@ -236,6 +277,7 @@ class GlobalChatService {
     } catch (error) {
       console.error('[GlobalChat] ❌ Failed to create WebSocket:', error)
       this.connectionStatus.value = 'disconnected'
+      this.isConnecting = false // Release connection lock on exception
       toast.error('Failed to connect to chat server')
     }
   }
@@ -243,6 +285,7 @@ class GlobalChatService {
   public disconnect(): void {
     console.log('[GlobalChat] Disconnecting...')
     this.isManualClose = true
+    this.isConnecting = false // Release connection lock
     this.stopHeartbeat()
 
     if (this.reconnectTimeout) {

@@ -109,6 +109,7 @@ export default defineConfig({
         target: 'http://127.0.0.1:3001',
         changeOrigin: true,
         secure: false,
+        ws: true, // 启用 WebSocket 代理支持
         rewrite: (path) => path
       },
       // 开发环境：将 /news 代理到本地 8787（Cloudflare Workers 开发端口）

@@ -44,6 +44,7 @@ const routes: RouteRecordRaw[] = [
     component: ResetPasswordView,
     meta: { title: '重置密码' }
   },
+  // 聊天室全屏路由（不使用 AppLayout）
   {
     path: '/chatroom',
     name: 'chatroom',

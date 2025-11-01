@@ -110,6 +110,7 @@ import UserMenu from '@/shared/ui/UserMenu.vue'
 import type { User } from '@/types'
 import { logout, getUnreadMessageCount } from '@/utils/api'
 import { isAdmin } from '@/utils/auth'
+import { globalChatService } from '@/services/globalChatService'
 
 const router = useRouter()
 const route = useRoute()
@@ -126,7 +127,8 @@ const cachedViews = ref([
   'ResourceListView',
   'ProfileView',
   'CumulativeStatsView',
-  'ChatRoomView'
+  'ChatRoomView',
+  'DanmakuChatView'
 ])
 
 // 检查用户是否为管理员
@@ -179,6 +181,12 @@ onMounted(() => {
     startUnreadPolling()
   } catch (e) {
     if (import.meta.env.DEV) console.warn('读取用户信息失败', e)
+  }
+  
+  // 初始化全局聊天服务
+  console.log('[AppLayout] Initializing global chat service')
+  if (globalChatService.connectionStatus.value === 'disconnected') {
+    globalChatService.connect()
   }
   
   // 监听手动刷新未读数事件

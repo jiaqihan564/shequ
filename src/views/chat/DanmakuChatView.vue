@@ -75,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import DanmakuMessage from '@/components/chat/DanmakuMessage.vue'
@@ -282,6 +282,21 @@ onMounted(() => {
       messageInputRef.value?.focus()
     }, 100)
   })
+})
+
+onBeforeUnmount(() => {
+  // 清理活动弹幕，释放轨道
+  activeDanmakus.value = []
+  tracks.value.forEach(track => {
+    track.occupied = false
+    track.lastEndTime = 0
+  })
+  
+  // Note: 不需要清理 globalChatService 的订阅，因为组件直接使用响应式引用
+  // 如果将来使用订阅方法，请在此处清理：
+  // if (unsubscribe) {
+  //   unsubscribe()
+  // }
 })
 </script>
 
