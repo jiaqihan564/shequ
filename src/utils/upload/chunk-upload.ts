@@ -5,8 +5,9 @@
 import SparkMD5 from 'spark-md5'
 import { initChunkUpload, uploadChunk as apiUploadChunk, mergeChunks } from '../api/api'
 import { logger } from '../ui/logger'
+import { uploadConfig } from '@/config'
 
-const CHUNK_SIZE = 2 * 1024 * 1024 // 2MB每片
+const CHUNK_SIZE = uploadConfig.chunkSize
 
 /**
  * 计算文件MD5
@@ -14,7 +15,7 @@ const CHUNK_SIZE = 2 * 1024 * 1024 // 2MB每片
 export async function calculateFileMD5(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const blobSlice = File.prototype.slice
-    const chunkSize = 2 * 1024 * 1024
+    const chunkSize = uploadConfig.chunkSize
     const chunks = Math.ceil(file.size / chunkSize)
     let currentChunk = 0
     const spark = new SparkMD5.ArrayBuffer()

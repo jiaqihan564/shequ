@@ -8,6 +8,7 @@
  */
 
 import type { DirectiveBinding } from 'vue'
+import { lazyLoadConfig } from '@/config'
 
 // 占位符图片（Base64 编码的1x1透明GIF）
 const DEFAULT_PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
@@ -24,7 +25,7 @@ const loadedImages = new Set<string>()
 // 加载队列（限制并发加载数）
 const loadQueue: Array<() => void> = []
 let activeLoads = 0
-const MAX_CONCURRENT_LOADS = 4
+const MAX_CONCURRENT_LOADS = lazyLoadConfig.maxConcurrent
 
 /**
  * 获取或创建 IntersectionObserver
@@ -51,8 +52,8 @@ function getObserver(): IntersectionObserver {
       })
     },
     {
-      rootMargin: '50px', // 提前50px开始加载
-      threshold: 0.01
+      rootMargin: `${lazyLoadConfig.rootMargin}px`, // 提前指定px开始加载
+      threshold: lazyLoadConfig.intersectionThreshold
     }
   )
 

@@ -1,6 +1,7 @@
 import { ref, type Ref } from 'vue'
 import { toast } from '@/utils/toast'
 import { getStoredToken, isTokenExpired } from '@/utils/tokenValidator'
+import { websocketConfig } from '@/config'
 
 interface ChatMessage {
   id: number
@@ -21,10 +22,6 @@ interface WSMessage {
 type MessageCallback = (message: ChatMessage) => void
 type OnlineCountCallback = (count: number) => void
 type SystemMessageCallback = (data: any) => void
-
-const MAX_RECONNECT_ATTEMPTS = 5
-const RECONNECT_DELAYS = [1000, 2000, 4000, 8000, 10000] // Exponential backoff
-const MAX_MESSAGES = 200
 
 class GlobalChatService {
   private static instance: GlobalChatService
@@ -176,8 +173,8 @@ class GlobalChatService {
               this.messages.value.push(message)
 
               // Limit message list length
-              if (this.messages.value.length > MAX_MESSAGES) {
-                this.messages.value = this.messages.value.slice(-MAX_MESSAGES)
+              if (this.messages.value.length > websocketConfig.maxMessages) {
+                this.messages.value = this.messages.value.slice(-websocketConfig.maxMessages)
               }
 
               // Notify subscribers
@@ -248,7 +245,7 @@ class GlobalChatService {
           console.error('[GlobalChat] ❌ Authentication failed - token may be expired')
           toast.error('登录已过期，请重新登录')
           // Clear reconnection attempts to prevent auto-reconnect with invalid token
-          this.reconnectAttempts = MAX_RECONNECT_ATTEMPTS
+          this.reconnectAttempts = websocketConfig.maxReconnectAttempts
           return
         }
 
@@ -256,20 +253,20 @@ class GlobalChatService {
         const token = getStoredToken()
         if (!token || isTokenExpired(token)) {
           console.error('[GlobalChat] ❌ Token expired or missing, stopping reconnection')
-          this.reconnectAttempts = MAX_RECONNECT_ATTEMPTS
+          this.reconnectAttempts = websocketConfig.maxReconnectAttempts
           return
         }
 
         // Attempt reconnection if not manually closed
-        if (!this.isManualClose && this.reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
-          const delay = RECONNECT_DELAYS[Math.min(this.reconnectAttempts, RECONNECT_DELAYS.length - 1)]
-          console.log(`[GlobalChat] 🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS})`)
+        if (!this.isManualClose && this.reconnectAttempts < websocketConfig.maxReconnectAttempts) {
+          const delay = websocketConfig.reconnectDelays[Math.min(this.reconnectAttempts, websocketConfig.reconnectDelays.length - 1)]
+          console.log(`[GlobalChat] 🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${websocketConfig.maxReconnectAttempts})`)
 
           this.reconnectTimeout = window.setTimeout(() => {
             this.reconnectAttempts++
             this.connect()
           }, delay)
-        } else if (this.reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+        } else if (this.reconnectAttempts >= websocketConfig.maxReconnectAttempts) {
           console.error('[GlobalChat] ❌ Max reconnection attempts reached')
           toast.error('连接失败，请刷新页面')
         }
@@ -329,7 +326,7 @@ class GlobalChatService {
         this.ws.send(JSON.stringify(heartbeatMsg))
         console.log('[GlobalChat] ❤️ Heartbeat sent')
       }
-    }, 30000) // Send heartbeat every 30 seconds
+    }, websocketConfig.heartbeatInterval)
   }
 
   private stopHeartbeat(): void {

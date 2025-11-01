@@ -11,11 +11,13 @@ import type {
   LanguageInfo,
   PublicSnippetsResponse
 } from '@/types/code'
+import { apiConfig, codeExecutionConfig } from '@/config'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 
 // 创建 axios 实例
 const request = axios.create({
-  baseURL: '/api',
-  timeout: 30000, // 代码执行可能需要更长时间
+  baseURL: apiConfig.baseURL,
+  timeout: codeExecutionConfig.timeout,
   headers: {
     'Content-Type': 'application/json'
   }
@@ -24,7 +26,7 @@ const request = axios.create({
 // 请求拦截器 - 添加 token
 request.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
     }

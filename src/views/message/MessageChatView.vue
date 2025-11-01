@@ -152,6 +152,7 @@ import type { PrivateMessage, ConversationUser } from '@/types/message'
 import type { User } from '@/types'
 import toast from '@/utils/toast'
 import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 
 const route = useRoute()
 const router = useRouter()
@@ -174,7 +175,7 @@ let pollTimer: number | null = null
 
 // 当前用户信息
 const currentUserInfo = computed(() => {
-  const userInfo = localStorage.getItem('user_info') || sessionStorage.getItem('user_info')
+  const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
   if (userInfo) {
     try {
       return JSON.parse(userInfo)

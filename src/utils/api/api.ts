@@ -14,24 +14,27 @@ import type {
 } from '@/types'
 import type { NewsItem, FetchNewsParams } from '@/types'
 import { logger } from '../ui/logger'
+import { apiConfig, newsConfig, apiDefaultsConfig } from '@/config'
+import { STORAGE_KEYS } from '@/config/storage-keys'
+import { HTTP_STATUS, isServerErrorStatus } from '@/config/http-status'
 
 // 创建axios实例
 const api: AxiosInstance = axios.create({
-  baseURL: '/api', // 使用相对路径，通过 Vite 代理转发到后端
-  timeout: 10000,
+  baseURL: apiConfig.baseURL,
+  timeout: apiConfig.timeout,
   headers: {
     'Content-Type': 'application/json'
   },
   // 性能优化配置
-  maxRedirects: 3,
-  validateStatus: status => status < 500, // 只对5xx错误抛出异常
-  maxContentLength: 10 * 1024 * 1024, // 10MB
-  maxBodyLength: 10 * 1024 * 1024 // 10MB
+  maxRedirects: apiConfig.maxRedirects,
+  validateStatus: status => !isServerErrorStatus(status), // 只对5xx错误抛出异常
+  maxContentLength: apiConfig.maxContentLength,
+  maxBodyLength: apiConfig.maxBodyLength
 })
 
 // 请求缓存
 const requestCache = new Map<string, { data: any; timestamp: number }>()
-const CACHE_DURATION = 5 * 60 * 1000 // 5分钟缓存
+const CACHE_DURATION = apiConfig.cacheDuration
 
 // 请求去重：防止相同请求并发发送
 const pendingRequests = new Map<string, Promise<any>>()
@@ -110,7 +113,7 @@ api.interceptors.response.use(
     }
     
     // 缓存GET请求的响应
-    if (response.config.method === 'get' && response.status === 200) {
+    if (response.config.method === 'get' && response.status === HTTP_STATUS.OK) {
       const cacheKey = `${response.config.url}?${JSON.stringify(response.config.params || {})}`
       requestCache.set(cacheKey, {
         data: response.data,
@@ -152,7 +155,7 @@ api.interceptors.response.use(
     }
 
     // 处理认证错误（401）
-    if (error.response?.status === 401) {
+    if (error.response?.status === HTTP_STATUS.UNAUTHORIZED) {
       // 如果是登录请求，直接返回错误
       if (originalRequest?.url?.includes('/auth/login')) {
         const appError = createAppError(
@@ -168,18 +171,18 @@ api.interceptors.response.use(
         isRedirectingToLogin = true
         
         // 动态导入 ElMessage（通过 unplugin-auto-import 自动注入）
-        if (typeof ElMessage !== 'undefined') {
-          ElMessage.warning('登录已过期，请重新登录', { duration: 2000 })
+        if (typeof (window as any).ElMessage !== 'undefined') {
+          (window as any).ElMessage.warning('登录已过期，请重新登录', { duration: apiConfig.authRedirectDelay })
         }
         
         // 清除所有认证信息
         clearAuthTokens()
         
-        // 延迟2秒后跳转到登录页
+        // 延迟后跳转到登录页
         setTimeout(() => {
           isRedirectingToLogin = false
           window.location.href = '/login'
-        }, 2000)
+        }, apiConfig.authRedirectDelay)
       }
       
       return Promise.reject(createAppError('AUTH_EXPIRED', '认证已过期，请重新登录'))
@@ -198,12 +201,12 @@ api.interceptors.response.use(
 
 // 工具函数
 function getAuthToken(): string | null {
-  return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+  return localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
 }
 
 function getActiveStorage(): Storage {
-  if (localStorage.getItem('auth_token')) return localStorage
-  if (sessionStorage.getItem('auth_token')) return sessionStorage
+  if (localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)) return localStorage
+  if (sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)) return sessionStorage
   return localStorage
 }
 
@@ -213,8 +216,8 @@ function setAuthTokens(
   scope: 'local' | 'session' = 'local'
 ): void {
   const store = scope === 'local' ? localStorage : sessionStorage
-  store.setItem('auth_token', token)
-  store.setItem('refresh_token', refreshToken)
+  store.setItem(STORAGE_KEYS.AUTH_TOKEN, token)
+  store.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
 }
 
 function setUserInfo(user: User, scope: 'local' | 'session' = 'local'): void {
@@ -224,14 +227,14 @@ function setUserInfo(user: User, scope: 'local' | 'session' = 'local'): void {
     // 初次写入或无版本时初始化
     withVersion.avatar_version = Date.now()
   }
-  store.setItem('user_info', JSON.stringify(withVersion))
+  store.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(withVersion))
 }
 
 function clearAuthTokens(): void {
   for (const store of [localStorage, sessionStorage]) {
-    store.removeItem('auth_token')
-    store.removeItem('refresh_token')
-    store.removeItem('user_info')
+    store.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+    store.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
+    store.removeItem(STORAGE_KEYS.USER_INFO)
   }
 }
 
@@ -253,7 +256,7 @@ function normalizeUserData(user: any): User {
   const store = getActiveStorage()
   let prev: any = null
   try {
-    const raw = store.getItem('user_info')
+    const raw = store.getItem(STORAGE_KEYS.USER_INFO)
     prev = raw ? JSON.parse(raw) : null
   } catch {
     prev = null
@@ -332,7 +335,7 @@ export function clearApiCache(): void {
 export async function login(loginData: LoginForm): Promise<LoginResponse> {
   const response = await api.post<ApiResponse<LoginResponse>>('/auth/login', loginData)
 
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     const { token, user } = response.data.data
     // 统一规范化用户数据（含 nickname/bio 映射到 profile）
     const normalizedUser = normalizeUserData(user)
@@ -356,13 +359,13 @@ export async function register(registerData: RegisterForm): Promise<RegisterResp
   try {
     const response = await api.post<ApiResponse<RegisterResponse>>('/auth/register', registerData)
 
-    if (response.data.code === 201 && response.data.data) {
+    if (response.data.code === HTTP_STATUS.CREATED && response.data.data) {
       const { token, user } = response.data.data
       const normalizedUser = normalizeUserData(user)
 
       // 存储认证信息
       setAuthTokens(token, '') // 新API可能没有refreshToken
-      localStorage.setItem('user_info', JSON.stringify(normalizedUser))
+      localStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(normalizedUser))
       emitUserUpdated(normalizedUser)
 
       return { ...response.data.data, user: normalizedUser }
@@ -393,7 +396,7 @@ export async function logout(): Promise<void> {
  */
 export async function refreshToken(): Promise<string> {
   const refreshTokenValue =
-    localStorage.getItem('refresh_token') || sessionStorage.getItem('refresh_token')
+    localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN)
   if (!refreshTokenValue) {
     throw createAppError('NO_REFRESH_TOKEN', '没有刷新令牌')
   }
@@ -402,10 +405,10 @@ export async function refreshToken(): Promise<string> {
     refreshToken: refreshTokenValue
   })
 
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     const { token } = response.data.data
     const store = getActiveStorage()
-    store.setItem('auth_token', token)
+    store.setItem(STORAGE_KEYS.AUTH_TOKEN, token)
     return token
   }
 
@@ -418,11 +421,11 @@ export async function refreshToken(): Promise<string> {
 export async function getCurrentUser(): Promise<User> {
   const response = await api.get<ApiResponse<User>>('/auth/me')
 
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     const user = response.data.data
     const normalizedUser = normalizeUserData(user) as any
     const store = getActiveStorage()
-    store.setItem('user_info', JSON.stringify(normalizedUser))
+    store.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(normalizedUser))
     emitUserUpdated(normalizedUser)
     return normalizedUser
   }
@@ -436,11 +439,11 @@ export async function getCurrentUser(): Promise<User> {
 export async function updateUser(userData: Partial<User>): Promise<User> {
   const response = await api.put<ApiResponse<User>>('/auth/me', userData)
 
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     const user = response.data.data
     const normalizedUser: any = normalizeUserData(user)
     const store = getActiveStorage()
-    store.setItem('user_info', JSON.stringify(normalizedUser))
+    store.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(normalizedUser))
     emitUserUpdated(normalizedUser)
     return normalizedUser
   }
@@ -457,7 +460,7 @@ export async function changePassword(data: {
 }): Promise<void> {
   const response = await api.post<ApiResponse>('/auth/change-password', data)
 
-  if (response.data.code !== 200) {
+  if (response.data.code !== HTTP_STATUS.OK) {
     throw createAppError('CHANGE_PASSWORD_FAILED', response.data.message || '修改密码失败')
   }
 }
@@ -468,7 +471,7 @@ export async function changePassword(data: {
 export async function forgotPassword(email: string): Promise<{ token: string; message: string }> {
   const response = await api.post<ApiResponse<{ token: string; message: string }>>('/auth/forgot-password', { email })
 
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
 
@@ -481,7 +484,7 @@ export async function forgotPassword(email: string): Promise<{ token: string; me
 export async function resetPassword(data: { token: string; newPassword: string }): Promise<void> {
   const response = await api.post<ApiResponse>('/auth/reset-password', data)
 
-  if (response.data.code !== 200) {
+  if (response.data.code !== HTTP_STATUS.OK) {
     throw createAppError('RESET_PASSWORD_FAILED', response.data.message || '重置密码失败')
   }
 }
@@ -498,7 +501,7 @@ export async function uploadImage(file: File): Promise<string> {
     const res = await api.post<ApiResponse<{ url?: string; path?: string }>>('/upload', form, {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
-    if (res.data.code === 200 && res.data.data) {
+    if (res.data.code === HTTP_STATUS.OK && res.data.data) {
       return res.data.data.url || (res.data.data.path as string)
     }
     throw new Error(res.data.message || '上传失败')
@@ -511,7 +514,7 @@ export async function uploadImage(file: File): Promise<string> {
         headers: { 'Content-Type': 'multipart/form-data' }
       }
     )
-    if (fallback.data.code === 200 && fallback.data.data) {
+    if (fallback.data.code === HTTP_STATUS.OK && fallback.data.data) {
       return fallback.data.data.url || (fallback.data.data.path as string)
     }
     throw createAppError('UPLOAD_FAILED', fallback.data.message || '上传失败')
@@ -529,7 +532,7 @@ export async function uploadResourceImage(file: File): Promise<string> {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data.image_url
   }
   
@@ -547,7 +550,7 @@ export async function uploadDocumentImage(file: File): Promise<string> {
     headers: { 'Content-Type': 'multipart/form-data' }
   })
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data.image_url
   }
   
@@ -560,13 +563,13 @@ export async function uploadDocumentImage(file: File): Promise<string> {
 export async function updateUserAvatar(avatarUrl: string): Promise<User> {
   try {
     const res = await api.put<ApiResponse<User>>('/auth/me/avatar', { avatar: avatarUrl })
-    if (res.data.code === 200 && res.data.data) {
+    if (res.data.code === HTTP_STATUS.OK && res.data.data) {
       const user = res.data.data
       const normalizedUser: any = normalizeUserData(user)
       // 头像更新成功，刷新版本号以破缓存
       normalizedUser.avatar_version = Date.now()
       const store = getActiveStorage()
-      store.setItem('user_info', JSON.stringify(normalizedUser))
+      store.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(normalizedUser))
       emitUserUpdated(normalizedUser)
       return normalizedUser
     }
@@ -575,12 +578,12 @@ export async function updateUserAvatar(avatarUrl: string): Promise<User> {
     void e
     // 兼容没有独立头像接口的后端
     const res = await api.put<ApiResponse<User>>('/auth/me', { avatar: avatarUrl })
-    if (res.data.code === 200 && res.data.data) {
+    if (res.data.code === HTTP_STATUS.OK && res.data.data) {
       const user = res.data.data
       const normalizedUser: any = normalizeUserData(user)
       normalizedUser.avatar_version = Date.now()
       const store = getActiveStorage()
-      store.setItem('user_info', JSON.stringify(normalizedUser))
+      store.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(normalizedUser))
       emitUserUpdated(normalizedUser)
       return normalizedUser
     }
@@ -595,14 +598,14 @@ export async function updateUserAvatar(avatarUrl: string): Promise<User> {
 export async function getAvatarHistory(): Promise<AvatarHistoryItem[]> {
   try {
     const res = await api.get<ApiResponse<AvatarHistoryList>>('/user/avatar/history')
-    if (res.data.code === 200 && res.data.data) {
+    if (res.data.code === HTTP_STATUS.OK && res.data.data) {
       return Array.isArray(res.data.data.items) ? res.data.data.items : []
     }
     throw new Error(res.data.message || '获取历史头像失败')
   } catch (e) {
     void e
     const fallback = await api.get<ApiResponse<AvatarHistoryList>>('/avatar/history')
-    if (fallback.data.code === 200 && fallback.data.data) {
+    if (fallback.data.code === HTTP_STATUS.OK && fallback.data.data) {
       return Array.isArray(fallback.data.data.items) ? fallback.data.data.items : []
     }
     throw createAppError('GET_AVATAR_HISTORY_FAILED', fallback.data.message || '获取历史头像失败')
@@ -857,8 +860,9 @@ export async function fetchNews(params: FetchNewsParams = {}): Promise<NewsItem[
     .sort((a, b) => new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime())
     .slice(0, pageSize)
 
-  // 模拟网络延迟 200-400ms
-  const delay = 200 + Math.floor(Math.random() * 200)
+  // 模拟网络延迟
+  const { mockDelayMin, mockDelayMax } = newsConfig
+  const delay = mockDelayMin + Math.floor(Math.random() * (mockDelayMax - mockDelayMin))
   await new Promise(resolve => setTimeout(resolve, delay))
 
   requestCache.set(cacheKey, { data: items, timestamp: Date.now() })
@@ -877,7 +881,7 @@ export async function fetchNews(params: FetchNewsParams = {}): Promise<NewsItem[
 export async function getStatisticsOverview(): Promise<any> {
   const response = await api.get<ApiResponse<any>>('/statistics/overview')
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -894,7 +898,7 @@ export async function getUserStatistics(startDate?: string, endDate?: string): P
   
   const response = await api.get<ApiResponse<any>>('/statistics/users', { params })
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -911,7 +915,7 @@ export async function getApiStatistics(startDate?: string, endDate?: string): Pr
   
   const response = await api.get<ApiResponse<any>>('/statistics/apis', { params })
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -928,7 +932,7 @@ export async function getEndpointRanking(startDate?: string, endDate?: string): 
   
   const response = await api.get<ApiResponse<any>>('/statistics/ranking', { params })
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -939,10 +943,10 @@ export async function getEndpointRanking(startDate?: string, endDate?: string): 
 /**
  * 获取登录历史
  */
-export async function getLoginHistory(limit = 50): Promise<any> {
+export async function getLoginHistory(limit = apiDefaultsConfig.historyDefaultLimit): Promise<any> {
   const response = await api.get<ApiResponse<any>>(`/history/login?limit=${limit}`)
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -952,10 +956,10 @@ export async function getLoginHistory(limit = 50): Promise<any> {
 /**
  * 获取操作历史
  */
-export async function getOperationHistory(limit = 50): Promise<any> {
+export async function getOperationHistory(limit = apiDefaultsConfig.historyDefaultLimit): Promise<any> {
   const response = await api.get<ApiResponse<any>>(`/history/operations?limit=${limit}`)
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -965,10 +969,10 @@ export async function getOperationHistory(limit = 50): Promise<any> {
 /**
  * 获取资料修改历史
  */
-export async function getProfileChangeHistory(limit = 50): Promise<any> {
+export async function getProfileChangeHistory(limit = apiDefaultsConfig.historyDefaultLimit): Promise<any> {
   const response = await api.get<ApiResponse<any>>(`/history/profile-changes?limit=${limit}`)
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -982,7 +986,7 @@ export async function getProfileChangeHistory(limit = 50): Promise<any> {
 export async function getCumulativeStats(): Promise<any> {
   const response = await api.get<ApiResponse<any>>('/cumulative-stats')
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -999,7 +1003,7 @@ export async function getDailyMetrics(startDate?: string, endDate?: string): Pro
   
   const response = await api.get<ApiResponse<any>>('/daily-metrics', { params })
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1012,7 +1016,7 @@ export async function getDailyMetrics(startDate?: string, endDate?: string): Pro
 export async function getRealtimeMetrics(): Promise<any> {
   const response = await api.get<ApiResponse<any>>('/realtime-metrics')
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1025,7 +1029,7 @@ export async function getRealtimeMetrics(): Promise<any> {
 export async function getLocationDistribution(): Promise<any> {
   const response = await api.get<ApiResponse<any>>('/location/distribution')
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1039,7 +1043,7 @@ export async function getLocationDistribution(): Promise<any> {
 export async function sendChatMessage(content: string): Promise<any> {
   const response = await api.post<ApiResponse<any>>('/chat/send', { content })
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1054,7 +1058,7 @@ export async function getChatMessages(limit: number = 50, beforeId: number = 0):
     params: { limit, before_id: beforeId }
   })
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1071,7 +1075,7 @@ export async function getNewChatMessages(afterId: number): Promise<any> {
     params: { after_id: afterId }
   })
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1084,7 +1088,7 @@ export async function getNewChatMessages(afterId: number): Promise<any> {
 export async function deleteChatMessage(messageId: number): Promise<void> {
   const response = await api.delete<ApiResponse>(`/chat/messages/${messageId}`)
   
-  if (response.data.code !== 200) {
+  if (response.data.code !== HTTP_STATUS.OK) {
     throw createAppError('DELETE_MESSAGE_FAILED', response.data.message || '删除消息失败')
   }
 }
@@ -1097,7 +1101,7 @@ export async function deleteChatMessage(messageId: number): Promise<void> {
 export async function getOnlineCount(): Promise<number> {
   const response = await api.get<ApiResponse<{ count: number }>>('/chat/online-count')
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data.count
   }
   
@@ -1150,7 +1154,7 @@ export async function createArticle(data: CreateArticleRequest): Promise<{ artic
 export async function getArticles(query: ArticleListQuery = {}): Promise<ArticleListResponse> {
   const response = await api.get<ApiResponse<ArticleListResponse>>('/articles', { params: query })
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1163,7 +1167,7 @@ export async function getArticles(query: ArticleListQuery = {}): Promise<Article
 export async function getArticleDetail(id: number): Promise<ArticleDetail> {
   const response = await api.get<ApiResponse<ArticleDetail>>(`/articles/${id}`)
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1176,7 +1180,7 @@ export async function getArticleDetail(id: number): Promise<ArticleDetail> {
 export async function updateArticle(id: number, data: UpdateArticleRequest): Promise<void> {
   const response = await api.put<ApiResponse>(`/articles/${id}`, data)
   
-  if (response.data.code !== 200) {
+  if (response.data.code !== HTTP_STATUS.OK) {
     throw createAppError('UPDATE_ARTICLE_FAILED', response.data.message || '更新文章失败')
   }
 }
@@ -1187,7 +1191,7 @@ export async function updateArticle(id: number, data: UpdateArticleRequest): Pro
 export async function deleteArticle(id: number): Promise<void> {
   const response = await api.delete<ApiResponse>(`/articles/${id}`)
   
-  if (response.data.code !== 200) {
+  if (response.data.code !== HTTP_STATUS.OK) {
     throw createAppError('DELETE_ARTICLE_FAILED', response.data.message || '删除文章失败')
   }
 }
@@ -1198,7 +1202,7 @@ export async function deleteArticle(id: number): Promise<void> {
 export async function toggleArticleLike(id: number): Promise<boolean> {
   const response = await api.post<ApiResponse<{ is_liked: boolean }>>(`/articles/${id}/like`)
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data.is_liked
   }
   
@@ -1226,7 +1230,7 @@ export async function getArticleComments(articleId: number, page = 1, pageSize =
     params: { page, page_size: pageSize }
   })
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1239,7 +1243,7 @@ export async function getArticleComments(articleId: number, page = 1, pageSize =
 export async function toggleCommentLike(commentId: number): Promise<boolean> {
   const response = await api.post<ApiResponse<{ is_liked: boolean }>>(`/comments/${commentId}/like`)
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data.is_liked
   }
   
@@ -1252,7 +1256,7 @@ export async function toggleCommentLike(commentId: number): Promise<boolean> {
 export async function deleteComment(commentId: number): Promise<void> {
   const response = await api.delete<ApiResponse>(`/comments/${commentId}`)
   
-  if (response.data.code !== 200) {
+  if (response.data.code !== HTTP_STATUS.OK) {
     throw createAppError('DELETE_COMMENT_FAILED', response.data.message || '删除评论失败')
   }
 }
@@ -1274,7 +1278,7 @@ export async function reportContent(data: CreateReportRequest): Promise<void> {
 export async function getArticleCategories(): Promise<ArticleCategory[]> {
   const response = await api.get<ApiResponse<{ categories: ArticleCategory[] }>>('/articles/categories')
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data.categories
   }
   
@@ -1287,7 +1291,7 @@ export async function getArticleCategories(): Promise<ArticleCategory[]> {
 export async function getArticleTags(): Promise<ArticleTag[]> {
   const response = await api.get<ApiResponse<{ tags: ArticleTag[] }>>('/articles/tags')
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data.tags
   }
   
@@ -1312,7 +1316,7 @@ import type {
 export async function getConversations(): Promise<ConversationsListResponse> {
   const response = await api.get<ApiResponse<ConversationsListResponse>>('/conversations')
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1327,7 +1331,7 @@ export async function getConversationMessages(conversationId: number, limit = 50
     params: { limit }
   })
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1353,7 +1357,7 @@ export async function sendPrivateMessage(data: SendMessageRequest): Promise<Send
 export async function getUnreadMessageCount(): Promise<number> {
   const response = await api.get<ApiResponse<{ unread_count: number }>>('/conversations/unread-count')
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data.unread_count
   }
   
@@ -1366,7 +1370,7 @@ export async function getUnreadMessageCount(): Promise<number> {
 export async function startConversation(userId: number): Promise<StartConversationResponse> {
   const response = await api.post<ApiResponse<StartConversationResponse>>(`/conversations/start/${userId}`)
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1400,7 +1404,7 @@ export async function getResources(params?: {
 }): Promise<ResourceListResponse> {
   const response = await api.get<ApiResponse<ResourceListResponse>>('/resources', { params })
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1413,7 +1417,7 @@ export async function getResources(params?: {
 export async function getResourceDetail(id: number): Promise<Resource> {
   const response = await api.get<ApiResponse<Resource>>(`/resources/${id}`)
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1439,7 +1443,7 @@ export async function createResource(data: CreateResourceRequest): Promise<{ res
 export async function deleteResource(id: number): Promise<void> {
   const response = await api.delete<ApiResponse>(`/resources/${id}`)
   
-  if (response.data.code !== 200) {
+  if (response.data.code !== HTTP_STATUS.OK) {
     throw createAppError('DELETE_RESOURCE_FAILED', response.data.message || '删除资源失败')
   }
 }
@@ -1450,7 +1454,7 @@ export async function deleteResource(id: number): Promise<void> {
 export async function toggleResourceLike(id: number): Promise<boolean> {
   const response = await api.post<ApiResponse<{ is_liked: boolean }>>(`/resources/${id}/like`)
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data.is_liked
   }
   
@@ -1463,7 +1467,7 @@ export async function toggleResourceLike(id: number): Promise<boolean> {
 export async function getResourceDownload(id: number): Promise<{ download_url: string; file_name: string; file_size: number }> {
   const response = await api.get<ApiResponse<{ download_url: string; file_name: string; file_size: number }>>(`/resources/${id}/download`)
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1476,7 +1480,7 @@ export async function getResourceDownload(id: number): Promise<{ download_url: s
 export function getResourceProxyDownloadUrl(id: number): string {
   const baseURL = api.defaults.baseURL || import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api'
   // 使用正确的token key，并同时检查localStorage和sessionStorage
-  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token') || ''
+  const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || ''
   return `${baseURL}/resources/${id}/proxy-download?token=${encodeURIComponent(token)}`
 }
 
@@ -1486,7 +1490,7 @@ export function getResourceProxyDownloadUrl(id: number): string {
 export async function getResourceCategories(): Promise<ResourceCategory[]> {
   const response = await api.get<ApiResponse<{ categories: ResourceCategory[] }>>('/resource-categories')
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data.categories
   }
   
@@ -1512,7 +1516,7 @@ export async function postResourceComment(resourceId: number, data: { content: s
 export async function getResourceComments(resourceId: number, params?: { page?: number; page_size?: number }) {
   const response = await api.get<ApiResponse<any>>(`/resources/${resourceId}/comments`, { params })
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1525,7 +1529,7 @@ export async function getResourceComments(resourceId: number, params?: { page?: 
 export async function toggleResourceCommentLike(commentId: number): Promise<boolean> {
   const response = await api.post<ApiResponse<{ is_liked: boolean }>>(`/resource-comments/${commentId}/like`)
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data.is_liked
   }
   
@@ -1538,7 +1542,7 @@ export async function toggleResourceCommentLike(commentId: number): Promise<bool
 export async function initChunkUpload(data: InitUploadRequest): Promise<InitUploadResponse> {
   const response = await api.post<ApiResponse<InitUploadResponse>>('/upload/init', data)
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1558,7 +1562,7 @@ export async function uploadChunk(uploadId: string, chunkIndex: number, chunkDat
     headers: { 'Content-Type': 'multipart/form-data' }
   })
   
-  if (response.data.code !== 200) {
+  if (response.data.code !== HTTP_STATUS.OK) {
     throw createAppError('UPLOAD_CHUNK_FAILED', response.data.message || '上传分片失败')
   }
 }
@@ -1569,7 +1573,7 @@ export async function uploadChunk(uploadId: string, chunkIndex: number, chunkDat
 export async function mergeChunks(uploadId: string): Promise<MergeChunksResponse> {
   const response = await api.post<ApiResponse<MergeChunksResponse>>('/upload/merge', { upload_id: uploadId })
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1582,7 +1586,7 @@ export async function mergeChunks(uploadId: string): Promise<MergeChunksResponse
 export async function getUploadStatus(uploadId: string): Promise<any> {
   const response = await api.get<ApiResponse<any>>(`/upload/status/${uploadId}`)
   
-  if (response.data.code === 200 && response.data.data) {
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
   
@@ -1595,7 +1599,7 @@ export async function getUploadStatus(uploadId: string): Promise<any> {
 export async function cancelUpload(uploadId: string): Promise<void> {
   const response = await api.post<ApiResponse>(`/upload/cancel/${uploadId}`)
   
-  if (response.data.code !== 200) {
+  if (response.data.code !== HTTP_STATUS.OK) {
     throw createAppError('CANCEL_UPLOAD_FAILED', response.data.message || '取消上传失败')
   }
 }

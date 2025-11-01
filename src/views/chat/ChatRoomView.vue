@@ -125,6 +125,7 @@ import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import { globalChatService } from '@/services/globalChatService'
 import { getChatMessages } from '@/utils/api'
 import { toast } from '@/utils/toast'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 
 const router = useRouter()
 
@@ -365,7 +366,7 @@ const goBack = () => {
 onMounted(() => {
   // 加载当前用户信息
   try {
-    const userInfo = localStorage.getItem('user_info') || sessionStorage.getItem('user_info')
+    const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
     if (userInfo) {
       currentUser.value = JSON.parse(userInfo)
     }

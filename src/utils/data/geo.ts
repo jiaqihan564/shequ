@@ -3,6 +3,8 @@
 // 2) 使用 BigDataCloud 免费接口做反向地理编码（无需密钥）
 // 3) 失败时回退到 IP 定位（BigDataCloud IP 接口）
 
+import { geoConfig, mapConfig } from '@/config'
+
 export interface DetectedRegion {
   province: string
   city: string
@@ -10,7 +12,7 @@ export interface DetectedRegion {
 }
 
 const GEO_REGION_KEY = 'geo_region_v1'
-const TTL = 24 * 60 * 60 * 1000 // 24h 缓存
+const TTL = geoConfig.cacheTTL
 
 function normalizeProvince(name: string): string {
   if (!name) return ''
@@ -54,7 +56,7 @@ function writeCachedRegion(region: DetectedRegion) {
 async function fetchWithTimeout(
   input: RequestInfo | URL,
   init?: RequestInit,
-  timeoutMs = 5000
+  timeoutMs = geoConfig.timeout
 ): Promise<Response> {
   const controller = new AbortController()
   const id = setTimeout(() => controller.abort(), timeoutMs)
@@ -66,7 +68,7 @@ async function fetchWithTimeout(
   }
 }
 
-async function reverseGeocode(lat: number, lon: number, timeoutMs = 5000): Promise<DetectedRegion> {
+async function reverseGeocode(lat: number, lon: number, timeoutMs = geoConfig.timeout): Promise<DetectedRegion> {
   // 并行请求 BigDataCloud 与 Nominatim，提高准确度与鲁棒性
   const bdcUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh-CN`
   const nomiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=zh-CN`
@@ -154,13 +156,13 @@ async function geolocate(): Promise<GeolocationPosition> {
     }
     navigator.geolocation.getCurrentPosition(resolve, reject, {
       enableHighAccuracy: true,
-      timeout: 7000,
-      maximumAge: 5 * 60 * 1000
+      timeout: geoConfig.browserTimeout,
+      maximumAge: geoConfig.browserMaxAge
     })
   })
 }
 
-async function ipLocate(timeoutMs = 5000): Promise<DetectedRegion> {
+async function ipLocate(timeoutMs = geoConfig.timeout): Promise<DetectedRegion> {
   const res = await fetchWithTimeout(
     'https://api.bigdatacloud.net/data/reverse-geocode-client?localityLanguage=zh-CN',
     undefined,
@@ -181,11 +183,11 @@ type DetectOptions = {
 async function amapReverseGeocode(
   lat: number,
   lon: number,
-  timeoutMs = 5000
+  timeoutMs = geoConfig.timeout
 ): Promise<DetectedRegion | null> {
-  const key = (import.meta as any).env?.VITE_AMAP_KEY
+  const key = geoConfig.amapKey
   if (!key) return null
-  const url = `https://restapi.amap.com/v3/geocode/regeo?key=${encodeURIComponent(key)}&location=${lon},${lat}&extensions=base&radius=3000&output=json`
+  const url = `https://restapi.amap.com/v3/geocode/regeo?key=${encodeURIComponent(key)}&location=${lon},${lat}&extensions=base&radius=${mapConfig.searchRadius}&output=json`
   try {
     const res = await fetchWithTimeout(url, undefined, timeoutMs)
     const j = await res.json()
@@ -200,8 +202,8 @@ async function amapReverseGeocode(
   return null
 }
 
-async function amapIpLocate(timeoutMs = 5000): Promise<DetectedRegion | null> {
-  const key = (import.meta as any).env?.VITE_AMAP_KEY
+async function amapIpLocate(timeoutMs = geoConfig.timeout): Promise<DetectedRegion | null> {
+  const key = geoConfig.amapKey
   if (!key) return null
   const url = `https://restapi.amap.com/v3/ip?key=${encodeURIComponent(key)}`
   try {
@@ -225,7 +227,7 @@ export async function detectCurrentRegion(
     const cached = readCachedRegion()
     if (cached) return cached
   }
-  const timeoutMs = options?.timeoutMs ?? 5000
+  const timeoutMs = options?.timeoutMs ?? geoConfig.timeout
   const method = options?.method || 'auto'
   const provider = options?.provider || 'auto'
 

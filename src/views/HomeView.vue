@@ -69,6 +69,8 @@ import { fetchNews } from '@/utils/api'
 import NewsCarousel from '@/components/news/NewsCarousel.vue'
 import toast from '@/utils/toast'
 import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
+import { pollingConfig } from '@/config'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 
 const user = ref<User | null>(null)
 const news = ref<NewsItem[]>([])
@@ -77,7 +79,7 @@ let newsTimer: number | null = null
 
 onMounted(() => {
   try {
-    const raw = localStorage.getItem('user_info') || sessionStorage.getItem('user_info')
+    const raw = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
     if (raw) user.value = JSON.parse(raw)
   } catch (e) {
     if (import.meta.env.DEV) console.warn('读取用户信息失败', e)
@@ -112,7 +114,7 @@ function startPolling() {
   if (!document.hidden) {
     newsTimer = setInterval(() => {
       if (!document.hidden) void loadNews()
-    }, 2 * 60 * 1000) as unknown as number // 2分钟刷新
+    }, pollingConfig.news) as unknown as number
   }
 }
 

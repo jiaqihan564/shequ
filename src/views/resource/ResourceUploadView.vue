@@ -8,11 +8,11 @@
       <el-form :model="form" label-position="top" size="large">
         <!-- 基本信息 -->
         <el-form-item label="资源标题" required>
-          <el-input v-model="form.title" placeholder="请输入资源标题" maxlength="200" show-word-limit />
+          <el-input v-model="form.title" placeholder="请输入资源标题" :maxlength="formLimitsConfig.resourceTitle" show-word-limit />
         </el-form-item>
 
         <el-form-item label="资源描述">
-          <el-input v-model="form.description" type="textarea" :rows="3" placeholder="简单介绍这个资源..." maxlength="1000" show-word-limit />
+          <el-input v-model="form.description" type="textarea" :rows="3" placeholder="简单介绍这个资源..." :maxlength="formLimitsConfig.resourceDescription" show-word-limit />
         </el-form-item>
 
         <el-form-item label="资源分类">
@@ -155,6 +155,7 @@ import { createResource, uploadResourceImage, uploadImage, getResourceCategories
 import type { ResourceCategory } from '@/types/resource'
 import toast from '@/utils/toast'
 import { renderMarkdown } from '@/utils/markdown'
+import { uploadConfig, formLimitsConfig, uiDelayConfig } from '@/config'
 
 const router = useRouter()
 
@@ -205,14 +206,15 @@ function handleFileChange(file: UploadFile) {
 
 function beforeImageUpload(file: File) {
   const isImage = file.type.startsWith('image/')
-  const isLt5M = file.size / 1024 / 1024 < 5
+  const maxSize = uploadConfig.imageMaxSize
+  const isUnderLimit = file.size < maxSize
 
   if (!isImage) {
     toast.error('只能上传图片文件')
     return false
   }
-  if (!isLt5M) {
-    toast.error('图片大小不能超过5MB')
+  if (!isUnderLimit) {
+    toast.error(`图片大小不能超过${Math.round(maxSize / 1024 / 1024)}MB`)
     return false
   }
   return true
@@ -250,8 +252,8 @@ async function handleDocImageUpload(event: Event) {
     return
   }
 
-  if (file.size > 5 * 1024 * 1024) {
-    toast.error('图片大小不能超过5MB')
+  if (file.size > uploadConfig.imageMaxSize) {
+    toast.error(`图片大小不能超过${Math.round(uploadConfig.imageMaxSize / 1024 / 1024)}MB`)
     return
   }
 
@@ -337,9 +339,9 @@ function handleDocMdFileImport(event: Event) {
     return
   }
   
-  // 验证文件大小（5MB限制）
-  if (file.size > 5 * 1024 * 1024) {
-    toast.error('文件大小不能超过 5MB')
+  // 验证文件大小
+  if (file.size > uploadConfig.markdownMaxSize) {
+    toast.error(`文件大小不能超过 ${Math.round(uploadConfig.markdownMaxSize / 1024 / 1024)}MB`)
     input.value = ''
     return
   }
@@ -430,7 +432,7 @@ async function handleSubmit() {
     uploadProgress.value = 100
     toast.success('资源发布成功！')
     
-    setTimeout(() => router.push(`/resources/${result.resource_id}`), 1500)
+    setTimeout(() => router.push(`/resources/${result.resource_id}`), uiDelayConfig.uploadSuccessRedirect)
   } catch (error: any) {
     uploadStatus.value = 'exception'
     console.error('上传失败:', error)

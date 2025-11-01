@@ -153,6 +153,9 @@ import {
   checkPasswordStrength,
   debounce
 } from '@/utils/validation'
+import { detectCurrentRegion } from '@/utils/geo'
+import { authConfig, uiDelayConfig } from '@/config'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 
 const props = withDefaults(defineProps<{ locked?: boolean }>(), { locked: false })
 
@@ -288,42 +291,21 @@ const handleLogin = async () => {
   isLoading.value = true
 
   try {
-    // 检测地理位置（多种方案）
-    let province = ''
-    let city = ''
+    // 使用统一的地理位置检测服务
+    let province = authConfig.defaultProvince
+    let city = authConfig.defaultCity
     
     try {
-      // 方案1：尝试使用高德IP定位（国内稳定）
-      const gaodeResponse = await fetch('https://restapi.amap.com/v3/ip?key=c2e4b3f8d8fd8e5b8a5c3e6f9d2a1b4c')
-      if (gaodeResponse.ok) {
-        const gaodeData = await gaodeResponse.json()
-        if (gaodeData.status === '1' && gaodeData.province) {
-          province = gaodeData.province
-          city = gaodeData.city || gaodeData.province
-        }
+      const region = await detectCurrentRegion(false, {
+        method: 'ip',  // 登录时只使用IP定位，不请求浏览器定位避免弹窗干扰
+        timeoutMs: uiDelayConfig.geoLoginTimeout
+      })
+      if (region && region.province) {
+        province = region.province
+        city = region.city || city
       }
-    } catch (e1) {
-      void e1 // 忽略错误，尝试备用方案
-      
-      // 方案2：使用太平洋IP定位（免费无限制）
-      try {
-        const pconlineResponse = await fetch('https://whois.pconline.com.cn/ipJson.jsp?json=true')
-        if (pconlineResponse.ok) {
-          const text = await pconlineResponse.text()
-          const pconlineData = JSON.parse(text)
-          if (pconlineData.pro) {
-            province = pconlineData.pro
-            city = pconlineData.city || pconlineData.pro
-          }
-        }
-      } catch (e2) {
-        void e2 // 所有IP定位方案失败，使用默认值
-        
-        // 方案3：浏览器地理位置（需要用户授权）
-        // 这里暂时不使用，避免弹窗干扰
-        province = '未知'
-        city = '未知'
-      }
+    } catch (geoError) {
+      void geoError // 获取地理位置失败，使用默认地区
     }
 
     // 登录请求（附带地理位置信息）
@@ -335,9 +317,9 @@ const handleLogin = async () => {
     
     const response = await login(loginData)
     if (form.rememberMe) {
-      localStorage.setItem('remembered_username', form.username)
+      localStorage.setItem(STORAGE_KEYS.REMEMBERED_USERNAME, form.username)
     } else {
-      localStorage.removeItem('remembered_username')
+      localStorage.removeItem(STORAGE_KEYS.REMEMBERED_USERNAME)
     }
     emit('success', response)
   } catch (error: any) {
@@ -349,7 +331,7 @@ const handleLogin = async () => {
 }
 
 onMounted(() => {
-  const rememberedUsername = localStorage.getItem('remembered_username')
+  const rememberedUsername = localStorage.getItem(STORAGE_KEYS.REMEMBERED_USERNAME)
   if (rememberedUsername) {
     form.username = rememberedUsername
     form.rememberMe = true

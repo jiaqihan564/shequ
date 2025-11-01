@@ -1,4 +1,5 @@
 import type { User } from '@/types'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 
 /**
  * 检查用户是否为管理员
@@ -33,7 +34,7 @@ export function hasPermission(user: User | null, permission?: string): boolean {
  */
 export function getCurrentUser(): User | null {
   try {
-    const userInfo = localStorage.getItem('user_info') || sessionStorage.getItem('user_info')
+    const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
     if (!userInfo) return null
     return JSON.parse(userInfo) as User
   } catch (error) {
@@ -46,7 +47,7 @@ export function getCurrentUser(): User | null {
  * 检查用户是否已登录
  */
 export function isAuthenticated(): boolean {
-  const token = localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+  const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
   return !!token
 }
 

@@ -111,6 +111,8 @@ import type { User } from '@/types'
 import { logout, getUnreadMessageCount } from '@/utils/api'
 import { isAdmin } from '@/utils/auth'
 import { globalChatService } from '@/services/globalChatService'
+import { pollingConfig } from '@/config'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 
 const router = useRouter()
 const route = useRoute()
@@ -159,7 +161,7 @@ function startUnreadPolling() {
   loadUnreadCount()
   unreadTimer = window.setInterval(() => {
     loadUnreadCount()
-  }, 10000) // 每10秒更新一次（更实时）
+  }, pollingConfig.unreadMessages)
 }
 
 // 停止轮询
@@ -172,7 +174,7 @@ function stopUnreadPolling() {
 
 onMounted(() => {
   try {
-    const raw = localStorage.getItem('user_info') || sessionStorage.getItem('user_info')
+    const raw = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
     if (raw) {
       user.value = JSON.parse(raw)
     }

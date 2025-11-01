@@ -10,6 +10,7 @@ import './styles/lazy-load.css'
 import { lazyLoad } from './directives/lazyLoad'
 import { globalChatService } from './services/globalChatService'
 import { getStoredToken } from './utils/tokenValidator'
+import { STORAGE_KEYS } from './config/storage-keys'
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -38,12 +39,12 @@ app.config.errorHandler = (err, instance, info) => {
         isRedirectingToLogin = true
         
         // 清除所有认证信息
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('user_info')
-        sessionStorage.removeItem('auth_token')
-        sessionStorage.removeItem('refresh_token')
-        sessionStorage.removeItem('user_info')
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
+        localStorage.removeItem(STORAGE_KEYS.USER_INFO)
+        sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+        sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
+        sessionStorage.removeItem(STORAGE_KEYS.USER_INFO)
         
         // 延迟2秒后跳转
         setTimeout(() => {
@@ -74,12 +75,12 @@ window.addEventListener('unhandledrejection', (event) => {
         isRedirectingToLogin = true
         
         // 清除所有认证信息
-        localStorage.removeItem('auth_token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('user_info')
-        sessionStorage.removeItem('auth_token')
-        sessionStorage.removeItem('refresh_token')
-        sessionStorage.removeItem('user_info')
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+        localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
+        localStorage.removeItem(STORAGE_KEYS.USER_INFO)
+        sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+        sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
+        sessionStorage.removeItem(STORAGE_KEYS.USER_INFO)
         
         // 延迟2秒后跳转
         setTimeout(() => {

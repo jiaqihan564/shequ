@@ -1,6 +1,7 @@
 import { reactive, computed } from 'vue'
 
 import { get } from '@/utils/api'
+import { cacheConfig } from '@/config'
 
 export interface Province {
   name: string
@@ -13,7 +14,7 @@ interface RegionsResponse {
 }
 
 const REGIONS_CACHE_KEY = 'regions_cache_v1'
-const REGIONS_CACHE_TTL = 7 * 24 * 60 * 60 * 1000 // 7天
+const REGIONS_CACHE_TTL = cacheConfig.regionsTTL
 
 const fallbackRegions: RegionsResponse = {
   provinces: [

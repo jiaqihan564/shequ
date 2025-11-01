@@ -246,6 +246,7 @@ import {
 import { readDetectedRegion, detectCurrentRegion } from '@/utils/geo'
 import { ensureRegionsLoaded, useRegions } from '@/utils/regions'
 import { toast as toastQueue } from '@/utils/toast'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 
 type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -308,7 +309,7 @@ const avatarSrc = computed(() => {
   // 从本地存储中读取版本，或用时间戳兜底
   let v = 0
   try {
-    const raw = localStorage.getItem('user_info') || sessionStorage.getItem('user_info')
+    const raw = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
     if (raw) {
       const u = JSON.parse(raw)
       v = u.avatar_version || u.updatedAt || 0
@@ -451,7 +452,7 @@ onMounted(async () => {
   await ensureRegionsLoaded()
   let user: User | null = null
   try {
-    const raw = localStorage.getItem('user_info') || sessionStorage.getItem('user_info')
+    const raw = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
     if (raw) user = JSON.parse(raw)
   } catch (e) {
     if (import.meta.env.DEV) console.warn('读取用户信息失败', e)
@@ -607,10 +608,10 @@ function handleChangePasswordSuccess() {
   showToast('success', '密码修改成功，请重新登录')
   // 密码修改成功后，清除认证信息并跳转到登录页
   setTimeout(() => {
-    localStorage.removeItem('auth_token')
-    sessionStorage.removeItem('auth_token')
-    localStorage.removeItem('user_info')
-    sessionStorage.removeItem('user_info')
+    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+    sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+    localStorage.removeItem(STORAGE_KEYS.USER_INFO)
+    sessionStorage.removeItem(STORAGE_KEYS.USER_INFO)
     window.location.href = '/login'
   }, 1500)
 }

@@ -50,13 +50,13 @@
           v-model="messageInput"
           type="text"
           class="message-input"
-          placeholder="输入消息内容（最多500字）..."
-          maxlength="500"
+          :placeholder="`输入消息内容（最多${formLimitsConfig.chatMessage}字）...`"
+          :maxlength="formLimitsConfig.chatMessage"
           @keyup.enter="sendMessage"
           :disabled="sending"
         />
         <div class="input-info">
-          <span class="char-count">{{ messageInput.length }}/500</span>
+          <span class="char-count">{{ messageInput.length }}/{{ formLimitsConfig.chatMessage }}</span>
         </div>
       </div>
       <button 
@@ -117,10 +117,11 @@ const wsMessages = globalChatService.messages
 const onlineCount = globalChatService.onlineCount
 const connectionStatus = globalChatService.connectionStatus
 
-// 配置
-const trackCount = 8 // 弹幕轨道数量
-const trackHeight = 60 // 每条轨道高度
-const baseDuration = 12 // 基础滚动时间（秒）
+// 配置 - 从配置文件导入
+import { danmakuConfig, formLimitsConfig } from '@/config'
+const trackCount = danmakuConfig.trackCount
+const trackHeight = danmakuConfig.trackHeight
+const baseDuration = danmakuConfig.baseDuration
 
 // 轨道管理
 const tracks = ref<{ occupied: boolean; lastEndTime: number }[]>(

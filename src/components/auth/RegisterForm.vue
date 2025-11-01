@@ -224,6 +224,7 @@ import {
   VALIDATION_RULES
 } from '@/utils/validation'
 import { detectCurrentRegion } from '@/utils/geo'
+import { authConfig } from '@/config'
 
 const emit = defineEmits<{
   success: [data: any]
@@ -339,12 +340,12 @@ const handleSubmit = async (event: Event) => {
 
   isSubmitting.value = true
   try {
-    // 获取地理位置，失败时使用默认值（山东乳山）
-    let province = '山东'
-    let city = '乳山'
+    // 获取地理位置，失败时使用默认值
+    let province = authConfig.defaultProvince
+    let city = authConfig.defaultCity
     
     try {
-      const region = await detectCurrentRegion(false, { timeoutMs: 3000 })
+      const region = await detectCurrentRegion(false, { timeoutMs: authConfig.registerGeoTimeout })
       if (region && region.province) {
         province = region.province
         city = region.city || city  // 如果城市为空，使用默认值

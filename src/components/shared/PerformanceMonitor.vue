@@ -23,6 +23,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { performanceConfig } from '@/config'
 
 const show = ref(true)
 const fps = ref(0)
@@ -80,8 +81,8 @@ function stopMonitoring() {
 }
 
 function getFpsClass(fpsValue: number): string {
-  if (fpsValue >= 55) return 'fps-good'
-  if (fpsValue >= 30) return 'fps-ok'
+  if (fpsValue >= performanceConfig.fpsGoodThreshold) return 'fps-good'
+  if (fpsValue >= performanceConfig.fpsOkThreshold) return 'fps-ok'
   return 'fps-bad'
 }
 </script>

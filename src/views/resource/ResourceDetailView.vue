@@ -192,7 +192,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { Download, Star, StarFilled, ChatDotRound, Share, CopyDocument } from '@element-plus/icons-vue'
-import { getResourceDetail, toggleResourceLike, getResourceDownload, getResourceProxyDownloadUrl, postResourceComment, getResourceComments } from '@/utils/api'
+import { getResourceDetail, toggleResourceLike, getResourceProxyDownloadUrl, postResourceComment, getResourceComments } from '@/utils/api'
 import { renderMarkdown } from '@/utils/markdown'
 import type { Resource, ResourceComment } from '@/types/resource'
 import toast from '@/utils/toast'

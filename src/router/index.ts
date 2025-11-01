@@ -3,6 +3,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import AppLayout from '@/layouts/AppLayout.vue'
 import { isTokenExpired, getStoredToken } from '@/utils/tokenValidator'
 import { preloadMonacoEditor, smartPreload, clearMonacoCache } from '@/utils/monaco-preloader'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 
 const LoginView = () => import('@/views/auth/LoginView.vue')
 const RegisterView = () => import('@/views/auth/RegisterView.vue')
@@ -236,12 +237,12 @@ router.beforeEach((to, _from, next) => {
   // 检查 token 是否过期（即使存在）
   if (requiresAuth && isAuthenticated && isTokenExpired(token)) {
     // Token 已过期，清除所有认证信息
-    localStorage.removeItem('auth_token')
-    localStorage.removeItem('refresh_token')
-    localStorage.removeItem('user_info')
-    sessionStorage.removeItem('auth_token')
-    sessionStorage.removeItem('refresh_token')
-    sessionStorage.removeItem('user_info')
+    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
+    localStorage.removeItem(STORAGE_KEYS.USER_INFO)
+    sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
+    sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
+    sessionStorage.removeItem(STORAGE_KEYS.USER_INFO)
     
     // 保存原路径到 sessionStorage 以便登录后返回
     sessionStorage.setItem('redirect_after_login', to.fullPath)
@@ -292,11 +293,11 @@ router.afterEach(to => {
   // 智能预加载 Monaco Editor
   const token = getStoredToken()
   if (token && !isTokenExpired(token)) {
-    const userInfo = localStorage.getItem('user_info') || sessionStorage.getItem('user_info')
+    const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
     if (userInfo) {
       try {
         const user = JSON.parse(userInfo)
-        const hasUsedCodeEditor = localStorage.getItem('code_editor_used') === 'true'
+        const hasUsedCodeEditor = localStorage.getItem(STORAGE_KEYS.CODE_EDITOR_USED) === 'true'
         
         // 判断是否需要预加载
         if (to.path.startsWith('/code-')) {

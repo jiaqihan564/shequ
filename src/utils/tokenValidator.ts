@@ -5,6 +5,8 @@
  * Uses manual base64 decoding to avoid adding jwt-decode library.
  */
 
+import { STORAGE_KEYS } from '@/config/storage-keys'
+
 /**
  * JWT Token Payload Interface
  */
@@ -125,6 +127,6 @@ export function formatRemainingTime(seconds: number): string {
  * @returns Token string or null if not found
  */
 export function getStoredToken(): string | null {
-  return localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token')
+  return localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
 }
 

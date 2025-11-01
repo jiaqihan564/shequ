@@ -168,6 +168,7 @@ import {
 } from '@element-plus/icons-vue'
 import { getRealtimeMetrics } from '@/utils/api'
 import toast from '@/utils/toast'
+import { pollingConfig } from '@/config'
 
 const loading = ref(false)
 const autoRefresh = ref(true)
@@ -213,7 +214,7 @@ function startAutoRefresh() {
   stopAutoRefresh()
   refreshTimer = window.setInterval(() => {
     loadData()
-  }, 5000) // 每5秒刷新一次
+  }, pollingConfig.realtimeMetrics)
 }
 
 function stopAutoRefresh() {

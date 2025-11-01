@@ -115,6 +115,7 @@ import type { User } from '@/types'
 import type { ArticleListItem } from '@/types/article'
 import toast from '@/utils/toast'
 import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 
 const route = useRoute()
 const router = useRouter()
@@ -128,7 +129,7 @@ const pageSize = ref(10)
 const total = ref(0)
 
 const currentUserId = computed(() => {
-  const userInfo = localStorage.getItem('user_info') || sessionStorage.getItem('user_info')
+  const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
   if (userInfo) {
     try {
       const data = JSON.parse(userInfo)

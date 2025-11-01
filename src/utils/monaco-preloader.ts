@@ -9,6 +9,8 @@
  */
 
 import type * as Monaco from 'monaco-editor'
+import { uiDelayConfig } from '@/config'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 
 // Monaco Editor 实例缓存
 let monacoInstance: typeof Monaco | null = null
@@ -71,10 +73,10 @@ export async function preloadMonacoEditor(priority: 'high' | 'low' = 'low'): Pro
     } else {
       // 低优先级：浏览器空闲时加载
       if ('requestIdleCallback' in window) {
-        requestIdleCallback(loadMonaco, { timeout: 2000 })
+        requestIdleCallback(loadMonaco, { timeout: uiDelayConfig.monacoPreloadTimeout })
       } else {
         // 降级方案：使用 setTimeout
-        setTimeout(loadMonaco, 1000)
+        setTimeout(loadMonaco, uiDelayConfig.monacoPreloadFallback)
       }
     }
   })
@@ -154,7 +156,7 @@ export function smartPreload(userRole: string, hasUsedCodeEditor: boolean): void
  */
 export function markCodeEditorUsed(): void {
   try {
-    localStorage.setItem('code_editor_used', 'true')
+    localStorage.setItem(STORAGE_KEYS.CODE_EDITOR_USED, 'true')
     console.log('[Monaco Preloader] 已标记用户使用过代码编辑器')
   } catch (error) {
     console.warn('[Monaco Preloader] 无法写入 localStorage:', error)

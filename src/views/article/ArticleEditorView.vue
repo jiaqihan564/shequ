@@ -13,7 +13,7 @@
           <el-input
             v-model="form.title"
             placeholder="请输入文章标题"
-            maxlength="200"
+            :maxlength="formLimitsConfig.articleTitle"
             show-word-limit
             clearable
           />
@@ -26,7 +26,7 @@
             type="textarea"
             placeholder="请输入文章摘要（可选）"
             :rows="3"
-            maxlength="500"
+            :maxlength="formLimitsConfig.articleDescription"
             show-word-limit
           />
         </el-form-item>
@@ -247,6 +247,7 @@ import type { ArticleCategory, ArticleTag, ArticleCodeBlock } from '@/types'
 import { SUPPORTED_LANGUAGES } from '@/types/article'
 import toast from '@/utils/toast'
 import { renderMarkdown } from '@/utils/markdown'
+import { uploadConfig, formLimitsConfig } from '@/config'
 
 const route = useRoute()
 const router = useRouter()
@@ -359,10 +360,10 @@ async function handleImageUpload(event: Event) {
     return
   }
 
-  // 验证文件大小（5MB限制）
-  const maxSize = 5 * 1024 * 1024
+  // 验证文件大小
+  const maxSize = uploadConfig.articleImageMaxSize
   if (file.size > maxSize) {
-    toast.error('图片大小不能超过5MB')
+    toast.error(`图片大小不能超过${Math.round(maxSize / 1024 / 1024)}MB`)
     return
   }
 
@@ -456,10 +457,10 @@ async function handleMdFileImport(event: Event) {
     return
   }
   
-  // 验证文件大小（5MB限制）
-  const maxSize = 5 * 1024 * 1024
+  // 验证文件大小
+  const maxSize = uploadConfig.articleMarkdownMaxSize
   if (file.size > maxSize) {
-    toast.error('文件大小不能超过 5MB')
+    toast.error(`文件大小不能超过 ${Math.round(maxSize / 1024 / 1024)}MB`)
     input.value = ''
     return
   }

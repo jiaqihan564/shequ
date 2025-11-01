@@ -53,6 +53,7 @@ import { useRoute, useRouter } from 'vue-router'
 import MonacoEditor from '@/components/code/MonacoEditor.vue'
 import { getSharedSnippet } from '@/utils/code-api'
 import type { CodeSnippet } from '@/types/code'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 
 const route = useRoute()
 const router = useRouter()
@@ -62,7 +63,7 @@ const loading = ref(true)
 const error = ref('')
 
 const isLoggedIn = computed(() => {
-  return !!(localStorage.getItem('auth_token') || sessionStorage.getItem('auth_token'))
+  return !!(localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN))
 })
 
 const monacoLanguage = computed(() => {

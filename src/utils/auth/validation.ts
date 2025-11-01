@@ -1,12 +1,13 @@
 import type { ValidationRule, ValidationRules } from '@/types'
+import { VALIDATION_CONSTANTS } from '@/config/validation-constants'
 
-// 常用正则表达式
+// 常用正则表达式（使用配置常量动态生成）
 export const REGEX_PATTERNS = {
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  username: /^[a-zA-Z0-9_]{3,20}$/,
+  username: new RegExp(`^[a-zA-Z0-9_]{${VALIDATION_CONSTANTS.USERNAME.MIN_LENGTH},${VALIDATION_CONSTANTS.USERNAME.MAX_LENGTH}}$`),
   // 密码需为 6-50 位，且至少包含一个字母与一个数字；不强制特殊字符与大小写
-  password: /^(?=.*[A-Za-z])(?=.*\d).{6,50}$/,
-  phone: /^1[3-9]\d{9}$/,
+  password: new RegExp(`^(?=.*[A-Za-z])(?=.*\\d).{${VALIDATION_CONSTANTS.PASSWORD.MIN_LENGTH},${VALIDATION_CONSTANTS.PASSWORD.MAX_LENGTH}}$`),
+  phone: new RegExp(`^${VALIDATION_CONSTANTS.PHONE.FIRST_DIGIT}[${VALIDATION_CONSTANTS.PHONE.SECOND_DIGIT_MIN}-${VALIDATION_CONSTANTS.PHONE.SECOND_DIGIT_MAX}]\\d{${VALIDATION_CONSTANTS.PHONE.LENGTH - 2}}$`),
   url: /^https?:\/\/.+/,
   chinese: /^[\u4e00-\u9fa5]+$/,
   alphanumeric: /^[a-zA-Z0-9]+$/
@@ -16,8 +17,8 @@ export const REGEX_PATTERNS = {
 export const VALIDATION_RULES: ValidationRules = {
   username: [
     { required: true, message: '请输入用户名' },
-    { minLength: 3, message: '用户名至少3个字符' },
-    { maxLength: 20, message: '用户名不能超过20个字符' },
+    { minLength: VALIDATION_CONSTANTS.USERNAME.MIN_LENGTH, message: `用户名至少${VALIDATION_CONSTANTS.USERNAME.MIN_LENGTH}个字符` },
+    { maxLength: VALIDATION_CONSTANTS.USERNAME.MAX_LENGTH, message: `用户名不能超过${VALIDATION_CONSTANTS.USERNAME.MAX_LENGTH}个字符` },
     { pattern: REGEX_PATTERNS.username, message: '用户名只能包含字母、数字和下划线' }
   ],
   email: [
@@ -26,9 +27,9 @@ export const VALIDATION_RULES: ValidationRules = {
   ],
   password: [
     { required: true, message: '请输入密码' },
-    { minLength: 6, message: '密码至少6个字符' },
-    { maxLength: 50, message: '密码不能超过50个字符' },
-    { pattern: REGEX_PATTERNS.password, message: '密码需为6-50个字符，且至少包含字母和数字' }
+    { minLength: VALIDATION_CONSTANTS.PASSWORD.MIN_LENGTH, message: `密码至少${VALIDATION_CONSTANTS.PASSWORD.MIN_LENGTH}个字符` },
+    { maxLength: VALIDATION_CONSTANTS.PASSWORD.MAX_LENGTH, message: `密码不能超过${VALIDATION_CONSTANTS.PASSWORD.MAX_LENGTH}个字符` },
+    { pattern: REGEX_PATTERNS.password, message: `密码需为${VALIDATION_CONSTANTS.PASSWORD.MIN_LENGTH}-${VALIDATION_CONSTANTS.PASSWORD.MAX_LENGTH}个字符，且至少包含字母和数字` }
   ],
   confirmPassword: [{ required: true, message: '请确认密码' }],
   phone: [
@@ -52,12 +53,12 @@ export function validateUsernameOrEmail(value: string): string | null {
     return '请输入用户名或邮箱'
   }
 
-  if (value.length < 3) {
-    return '用户名至少3个字符'
+  if (value.length < VALIDATION_CONSTANTS.EMAIL_OR_USERNAME.MIN_LENGTH) {
+    return `用户名至少${VALIDATION_CONSTANTS.EMAIL_OR_USERNAME.MIN_LENGTH}个字符`
   }
 
-  if (value.length > 50) {
-    return '用户名不能超过50个字符'
+  if (value.length > VALIDATION_CONSTANTS.EMAIL_OR_USERNAME.MAX_LENGTH) {
+    return `用户名不能超过${VALIDATION_CONSTANTS.EMAIL_OR_USERNAME.MAX_LENGTH}个字符`
   }
 
   // 检查是否为邮箱格式
@@ -109,14 +110,14 @@ export function checkPasswordStrength(password: string): {
   const hasLowerCase = /[a-z]/.test(password)
   const hasNumbers = /\d/.test(password)
   const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password)
-  const hasMinLength = password.length >= 8
+  const hasMinLength = password.length >= VALIDATION_CONSTANTS.PASSWORD.RECOMMENDED_MIN_LENGTH
 
   const suggestions: string[] = []
   let strength: 'weak' | 'medium' | 'strong' = 'weak'
 
   // 收集建议
   if (!hasMinLength) {
-    suggestions.push('建议密码至少8个字符')
+    suggestions.push(`建议密码至少${VALIDATION_CONSTANTS.PASSWORD.RECOMMENDED_MIN_LENGTH}个字符`)
   }
   if (!hasUpperCase) {
     suggestions.push('建议包含大写字母')
@@ -136,9 +137,9 @@ export function checkPasswordStrength(password: string): {
     Boolean
   ).length
 
-  if (strengthCount >= 4) {
+  if (strengthCount >= VALIDATION_CONSTANTS.PASSWORD_STRENGTH.STRONG_TYPES_COUNT) {
     strength = 'strong'
-  } else if (strengthCount >= 2) {
+  } else if (strengthCount >= VALIDATION_CONSTANTS.PASSWORD_STRENGTH.MEDIUM_TYPES_COUNT) {
     strength = 'medium'
   } else {
     strength = 'weak'

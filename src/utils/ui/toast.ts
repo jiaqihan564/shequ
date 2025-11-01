@@ -1,3 +1,5 @@
+import { toastConfig } from '@/config'
+
 export type ToastType = 'success' | 'error' | 'warning' | 'info'
 export type ToastPosition =
   | 'top-right'
@@ -25,10 +27,12 @@ function getMaxVisible(): number {
   try {
     const w = window.innerWidth
     const h = window.innerHeight
-    if (w <= 480 || h <= 640) return 3
-    return 5
+    if (w <= toastConfig.screenBreakpoint.width || h <= toastConfig.screenBreakpoint.height) {
+      return toastConfig.maxVisible.small
+    }
+    return toastConfig.maxVisible.large
   } catch {
-    return 5
+    return toastConfig.maxVisible.large
   }
 }
 
@@ -64,7 +68,7 @@ export function push(options: ToastOptions) {
     id: `t_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     type: (options.type || 'info') as ToastType,
     message: options.message,
-    duration: options.duration ?? 3000,
+    duration: options.duration ?? toastConfig.defaultDuration,
     closable: options.closable ?? true
   }
   // 若超过可见上限，移除最早的一条（顶部最旧）
@@ -84,16 +88,16 @@ export function push(options: ToastOptions) {
 export const toast = {
   push,
   remove,
-  info(message: string, duration = 3000) {
+  info(message: string, duration = toastConfig.defaultDuration) {
     return push({ type: 'info', message, duration })
   },
-  success(message: string, duration = 3000) {
+  success(message: string, duration = toastConfig.defaultDuration) {
     return push({ type: 'success', message, duration })
   },
-  warning(message: string, duration = 3000) {
+  warning(message: string, duration = toastConfig.defaultDuration) {
     return push({ type: 'warning', message, duration })
   },
-  error(message: string, duration = 3000) {
+  error(message: string, duration = toastConfig.defaultDuration) {
     return push({ type: 'error', message, duration })
   }
 }

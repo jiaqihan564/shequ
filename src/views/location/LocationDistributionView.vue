@@ -91,6 +91,7 @@ import echarts from '@/utils/echarts'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import { getLocationDistribution } from '@/utils/api'
 import { toast } from '@/utils/toast'
+import { mapConfig } from '@/config'
 
 const loading = ref(false)
 const data = ref<any>({
@@ -433,7 +434,7 @@ const render3DGlobe = async () => {
     const mapName = provinceNameMap[p.province] || p.province
     // 数据格式: [省份名, 高度值(用户数 * 缩放系数)]
     // 为了让柱子高度差异更明显，乘以缩放系数
-    const heightScale = 20 // 高度缩放系数，让柱子更高更明显
+    const heightScale = mapConfig.heightScale3D
     return {
       name: mapName,
       value: [mapName, p.user_count * heightScale],
