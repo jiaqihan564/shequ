@@ -37,6 +37,7 @@ const requestCache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_DURATION = apiConfig.cacheDuration
 
 // 请求去重：防止相同请求并发发送
+// 注意：真正的Promise去重需要在axios外部实现，这里主要依赖缓存机制
 const pendingRequests = new Map<string, Promise<any>>()
 
 // 请求取消：组件卸载时取消pending请求
@@ -61,17 +62,41 @@ api.interceptors.request.use(
     const requestId = generateRequestId()
     config.headers['X-Request-ID'] = requestId
 
-    // 为GET请求实现请求去重
+    // 为GET请求检查缓存（避免重复请求）
     if (config.method === 'get') {
+      const cacheKey = `${config.url}?${JSON.stringify(config.params || {})}`
+      const cached = requestCache.get(cacheKey)
+      
+      // 如果有有效缓存，直接返回缓存数据（模拟响应）
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        logger.debug('使用缓存响应:', cacheKey)
+        return Promise.reject({
+          __CACHE_HIT__: true,
+          cachedResponse: {
+            data: cached.data,
+            status: HTTP_STATUS.OK,
+            statusText: 'OK',
+            headers: {},
+            config: config
+          }
+        })
+      }
+      
       const requestKey = getRequestKey(config)
       
       // 检查是否有相同的pending请求
       const pendingRequest = pendingRequests.get(requestKey)
       if (pendingRequest) {
         // 返回pending的Promise，避免重复请求
+        logger.debug('检测到重复请求，复用pending请求:', requestKey)
         return Promise.reject({
           __CANCEL__: true,
-          promise: pendingRequest
+          __DEDUPE__: true,
+          requestKey: requestKey,
+          promise: pendingRequest.then(
+            res => ({ ...res }),
+            err => Promise.reject({ ...err, __DEDUPED__: true })
+          )
         })
       }
     }
@@ -124,11 +149,22 @@ api.interceptors.response.use(
     return response
   },
   async error => {
+    // 处理缓存命中的情况
+    if (error.__CACHE_HIT__ && error.cachedResponse) {
+      logger.debug('返回缓存响应')
+      return error.cachedResponse
+    }
+    
     // 处理请求去重的特殊情况
-    if (error.__CANCEL__ && error.promise) {
+    if (error.__CANCEL__ && error.__DEDUPE__ && error.promise) {
       try {
-        return await error.promise
-      } catch (e) {
+        const result = await error.promise
+        return result
+      } catch (e: any) {
+        // 为去重的请求添加额外上下文
+        if (e.__DEDUPED__) {
+          logger.debug('去重请求失败:', error.requestKey)
+        }
         throw e
       }
     }
@@ -847,12 +883,12 @@ export async function fetchNews(params: FetchNewsParams = {}): Promise<NewsItem[
     const title = pick(headlines, i)
     const source = pick(sources, i + 2)
     const imageUrl = pick(images, i + 1)
-    const url = pick(newsUrls, i) // 使用真实的新闻网站链接
-    const id = `n_${btoa(url).replace(/=+$/g, '')}_${i}`
+    const url = `#mock-news-${i}` // 使用占位符URL（模拟数据）
+    const id = `n_mock_${Date.now()}_${i}`
     
-    logger.debug(`生成新闻 ${i}: ${title} -> ${url}`)
+    logger.debug(`生成新闻 ${i}: ${title} [模拟数据]`)
     
-    return { id, title, source, url, imageUrl, publishedAt: ts, summary: '' }
+    return { id, title, source, url, imageUrl, publishedAt: ts, summary: '[模拟数据] ' + title }
   })
 
   // 按时间倒序并截取 pageSize

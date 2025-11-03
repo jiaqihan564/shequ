@@ -30,15 +30,6 @@
         </div>
       </div>
 
-      <!-- JVM 语言编码提示 -->
-      <div v-if="isJVMLanguage" class="encoding-warning">
-        <span class="warning-icon">⚠️</span>
-        <span class="warning-text">
-          当前 {{ currentLanguageName }} 环境可能不完全支持中文字符显示。
-          建议使用英文或拼音，或参考<a href="#" @click.prevent="showEncodingHelp">编码解决方案</a>。
-        </span>
-      </div>
-
       <div class="editor-workspace">
         <div class="editor-panel">
           <div class="panel-header">
@@ -204,14 +195,6 @@ const monacoLanguage = computed(() => {
   return langMap[selectedLanguage.value] || 'plaintext'
 })
 
-// 检查是否为 JVM 语言
-const isJVMLanguage = computed(() => {
-  return ['java', 'scala', 'kotlin'].includes(selectedLanguage.value)
-})
-
-const currentLanguageName = computed(() => {
-  return currentLanguage.value?.name || selectedLanguage.value
-})
 
 function onLanguageChange(langId: string, language: LanguageInfo) {
   currentLanguage.value = language
@@ -260,6 +243,7 @@ async function runCode() {
   executionTime.value = null
 
   try {
+    // 直接发送原始代码（包含中文），让后端和Piston处理
     const result = await executeCode({
       language: selectedLanguage.value,
       code: code.value,
@@ -341,10 +325,6 @@ function showSnippets() {
 
 function showHistory() {
   router.push('/code-history?tab=executions')
-}
-
-function showEncodingHelp() {
-  toast.info('JVM语言编码提示：\n1. 建议使用英文字符串和注释\n2. 或使用拼音代替中文\n3. 后端已尝试设置UTF-8编码\n4. 如需大量中文，推荐使用Python或JavaScript', 8000)
 }
 
 // 分享链接功能
