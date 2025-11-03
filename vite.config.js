@@ -104,13 +104,39 @@ export default defineConfig({
     open: true,
     cors: true,
     host: '0.0.0.0',
+    // 允许所有主机访问（开发环境）- 解决域名访问被阻止的问题
+    allowedHosts: ['15253013176.gnway.cc', '.gnway.cc', 'localhost', '127.0.0.1'],
+    // HMR配置 - 修复WebSocket连接问题
+    hmr: {
+      clientPort: 3000,
+      protocol: 'ws'
+    },
     proxy: {
       '/api': {
         target: 'http://127.0.0.1:3001',
         changeOrigin: true,
         secure: false,
         ws: true, // 启用 WebSocket 代理支持
-        rewrite: (path) => path
+        rewrite: (path) => path,
+        // WebSocket 超时配置
+        timeout: 60000, // 60秒超时
+        proxyTimeout: 60000,
+        // WebSocket 连接调试
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.log('[Proxy Error]', err);
+          });
+          proxy.on('proxyReq', (proxyReq, req, res) => {
+            if (req.url.includes('/ws')) {
+              console.log('[WS Proxy Request]', req.method, req.url);
+            }
+          });
+          proxy.on('proxyRes', (proxyRes, req, res) => {
+            if (req.url.includes('/ws')) {
+              console.log('[WS Proxy Response]', proxyRes.statusCode, req.url);
+            }
+          });
+        }
       },
       // 开发环境：将 /news 代理到本地 8787（Cloudflare Workers 开发端口）
       '/news': {
