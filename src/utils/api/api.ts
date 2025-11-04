@@ -17,6 +17,7 @@ import { logger } from '../ui/logger'
 import { apiConfig, newsConfig, apiDefaultsConfig } from '@/config'
 import { STORAGE_KEYS } from '@/config/storage-keys'
 import { HTTP_STATUS, isServerErrorStatus } from '@/config/http-status'
+import { authManager } from '@/utils/auth/authManager'
 
 // 创建axios实例
 const api: AxiosInstance = axios.create({
@@ -36,18 +37,8 @@ const api: AxiosInstance = axios.create({
 const requestCache = new Map<string, { data: any; timestamp: number }>()
 const CACHE_DURATION = apiConfig.cacheDuration
 
-// 请求去重：防止相同请求并发发送
-// 注意：真正的Promise去重需要在axios外部实现，这里主要依赖缓存机制
-const pendingRequests = new Map<string, Promise<any>>()
-
 // 请求取消：组件卸载时取消pending请求
 const cancelTokens = new Map<string, AbortController>()
-
-// 生成请求唯一键（用于去重）
-function getRequestKey(config: AxiosRequestConfig): string {
-  const { method, url, params, data } = config
-  return `${method}:${url}:${JSON.stringify(params)}:${JSON.stringify(data)}`
-}
 
 // 请求拦截器
 api.interceptors.request.use(
@@ -81,24 +72,6 @@ api.interceptors.request.use(
           }
         })
       }
-      
-      const requestKey = getRequestKey(config)
-      
-      // 检查是否有相同的pending请求
-      const pendingRequest = pendingRequests.get(requestKey)
-      if (pendingRequest) {
-        // 返回pending的Promise，避免重复请求
-        logger.debug('检测到重复请求，复用pending请求:', requestKey)
-        return Promise.reject({
-          __CANCEL__: true,
-          __DEDUPE__: true,
-          requestKey: requestKey,
-          promise: pendingRequest.then(
-            res => ({ ...res }),
-            err => Promise.reject({ ...err, __DEDUPED__: true })
-          )
-        })
-      }
     }
 
     // 创建取消令牌（用于组件卸载时取消请求）
@@ -118,8 +91,14 @@ api.interceptors.request.use(
   }
 )
 
-// 防止重复跳转登录页的标记
-let isRedirectingToLogin = false
+/**
+ * @deprecated 使用 authManager.handleTokenExpiration() 替代
+ * 保留此函数以保持向后兼容
+ */
+export function handleTokenExpired(reason: string = '登录已过期'): void {
+  console.warn('[handleTokenExpired] 此函数已废弃，请使用 authManager.handleTokenExpiration()')
+  authManager.handleTokenExpiration(reason)
+}
 
 // 响应拦截器
 api.interceptors.response.use(
@@ -129,12 +108,6 @@ api.interceptors.response.use(
     // 清理cancel token
     if (requestId) {
       cancelTokens.delete(requestId)
-    }
-    
-    // 清理pending request（如果是GET请求）
-    if (response.config.method === 'get') {
-      const requestKey = getRequestKey(response.config)
-      pendingRequests.delete(requestKey)
     }
     
     // 缓存GET请求的响应
@@ -155,20 +128,6 @@ api.interceptors.response.use(
       return error.cachedResponse
     }
     
-    // 处理请求去重的特殊情况
-    if (error.__CANCEL__ && error.__DEDUPE__ && error.promise) {
-      try {
-        const result = await error.promise
-        return result
-      } catch (e: any) {
-        // 为去重的请求添加额外上下文
-        if (e.__DEDUPED__) {
-          logger.debug('去重请求失败:', error.requestKey)
-        }
-        throw e
-      }
-    }
-    
     // 处理请求取消
     if (axios.isCancel(error)) {
       logger.debug('请求已取消:', error.message)
@@ -176,62 +135,81 @@ api.interceptors.response.use(
     }
     
     const originalRequest = error.config
+    const requestId = originalRequest?.headers?.['X-Request-ID'] as string
     
-    // 清理cancel token和pending request
-    if (originalRequest) {
-      const requestId = originalRequest.headers?.['X-Request-ID'] as string
-      if (requestId) {
-        cancelTokens.delete(requestId)
-      }
-      
-      if (originalRequest.method === 'get') {
-        const requestKey = getRequestKey(originalRequest)
-        pendingRequests.delete(requestKey)
-      }
+    // 清理cancel token
+    if (requestId) {
+      cancelTokens.delete(requestId)
     }
 
     // 处理认证错误（401）
     if (error.response?.status === HTTP_STATUS.UNAUTHORIZED) {
-      // 如果是登录请求，直接返回错误
+      const errorMessage = error.response?.data?.message || '登录已过期'
+      const errorCode = error.response?.data?.code
+      const requestUrl = originalRequest?.url || 'unknown'
+      
+      console.log('[API拦截器] 捕获到401错误', {
+        url: requestUrl,
+        message: errorMessage,
+        code: errorCode,
+        timestamp: new Date().toISOString()
+      })
+      
+      // 如果是登录请求本身失败，不触发自动登出
       if (originalRequest?.url?.includes('/auth/login')) {
+        console.log('[API拦截器] 登录请求失败，不触发自动登出')
         const appError = createAppError(
-          error.response?.data?.code?.toString() || 'LOGIN_FAILED',
-          error.response?.data?.message || '用户名或密码错误',
+          errorCode?.toString() || 'LOGIN_FAILED',
+          errorMessage || '用户名或密码错误',
           error.response?.data
         )
         return Promise.reject(appError)
       }
 
-      // 其他401错误：token过期或无效
-      if (!isRedirectingToLogin) {
-        isRedirectingToLogin = true
-        
-        // 动态导入 ElMessage（通过 unplugin-auto-import 自动注入）
-        if (typeof (window as any).ElMessage !== 'undefined') {
-          (window as any).ElMessage.warning('登录已过期，请重新登录', { duration: apiConfig.authRedirectDelay })
-        }
-        
-        // 清除所有认证信息
-        clearAuthTokens()
-        
-        // 延迟后跳转到登录页
-        setTimeout(() => {
-          isRedirectingToLogin = false
-          window.location.href = '/login'
-        }, apiConfig.authRedirectDelay)
+      // 确定失效原因
+      let reason = '登录已过期'
+      if (errorMessage.includes('无效') || errorCode === 'INVALID_TOKEN') {
+        reason = 'Token无效'
+      } else if (errorMessage.includes('过期') || errorCode === 'TOKEN_EXPIRED') {
+        reason = 'Token已过期'
+      } else if (errorMessage.includes('缺少') || errorCode === 'MISSING_TOKEN') {
+        reason = '未登录'
       }
       
-      return Promise.reject(createAppError('AUTH_EXPIRED', '认证已过期，请重新登录'))
+      console.log('[API拦截器] 调用 AuthManager 处理token过期', { reason })
+      
+      // 使用 AuthManager 统一处理（带防抖，自动跳转）
+      authManager.handleTokenExpiration(reason)
+      
+      // 返回错误供调用方处理（但跳转已触发）
+      return Promise.reject(createAppError('AUTH_EXPIRED', errorMessage || '认证已过期，请重新登录'))
+    }
+
+    // 处理其他HTTP错误
+    if (error.response) {
+      console.log('[API拦截器] HTTP错误', {
+        status: error.response.status,
+        url: originalRequest?.url,
+        message: error.response?.data?.message
+      })
+      
+      const appError = createAppError(
+        error.response?.data?.code?.toString() || 'API_ERROR',
+        error.response?.data?.message || '请求失败',
+        error.response?.data
+      )
+      return Promise.reject(appError)
+    }
+
+    // 处理网络错误
+    if (error.request) {
+      console.error('[API拦截器] 网络错误', { url: originalRequest?.url })
+      return Promise.reject(createAppError('NETWORK_ERROR', '网络连接失败，请检查您的网络'))
     }
 
     // 处理其他错误
-    const appError = createAppError(
-      error.response?.data?.code?.toString() || 'API_ERROR',
-      error.response?.data?.message || '请求失败',
-      error.response?.data
-    )
-
-    return Promise.reject(appError)
+    console.error('[API拦截器] 未知错误', { error })
+    return Promise.reject(createAppError('UNKNOWN_ERROR', error.message || '未知错误'))
   }
 )
 
@@ -275,7 +253,7 @@ function clearAuthTokens(): void {
 }
 
 function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
 }
 
 function createAppError(code: string, message: string, details?: any): AppError {
@@ -356,8 +334,32 @@ function clearExpiredCache(): void {
   }
 }
 
-// 定期清理缓存
-setInterval(clearExpiredCache, CACHE_DURATION)
+// 定期清理缓存（保存interval ID以便清理）
+let cacheCleanupInterval: number | null = null
+
+function startCacheCleanup(): void {
+  if (cacheCleanupInterval === null) {
+    cacheCleanupInterval = window.setInterval(clearExpiredCache, CACHE_DURATION)
+  }
+}
+
+function stopCacheCleanup(): void {
+  if (cacheCleanupInterval !== null) {
+    window.clearInterval(cacheCleanupInterval)
+    cacheCleanupInterval = null
+  }
+}
+
+// 启动清理任务
+startCacheCleanup()
+
+// 在页面卸载时清理
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    stopCacheCleanup()
+    cancelAllRequests()
+  })
+}
 
 // 清除所有缓存
 export function clearApiCache(): void {
@@ -416,14 +418,40 @@ export async function register(registerData: RegisterForm): Promise<RegisterResp
 
 /**
  * 用户登出
+ * @param navigateToLogin 是否跳转到登录页，默认true
  */
-export async function logout(): Promise<void> {
+export async function logout(navigateToLogin: boolean = true): Promise<void> {
+  console.log('[API] 用户主动登出')
+  
   try {
+    // 尝试调用服务器登出接口（可能会因为token失效而失败，忽略错误）
     await api.post('/auth/logout')
+    logger.info('服务器登出成功')
   } catch (error) {
-    logger.error('登出请求失败:', error)
+    logger.warn('服务器登出失败（已忽略）:', error)
   } finally {
+    // 清除所有本地数据
     clearAuthTokens()
+    clearApiCache()
+    cancelAllRequests()
+    
+    // 派发登出事件
+    try {
+      window.dispatchEvent(new CustomEvent('user:logout', { 
+        detail: { reason: '用户主动登出', automatic: false } 
+      }))
+    } catch (e) {
+      void e
+    }
+    
+    logger.info('本地登出完成')
+    
+    // 跳转到登录页
+    if (navigateToLogin) {
+      setTimeout(() => {
+        window.location.replace('/login')
+      }, 300) // 短暂延迟，确保清理完成
+    }
   }
 }
 
@@ -1659,7 +1687,6 @@ export function cancelAllRequests(): void {
     controller.abort()
   })
   cancelTokens.clear()
-  pendingRequests.clear()
 }
 
 /**

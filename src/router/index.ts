@@ -225,62 +225,73 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const requiresAuth = to.matched.some(r => r.meta?.requiresAuth)
   const requiresAdmin = to.matched.some(r => r.meta?.requiresAdmin)
+  
+  // 检查是否是强制登出跳转（由AuthManager触发）
+  const forceLogout = sessionStorage.getItem('__force_logout__')
+  if (forceLogout) {
+    sessionStorage.removeItem('__force_logout__')
+    console.log('[Router] 检测到强制登出标记，清理完成')
+    
+    // 如果目标是登录页或注册页，直接通过
+    if (to.path === '/login' || to.path === '/register') {
+      next()
+      return
+    }
+    
+    // 否则重定向到登录页
+    console.log('[Router] 强制重定向到登录页')
+    next({ path: '/login', query: { expired: 'true' } })
+    return
+  }
+  
+  // 获取token并检查基本有效性
   const token = getStoredToken()
-  const isAuthenticated = !!token
+  const hasValidToken = !!token && !isTokenExpired(token)
 
-  // 检查是否需要认证
-  if (requiresAuth && !isAuthenticated) {
+  // 需要认证但没有有效token，跳转登录页
+  if (requiresAuth && !hasValidToken) {
+    console.log('[Router] 需要认证但token无效，跳转登录页', {
+      path: to.path,
+      hasToken: !!token,
+      isExpired: token ? isTokenExpired(token) : null
+    })
     next({ path: '/login', query: { redirect: to.fullPath } })
     return
   }
 
-  // 检查 token 是否过期（即使存在）
-  if (requiresAuth && isAuthenticated && isTokenExpired(token)) {
-    // Token 已过期，清除所有认证信息
-    localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
-    localStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
-    localStorage.removeItem(STORAGE_KEYS.USER_INFO)
-    sessionStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN)
-    sessionStorage.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
-    sessionStorage.removeItem(STORAGE_KEYS.USER_INFO)
+  // 检查管理员权限
+  if (requiresAdmin && hasValidToken) {
+    const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || 
+                     sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
     
-    // 保存原路径到 sessionStorage 以便登录后返回
-    sessionStorage.setItem('redirect_after_login', to.fullPath)
-    
-    // 跳转到登录页
-    next({ path: '/login', query: { redirect: to.fullPath } })
-    return
-  }
-
-  // 检查是否需要管理员权限
-  if (requiresAdmin && isAuthenticated) {
-    const userInfo = localStorage.getItem('user_info') || sessionStorage.getItem('user_info')
     if (userInfo) {
       try {
         const user = JSON.parse(userInfo)
         if (user.role !== 'admin') {
-          // 非管理员访问管理员页面，重定向到首页
-          console.warn('需要管理员权限')
+          console.warn('[Router] 需要管理员权限，重定向到首页')
           next('/home')
           return
         }
       } catch (error) {
-        console.error('解析用户信息失败:', error)
+        console.error('[Router] 解析用户信息失败:', error)
         next('/login')
         return
       }
     } else {
+      console.warn('[Router] 需要管理员权限但用户信息不存在')
       next('/login')
       return
     }
   }
 
   // 已登录用户访问登录/注册页面，重定向到首页
-  if ((to.path === '/login' || to.path === '/register') && isAuthenticated) {
+  if ((to.path === '/login' || to.path === '/register') && hasValidToken) {
+    console.log('[Router] 已登录用户访问登录页，重定向到首页')
     next('/home')
     return
   }
 
+  // 通过所有检查
   next()
 })
 
