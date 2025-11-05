@@ -3,6 +3,12 @@
     <aside class="sidebar">
       <slot name="sidebar">
         <nav class="nav">
+          <!-- 仅普通用户可见：首页 -->
+          <template v-if="!isUserAdmin">
+            <RouterLink to="/home" class="nav-item" active-class="active">📱 首页</RouterLink>
+            <div class="nav-divider"></div>
+          </template>
+          
           <RouterLink to="/profile" class="nav-item" active-class="active">👤 个人资料</RouterLink>
           
           <!-- 仅管理员可见：统计分析模块 -->
@@ -28,11 +34,8 @@
           <RouterLink to="/operation-history" class="nav-item" active-class="active">📋 操作历史</RouterLink>
           <RouterLink to="/profile-history" class="nav-item" active-class="active">📝 资料修改</RouterLink>
           
-          <!-- 仅普通用户可见：首页、社交互动、在线编程、资源分享 -->
+          <!-- 仅普通用户可见：社交互动、在线编程、资源分享 -->
           <template v-if="!isUserAdmin">
-            <div class="nav-divider"></div>
-            <RouterLink to="/home" class="nav-item" active-class="active">📱 首页</RouterLink>
-            
             <!-- 社交功能 -->
             <div class="nav-divider"></div>
             <div class="nav-section-title">社交互动</div>
