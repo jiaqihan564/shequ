@@ -165,7 +165,8 @@ export default defineConfig({
       }
     },
     // 优化：提高chunk大小警告阈值
-    chunkSizeWarningLimit: 1000,
+    // Monaco Editor 等大型库会超过 1MB，提高到 5MB 避免误报
+    chunkSizeWarningLimit: 5000,
     // 优化：启用CSS代码拆分
     cssCodeSplit: true,
     // 优化：资源内联阈值（小于4KB的资源内联为base64）
@@ -231,8 +232,19 @@ export default defineConfig({
             return 'highlight'
           }
           
-          // Monaco Editor 编辑器（超大文件，单独拆分且优先级最低）
+          // Monaco Editor 编辑器（超大文件，按功能拆分）
           if (id.includes('node_modules/monaco-editor/')) {
+            // 进一步拆分 Monaco Editor 内部模块
+            if (id.includes('esm/vs/editor/')) {
+              return 'monaco-editor-core'
+            }
+            if (id.includes('esm/vs/language/')) {
+              return 'monaco-languages'
+            }
+            if (id.includes('esm/vs/basic-languages/')) {
+              return 'monaco-basic-languages'
+            }
+            // 其他 Monaco 相关文件
             return 'monaco-editor'
           }
           
