@@ -27,15 +27,10 @@
       </el-avatar>
       <div class="welcome-text">
         <h3>你好，{{ user.profile?.nickname || user.username }}！</h3>
-        <p>当前身份：{{ user.role || '用户' }}</p>
       </div>
     </section>
 
     <section class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">当前身份</div>
-        <div class="stat-value">{{ user?.role || '用户' }}</div>
-      </div>
       <div class="stat-card soft">
         <div class="stat-label">活跃社区</div>
         <div class="stat-value">优质内容等你发现</div>
@@ -251,7 +246,7 @@ function onVisibility() {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 .stat-card {

@@ -37,7 +37,28 @@ const CodeShareView = () => import('@/views/code/CodeShareView.vue')
 const CodeSquareView = () => import('@/views/code/CodeSquareView.vue')
 
 const routes: RouteRecordRaw[] = [
-  { path: '/', redirect: '/home' },
+  { 
+    path: '/', 
+    redirect: () => {
+      // 动态重定向：管理员跳转到个人资料页，普通用户跳转到首页
+      const token = getStoredToken()
+      if (token && !isTokenExpired(token)) {
+        const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || 
+                        sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+        if (userInfo) {
+          try {
+            const user = JSON.parse(userInfo)
+            if (user.role === 'admin') {
+              return '/profile'
+            }
+          } catch (error) {
+            logger.error('[Router] 解析用户信息失败:', error)
+          }
+        }
+      }
+      return '/home'
+    }
+  },
   { path: '/login', name: 'login', component: LoginView, meta: { title: '登录' } },
   { path: '/register', name: 'register', component: RegisterView, meta: { title: '注册' } },
   {
@@ -51,13 +72,13 @@ const routes: RouteRecordRaw[] = [
     path: '/chatroom',
     name: 'chatroom',
     component: ChatRoomView,
-    meta: { title: '聊天室', requiresAuth: true }
+    meta: { title: '聊天室', requiresAuth: true, userOnly: true }
   },
   {
     path: '/danmaku-chat',
     name: 'danmaku-chat',
     component: DanmakuChatView,
-    meta: { title: '弹幕聊天室', requiresAuth: true }
+    meta: { title: '弹幕聊天室', requiresAuth: true, userOnly: true }
   },
   {
     path: '/',
@@ -68,7 +89,7 @@ const routes: RouteRecordRaw[] = [
         path: 'home',
         name: 'home',
         component: HomeView,
-        meta: { title: '首页', requiresAuth: true }
+        meta: { title: '首页', requiresAuth: true, userOnly: true }
       },
       {
         path: 'profile',
@@ -134,79 +155,79 @@ const routes: RouteRecordRaw[] = [
         path: 'articles',
         name: 'articles',
         component: ArticleListView,
-        meta: { title: '技术文章', requiresAuth: true }
+        meta: { title: '技术文章', requiresAuth: true, userOnly: true }
       },
       {
         path: 'articles/create',
         name: 'article-create',
         component: ArticleEditorView,
-        meta: { title: '发布文章', requiresAuth: true }
+        meta: { title: '发布文章', requiresAuth: true, userOnly: true }
       },
       {
         path: 'articles/:id/edit',
         name: 'article-edit',
         component: ArticleEditorView,
-        meta: { title: '编辑文章', requiresAuth: true }
+        meta: { title: '编辑文章', requiresAuth: true, userOnly: true }
       },
       {
         path: 'articles/:id',
         name: 'article-detail',
         component: ArticleDetailView,
-        meta: { title: '文章详情', requiresAuth: true }
+        meta: { title: '文章详情', requiresAuth: true, userOnly: true }
       },
       {
         path: 'users/:id',
         name: 'user-detail',
         component: UserDetailView,
-        meta: { title: '用户详情', requiresAuth: true }
+        meta: { title: '用户详情', requiresAuth: true, userOnly: true }
       },
       {
         path: 'messages',
         name: 'messages',
         component: MessageListView,
-        meta: { title: '私信', requiresAuth: true }
+        meta: { title: '私信', requiresAuth: true, userOnly: true }
       },
       {
         path: 'messages/:userId',
         name: 'message-chat',
         component: MessageChatView,
-        meta: { title: '对话', requiresAuth: true }
+        meta: { title: '对话', requiresAuth: true, userOnly: true }
       },
       {
         path: 'resources',
         name: 'resources',
         component: ResourceListView,
-        meta: { title: '资源中心', requiresAuth: true }
+        meta: { title: '资源中心', requiresAuth: true, userOnly: true }
       },
       {
         path: 'resources/upload',
         name: 'resource-upload',
         component: ResourceUploadView,
-        meta: { title: '上传资源', requiresAuth: true }
+        meta: { title: '上传资源', requiresAuth: true, userOnly: true }
       },
       {
         path: 'resources/:id',
         name: 'resource-detail',
         component: ResourceDetailView,
-        meta: { title: '资源详情', requiresAuth: true }
+        meta: { title: '资源详情', requiresAuth: true, userOnly: true }
       },
       {
         path: 'code-editor',
         name: 'code-editor',
         component: CodeEditorView,
-        meta: { title: '在线编程', requiresAuth: true }
+        meta: { title: '在线编程', requiresAuth: true, userOnly: true }
       },
       {
         path: 'code-square',
         name: 'code-square',
         component: CodeSquareView,
-        meta: { title: '代码广场', requiresAuth: true }
+        meta: { title: '代码广场', requiresAuth: true, userOnly: true }
       },
       {
         path: 'code-history',
         name: 'code-history',
         component: CodeHistoryView,
-        meta: { title: '代码历史', requiresAuth: true }
+        meta: { title: '代码历史', requiresAuth: true, userOnly: true }
       }
     ]
   },
@@ -260,7 +281,7 @@ router.beforeEach((to, _from, next) => {
     return
   }
 
-  // 检查管理员权限
+  // 检查管理员权限 - 防止普通用户通过URL直接访问管理员页面
   if (requiresAdmin && hasValidToken) {
     const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || 
                      sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
@@ -269,24 +290,68 @@ router.beforeEach((to, _from, next) => {
       try {
         const user = JSON.parse(userInfo)
         if (user.role !== 'admin') {
-          logger.warn('[Router] 需要管理员权限，重定向到首页')
-          next('/home')
+          logger.warn('[Router] 普通用户尝试访问管理员页面，已拦截并重定向到个人资料页', {
+            path: to.path,
+            userRole: user.role
+          })
+          next({ path: '/profile', replace: true })
           return
         }
       } catch (error) {
         logger.error('[Router] 解析用户信息失败:', error)
-        next('/login')
+        next({ path: '/login', replace: true })
         return
       }
     } else {
       logger.warn('[Router] 需要管理员权限但用户信息不存在')
-      next('/login')
+      next({ path: '/login', replace: true })
       return
     }
   }
 
-  // 已登录用户访问登录/注册页面，重定向到首页
+  // 检查普通用户专属页面 - 防止管理员访问普通用户界面（历史记录除外）
+  const userOnly = to.matched.some(r => r.meta?.userOnly)
+  if (userOnly && hasValidToken) {
+    const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || 
+                     sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+    
+    if (userInfo) {
+      try {
+        const user = JSON.parse(userInfo)
+        if (user.role === 'admin') {
+          logger.warn('[Router] 管理员尝试访问普通用户专属页面，已拦截并重定向到个人资料页', {
+            path: to.path,
+            userRole: user.role
+          })
+          next({ path: '/profile', replace: true })
+          return
+        }
+      } catch (error) {
+        logger.error('[Router] 解析用户信息失败:', error)
+        next({ path: '/login', replace: true })
+        return
+      }
+    }
+  }
+
+  // 已登录用户访问登录/注册页面，重定向到首页（普通用户）或个人资料页（管理员）
   if ((to.path === '/login' || to.path === '/register') && hasValidToken) {
+    const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || 
+                     sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+    
+    if (userInfo) {
+      try {
+        const user = JSON.parse(userInfo)
+        if (user.role === 'admin') {
+          logger.info('[Router] 已登录的管理员访问登录页，重定向到个人资料页')
+          next('/profile')
+          return
+        }
+      } catch (error) {
+        logger.error('[Router] 解析用户信息失败:', error)
+      }
+    }
+    
     logger.info('[Router] 已登录用户访问登录页，重定向到首页')
     next('/home')
     return
