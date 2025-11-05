@@ -29,28 +29,31 @@
           <RouterLink to="/operation-history" class="nav-item" active-class="active">📋 操作历史</RouterLink>
           <RouterLink to="/profile-history" class="nav-item" active-class="active">📝 资料修改</RouterLink>
           
-          <!-- 所有用户可见：社交功能 -->
-          <div class="nav-divider"></div>
-          <div class="nav-section-title">社交互动</div>
-          <RouterLink to="/chatroom" class="nav-item" active-class="active">💬 聊天室</RouterLink>
-          <RouterLink to="/danmaku-chat" class="nav-item" active-class="active">🎬 弹幕聊天室</RouterLink>
-          <RouterLink to="/messages" class="nav-item" active-class="active">
-            ✉️ 私信
-            <el-badge v-if="unreadCount > 0" :value="unreadCount" type="danger" />
-          </RouterLink>
-          <RouterLink to="/articles" class="nav-item" active-class="active">📝 技术文章</RouterLink>
-          
-          <!-- 所有用户可见：在线编程 -->
-          <div class="nav-divider"></div>
-          <div class="nav-section-title">在线编程</div>
-          <RouterLink to="/code-editor" class="nav-item" active-class="active">💻 代码编辑器</RouterLink>
-          <RouterLink to="/code-square" class="nav-item" active-class="active">🎯 代码广场</RouterLink>
-          <RouterLink to="/code-history" class="nav-item" active-class="active">📚 代码历史</RouterLink>
-          
-          <!-- 所有用户可见：资源中心 -->
-          <div class="nav-divider"></div>
-          <div class="nav-section-title">资源分享</div>
-          <RouterLink to="/resources" class="nav-item" active-class="active">📦 资源中心</RouterLink>
+          <!-- 仅普通用户可见：社交互动、在线编程、资源分享 -->
+          <template v-if="!isUserAdmin">
+            <!-- 社交功能 -->
+            <div class="nav-divider"></div>
+            <div class="nav-section-title">社交互动</div>
+            <RouterLink to="/chatroom" class="nav-item" active-class="active">💬 聊天室</RouterLink>
+            <RouterLink to="/danmaku-chat" class="nav-item" active-class="active">🎬 弹幕聊天室</RouterLink>
+            <RouterLink to="/messages" class="nav-item" active-class="active">
+              ✉️ 私信
+              <el-badge v-if="unreadCount > 0" :value="unreadCount" type="danger" />
+            </RouterLink>
+            <RouterLink to="/articles" class="nav-item" active-class="active">📝 技术文章</RouterLink>
+            
+            <!-- 在线编程 -->
+            <div class="nav-divider"></div>
+            <div class="nav-section-title">在线编程</div>
+            <RouterLink to="/code-editor" class="nav-item" active-class="active">💻 代码编辑器</RouterLink>
+            <RouterLink to="/code-square" class="nav-item" active-class="active">🎯 代码广场</RouterLink>
+            <RouterLink to="/code-history" class="nav-item" active-class="active">📚 代码历史</RouterLink>
+            
+            <!-- 资源中心 -->
+            <div class="nav-divider"></div>
+            <div class="nav-section-title">资源分享</div>
+            <RouterLink to="/resources" class="nav-item" active-class="active">📦 资源中心</RouterLink>
+          </template>
         </nav>
       </slot>
     </aside>

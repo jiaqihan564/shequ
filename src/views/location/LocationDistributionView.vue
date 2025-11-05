@@ -36,30 +36,12 @@
           <div class="card-value">{{ topProvince }}</div>
         </div>
       </div>
-
-      <div class="stat-card">
-        <div class="card-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%)">
-          🌟
-        </div>
-        <div class="card-content">
-          <div class="card-label">用户最多城市</div>
-          <div class="card-value">{{ topCity }}</div>
-        </div>
-      </div>
     </div>
 
-    <div class="charts-grid">
-      <!-- 省份排行榜 -->
-      <div class="chart-section">
-        <h3 class="section-title">Top 10 省份排行</h3>
-        <div ref="provinceChart" class="chart" style="height: 450px"></div>
-      </div>
-
-      <!-- 城市排行榜 -->
-      <div class="chart-section">
-        <h3 class="section-title">Top 10 城市排行</h3>
-        <div ref="cityChart" class="chart" style="height: 450px"></div>
-      </div>
+    <!-- 省份排行榜 -->
+    <div class="chart-section full-width">
+      <h3 class="section-title">Top 10 省份排行</h3>
+      <div ref="provinceChart" class="chart" style="height: 450px"></div>
     </div>
 
     <!-- 中国地图分布 -->
@@ -89,13 +71,11 @@ import { toast } from '@/utils/toast'
 const loading = ref(false)
 const data = ref<any>({
   province_stats: [],
-  city_stats: [],
   total_provinces: 0,
   total_cities: 0
 })
 
 const provinceChart = ref<HTMLElement>()
-const cityChart = ref<HTMLElement>()
 const provincePieChart = ref<HTMLElement>()
 const worldMapChart = ref<HTMLElement>()
 
@@ -103,14 +83,6 @@ const topProvince = computed(() => {
   if (data.value.province_stats && data.value.province_stats.length > 0) {
     const top = data.value.province_stats[0]
     return `${top.province} (${top.user_count}人)`
-  }
-  return '暂无'
-})
-
-const topCity = computed(() => {
-  if (data.value.city_stats && data.value.city_stats.length > 0) {
-    const top = data.value.city_stats[0]
-    return `${top.city} (${top.user_count}人)`
   }
   return '暂无'
 })
@@ -123,9 +95,7 @@ const loadData = async () => {
     
     console.log('地区分布数据:', {
       省份数量: data.value.province_stats?.length,
-      城市数量: data.value.city_stats?.length,
-      省份数据: data.value.province_stats,
-      城市数据: data.value.city_stats
+      省份数据: data.value.province_stats
     })
     
     renderCharts()
@@ -141,11 +111,9 @@ const renderCharts = async () => {
   await nextTick()
   
   const provinceStats = data.value.province_stats || []
-  const cityStats = data.value.city_stats || []
   
   console.log('开始渲染图表，数据量:', {
     省份: provinceStats.length,
-    城市: cityStats.length,
     完整数据: data.value
   })
 
@@ -227,77 +195,6 @@ const renderCharts = async () => {
     console.warn('省份柱状图容器未就绪或无数据', {
       容器存在: !!provinceChart.value,
       数据长度: provinceStats.length
-    })
-  }
-
-  // 渲染城市柱状图（Top 10）
-  if (cityChart.value && cityStats.length > 0) {
-    try {
-      console.log('渲染城市柱状图')
-      const topCities = cityStats.slice(0, 10)
-  const cityNames = topCities.map((c: any) => `${c.city} (${c.province})`)
-  const cityValues = topCities.map((c: any) => c.user_count)
-
-  const chart2 = echarts.init(cityChart.value)
-  chart2.setOption({
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      formatter: (params: any) => {
-        const index = params[0].dataIndex
-        const c = topCities[topCities.length - 1 - index]
-        return `${c.city} (${c.province})<br/>用户数: ${c.user_count}人<br/>登录次数: ${c.login_count}次`
-      }
-    },
-    grid: {
-      left: '10%',
-      right: '10%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'value',
-      name: '用户数'
-    },
-    yAxis: {
-      type: 'category',
-      data: cityNames.reverse(),
-      axisLabel: {
-        fontSize: 13,
-        fontWeight: 600
-      }
-    },
-    series: [{
-      name: '用户数',
-      type: 'bar',
-      data: cityValues.reverse(),
-      itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-          { offset: 0, color: '#4facfe' },
-          { offset: 1, color: '#00f2fe' }
-        ]),
-        borderRadius: [0, 8, 8, 0]
-      },
-      label: {
-        show: true,
-        position: 'right',
-        formatter: (params: any) => {
-          const index = params[0].dataIndex
-          const c = topCities[topCities.length - 1 - index]
-          return `${c.user_count}人(${c.login_count}次)`
-        },
-        fontWeight: 600
-      }
-    }]
-  })
-      console.log('城市柱状图渲染成功')
-    } catch (error) {
-      console.error('城市柱状图渲染失败:', error)
-    }
-  } else {
-    console.warn('城市柱状图容器未就绪或无数据', {
-      容器存在: !!cityChart.value,
-      数据长度: cityStats.length
     })
   }
 
@@ -587,18 +484,12 @@ onMounted(() => {
   color: #111827;
 }
 
-.charts-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
 .chart-section {
   background: white;
   border-radius: 16px;
   padding: 24px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
 }
 
 .chart-section.full-width {
