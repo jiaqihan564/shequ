@@ -430,30 +430,84 @@ input[type="password"] {
   background: #282c34;
 }
 
+.code-block-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.2);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .code-block-lang {
-  position: absolute;
-  top: 0;
-  right: 0;
-  padding: 6px 12px;
+  padding: 4px 10px;
   background: rgba(102, 126, 234, 0.9);
   color: #ffffff;
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  border-bottom-left-radius: 6px;
-  z-index: 1;
+  border-radius: 4px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.code-block-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.code-copy-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  color: #abb2bf;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.code-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(102, 126, 234, 0.8);
+  color: #ffffff;
+}
+
+.code-copy-btn.copied {
+  background: rgba(82, 196, 26, 0.2);
+  border-color: rgba(82, 196, 26, 0.8);
+  color: #52c41a;
+}
+
+.code-copy-btn .code-icon {
+  flex-shrink: 0;
+}
+
+.code-copy-btn .copy-text {
+  white-space: nowrap;
 }
 
 .code-block-wrapper pre {
   margin: 0;
   padding: 16px;
-  padding-top: 40px;
 }
 
 .code-block-wrapper code {
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
   font-size: 14px;
   line-height: 1.6;
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+  .code-copy-btn .copy-text {
+    display: none;
+  }
+  
+  .code-copy-btn {
+    padding: 4px 8px;
+  }
 }

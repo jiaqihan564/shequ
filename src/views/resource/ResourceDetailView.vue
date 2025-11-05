@@ -172,26 +172,100 @@
       v-model="shareDialogVisible"
       title="分享资源"
       width="500px"
+      :close-on-click-modal="true"
     >
       <div class="share-content">
-        <el-form label-width="80px">
-          <el-form-item label="分享链接">
-            <el-input :value="shareLink" readonly>
-              <template #append>
-                <el-button :icon="CopyDocument" @click="copyLink">复制</el-button>
-              </template>
-            </el-input>
-          </el-form-item>
-        </el-form>
+        <el-alert
+          title="分享这个精彩的资源给更多人"
+          type="info"
+          :closable="false"
+          style="margin-bottom: 20px"
+        />
+
+        <div class="share-link-section">
+          <el-input
+            :model-value="shareLink"
+            readonly
+            size="large"
+          >
+            <template #prepend>
+              <el-icon><Link /></el-icon>
+            </template>
+          </el-input>
+          <el-button
+            type="primary"
+            size="large"
+            :icon="CopyDocument"
+            @click="copyLink"
+            style="margin-top: 12px; width: 100%"
+          >
+            复制链接
+          </el-button>
+        </div>
+
+        <el-divider>或通过以下方式分享</el-divider>
+
+        <div class="share-methods">
+          <el-button
+            class="share-btn"
+            @click="shareToWeChat"
+          >
+            <span class="share-icon">💬</span>
+            微信
+          </el-button>
+          <el-button
+            class="share-btn"
+            @click="shareToWeibo"
+          >
+            <span class="share-icon">📱</span>
+            微博
+          </el-button>
+          <el-button
+            class="share-btn"
+            @click="shareToQQ"
+          >
+            <span class="share-icon">🐧</span>
+            QQ
+          </el-button>
+        </div>
       </div>
+
+      <template #footer>
+        <el-button @click="shareDialogVisible = false">关闭</el-button>
+      </template>
+    </el-dialog>
+
+    <!-- 微信二维码对话框 -->
+    <el-dialog
+      v-model="wechatQrVisible"
+      title="微信扫码分享"
+      width="400px"
+      align-center
+    >
+      <div class="qrcode-container">
+        <el-alert
+          title="使用微信扫描二维码分享资源"
+          type="success"
+          :closable="false"
+          style="margin-bottom: 20px"
+        />
+        <div class="qrcode-wrapper">
+          <canvas ref="qrcodeCanvas" class="qrcode-canvas"></canvas>
+        </div>
+        <p class="qrcode-tip">扫描二维码即可在微信中打开资源</p>
+      </div>
+      <template #footer>
+        <el-button type="primary" @click="wechatQrVisible = false">关闭</el-button>
+      </template>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
-import { Download, Star, StarFilled, ChatDotRound, Share, CopyDocument } from '@element-plus/icons-vue'
+import QRCode from 'qrcode'
+import { Download, Star, StarFilled, ChatDotRound, Share, CopyDocument, Link } from '@element-plus/icons-vue'
 import { getResourceDetail, toggleResourceLike, getResourceProxyDownloadUrl, postResourceComment, getResourceComments } from '@/utils/api'
 import { renderMarkdown } from '@/utils/markdown'
 import type { Resource, ResourceComment } from '@/types/resource'
@@ -206,6 +280,8 @@ const resource = ref<Resource | null>(null)
 const comments = ref<ResourceComment[]>([])
 const newComment = ref('')
 const shareDialogVisible = ref(false)
+const wechatQrVisible = ref(false)
+const qrcodeCanvas = ref<HTMLCanvasElement | null>(null)
 const commentCount = ref(0)
 const showImageViewer = ref(false)
 const currentImageUrl = ref('')
@@ -360,9 +436,61 @@ async function copyLink() {
   try {
     await navigator.clipboard.writeText(shareLink.value)
     toast.success('链接已复制到剪贴板')
+    shareDialogVisible.value = false
   } catch (error) {
-    toast.error('复制失败')
+    // 降级方案：使用传统方法
+    const textArea = document.createElement('textarea')
+    textArea.value = shareLink.value
+    textArea.style.position = 'fixed'
+    textArea.style.left = '-999999px'
+    document.body.appendChild(textArea)
+    textArea.select()
+    try {
+      document.execCommand('copy')
+      toast.success('链接已复制到剪贴板')
+      shareDialogVisible.value = false
+    } catch (e) {
+      toast.error('复制失败，请手动复制链接')
+    }
+    document.body.removeChild(textArea)
   }
+}
+
+async function shareToWeChat() {
+  wechatQrVisible.value = true
+  shareDialogVisible.value = false
+  
+  // 等待DOM更新
+  await nextTick()
+  
+  // 生成二维码
+  if (qrcodeCanvas.value) {
+    try {
+      await QRCode.toCanvas(qrcodeCanvas.value, shareLink.value, {
+        width: 280,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#ffffff'
+        }
+      })
+    } catch (error) {
+      console.error('二维码生成失败:', error)
+      toast.error('二维码生成失败')
+    }
+  }
+}
+
+function shareToWeibo() {
+  const url = encodeURIComponent(shareLink.value)
+  const title = encodeURIComponent(resource.value?.title || '')
+  window.open(`https://service.weibo.com/share/share.php?url=${url}&title=${title}`, '_blank')
+}
+
+function shareToQQ() {
+  const url = encodeURIComponent(shareLink.value)
+  const title = encodeURIComponent(resource.value?.title || '')
+  window.open(`https://connect.qq.com/widget/shareqq/index.html?url=${url}&title=${title}`, '_blank')
 }
 
 function formatFileSize(bytes: number): string {
@@ -629,7 +757,71 @@ onMounted(() => {
 
 /* 分享对话框 */
 .share-content {
+  padding: 10px 0;
+}
+
+.share-link-section {
+  margin-bottom: 20px;
+}
+
+.share-methods {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.share-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  height: 80px;
+  border: 1px solid #dcdfe6;
+}
+
+.share-btn:hover {
+  border-color: #409eff;
+  background: #ecf5ff;
+}
+
+.share-icon {
+  font-size: 32px;
+}
+
+/* 二维码样式 */
+.qrcode-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 20px 0;
+}
+
+.qrcode-wrapper {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  margin: 20px 0;
+}
+
+.qrcode-canvas {
+  display: block;
+  border-radius: 8px;
+}
+
+.qrcode-tip {
+  color: #606266;
+  font-size: 14px;
+  text-align: center;
+  margin: 10px 0 0 0;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .share-methods {
+    grid-template-columns: 1fr;
+  }
 }
 </style>
 
