@@ -153,6 +153,7 @@ import type { User } from '@/types'
 import toast from '@/utils/toast'
 import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
 import { STORAGE_KEYS } from '@/config/storage-keys'
+import { logger } from '@/utils/ui/logger'
 
 const route = useRoute()
 const router = useRouter()
@@ -351,7 +352,7 @@ async function pollNewMessages() {
     }
   } catch (error) {
     // 静默失败
-    console.error('轮询消息失败:', error)
+    logger.error('轮询消息失败:', error)
   }
 }
 

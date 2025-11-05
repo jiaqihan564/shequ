@@ -9,6 +9,7 @@
  */
 
 import { STORAGE_KEYS } from '@/config/storage-keys'
+import { logger } from '@/utils/ui/logger'
 
 class AuthManager {
   private isHandlingExpiration = false
@@ -22,7 +23,7 @@ class AuthManager {
   handleTokenExpiration(reason: string = '登录已过期'): void {
     const now = Date.now()
     
-    console.log('[AuthManager] 收到token过期请求', {
+    logger.info('[AuthManager] 收到token过期请求', {
       reason,
       isHandlingExpiration: this.isHandlingExpiration,
       timeSinceLastHandling: now - this.expirationHandledAt,
@@ -31,13 +32,13 @@ class AuthManager {
     
     // 防抖机制：如果正在处理或冷却期内，跳过
     if (this.isHandlingExpiration) {
-      console.log('[AuthManager] ⚠️ 已经在处理token过期，跳过重复请求')
+      logger.info('[AuthManager] ⚠️ 已经在处理token过期，跳过重复请求')
       return
     }
     
     if (now - this.expirationHandledAt < this.EXPIRATION_COOLDOWN) {
       const remaining = this.EXPIRATION_COOLDOWN - (now - this.expirationHandledAt)
-      console.log(`[AuthManager] ⚠️ 冷却期内 (剩余${remaining}ms)，跳过重复请求`)
+      logger.info(`[AuthManager] ⚠️ 冷却期内 (剩余${remaining}ms)，跳过重复请求`)
       return
     }
     
@@ -45,7 +46,7 @@ class AuthManager {
     this.isHandlingExpiration = true
     this.expirationHandledAt = now
     
-    console.log('[AuthManager] ✅ 开始处理token过期')
+    logger.info('[AuthManager] ✅ 开始处理token过期')
     
     // 执行登出流程
     this.performLogout(reason)
@@ -56,22 +57,22 @@ class AuthManager {
    * @param reason 登出原因
    */
   private performLogout(reason: string): void {
-    console.log('[AuthManager] 步骤1/4: 开始清理认证信息')
+    logger.info('[AuthManager] 步骤1/4: 开始清理认证信息')
     
     // 1. 清除所有认证信息和缓存
     this.clearAllAuthData()
     
-    console.log('[AuthManager] 步骤2/4: 设置强制登出标记')
+    logger.info('[AuthManager] 步骤2/4: 设置强制登出标记')
     
     // 2. 设置强制登出标记（告诉路由守卫允许跳转）
     sessionStorage.setItem('__force_logout__', 'true')
     
-    console.log('[AuthManager] 步骤3/4: 派发登出事件')
+    logger.info('[AuthManager] 步骤3/4: 派发登出事件')
     
     // 3. 派发全局登出事件
     this.dispatchLogoutEvent(reason)
     
-    console.log('[AuthManager] 步骤4/4: 执行跳转')
+    logger.info('[AuthManager] 步骤4/4: 执行跳转')
     
     // 4. 显示提示并跳转
     this.showMessageAndRedirect(reason)
@@ -93,7 +94,7 @@ class AuthManager {
       sessionStorage.removeItem(key)
     })
     
-    console.log('[AuthManager] ✅ 认证数据已清除', { keys: keysToRemove })
+    logger.info('[AuthManager] ✅ 认证数据已清除', { keys: keysToRemove })
   }
   
   /**
@@ -105,9 +106,9 @@ class AuthManager {
         detail: { reason, automatic: true, timestamp: Date.now() }
       })
       window.dispatchEvent(event)
-      console.log('[AuthManager] ✅ 登出事件已派发')
+      logger.info('[AuthManager] ✅ 登出事件已派发')
     } catch (error) {
-      console.error('[AuthManager] ❌ 派发登出事件失败:', error)
+      logger.error('[AuthManager] ❌ 派发登出事件失败:', error)
     }
   }
   

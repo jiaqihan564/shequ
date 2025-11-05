@@ -126,6 +126,7 @@ import { globalChatService } from '@/services/globalChatService'
 import { getChatMessages } from '@/utils/api'
 import { toast } from '@/utils/toast'
 import { STORAGE_KEYS } from '@/config/storage-keys'
+import { logger } from '@/utils/ui/logger'
 
 const router = useRouter()
 
@@ -233,7 +234,7 @@ const handleMessageHover = (message: ChatMessage, event: MouseEvent) => {
     hoveredMessage.value = message
     
     // 调试：打印消息信息
-    console.log('悬停消息信息:', {
+    logger.debug('悬停消息信息:', {
       id: message.id,
       user_id: message.user_id,
       username: message.username,
@@ -321,7 +322,7 @@ const sendMessage = async () => {
 const loadInitialMessages = async () => {
   // 如果全局服务已经加载过历史消息，不重复加载
   if (globalChatService.isHistoryLoaded()) {
-    console.log('[ChatRoom] Using existing messages from global service')
+    logger.info('[ChatRoom] Using existing messages from global service')
     scrollToBottom()
     return
   }
@@ -371,7 +372,7 @@ onMounted(() => {
       currentUser.value = JSON.parse(userInfo)
     }
   } catch (error) {
-    console.error('Failed to get user info:', error)
+    logger.error('Failed to get user info:', error)
   }
 
   // 加载历史消息

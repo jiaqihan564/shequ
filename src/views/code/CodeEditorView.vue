@@ -132,8 +132,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted }
- from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import MonacoEditor from '@/components/code/MonacoEditor.vue'
 import OutputPanel from '@/components/code/OutputPanel.vue'
@@ -143,6 +142,7 @@ import { executeCode, saveSnippet, generateShareLink, getSnippetById } from '@/u
 import { toast } from '@/utils/toast'
 import { codeExamples } from '@/data/code-examples'
 import type { LanguageInfo, CodeExample } from '@/types/code'
+import { logger } from '@/utils/ui/logger'
 
 const router = useRouter()
 const route = useRoute()
@@ -310,7 +310,7 @@ async function saveCode() {
         shareLink.value = `${baseUrl}/code-share/${shareResult.share_token}`
         showShareLink.value = true
       } catch (error: any) {
-        console.error('生成分享链接失败:', error)
+        logger.error('生成分享链接失败:', error)
         toast.warning('代码已保存，但生成分享链接失败')
       }
     }
@@ -405,7 +405,7 @@ onMounted(async () => {
       
       toast.success('已复制代码到编辑器')
     } catch (error) {
-      console.error('加载代码失败:', error)
+      logger.error('加载代码失败:', error)
     }
   }
 })

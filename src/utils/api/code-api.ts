@@ -12,24 +12,22 @@ import type {
   PublicSnippetsResponse
 } from '@/types/code'
 import { apiConfig, codeExecutionConfig } from '@/config'
-import { STORAGE_KEYS } from '@/config/storage-keys'
+import { addAuthTokenInterceptor, addRequestIdInterceptor, handleResponseError } from './axios-helpers'
 
-// 创建 axios 实例
+// 创建 axios 实例（代码执行专用，使用更长的超时时间）
 const request = axios.create({
   baseURL: apiConfig.baseURL,
-  timeout: codeExecutionConfig.timeout,
+  timeout: codeExecutionConfig.timeout, // 代码执行需要更长超时
   headers: {
     'Content-Type': 'application/json'
   }
 })
 
-// 请求拦截器 - 添加 token
+// 请求拦截器 - 使用公共辅助函数
 request.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
+    config = addAuthTokenInterceptor(config)
+    config = addRequestIdInterceptor(config)
     return config
   },
   (error) => {
@@ -46,13 +44,7 @@ request.interceptors.response.use(
     }
     return response
   },
-  (error) => {
-    if (error.response) {
-      const message = error.response.data?.message || error.message
-      throw new Error(message)
-    }
-    throw error
-  }
+  handleResponseError // 使用公共错误处理
 )
 
 const API_PREFIX = ''

@@ -9,7 +9,7 @@ export const logger = {
   /**
    * 调试日志 - 仅在开发环境输出
    */
-  debug(...args: any[]) {
+  debug(...args: unknown[]) {
     if (isDev) {
       console.log('[DEBUG]', ...args)
     }
@@ -18,7 +18,7 @@ export const logger = {
   /**
    * 信息日志 - 仅在开发环境输出
    */
-  info(...args: any[]) {
+  info(...args: unknown[]) {
     if (isDev) {
       console.log('[INFO]', ...args)
     }
@@ -27,21 +27,21 @@ export const logger = {
   /**
    * 警告日志 - 所有环境输出
    */
-  warn(...args: any[]) {
+  warn(...args: unknown[]) {
     console.warn('[WARN]', ...args)
   },
 
   /**
    * 错误日志 - 所有环境输出
    */
-  error(...args: any[]) {
+  error(...args: unknown[]) {
     console.error('[ERROR]', ...args)
   },
 
   /**
    * 条件日志 - 根据条件在开发环境输出
    */
-  conditional(condition: boolean, ...args: any[]) {
+  conditional(condition: boolean, ...args: unknown[]) {
     if (isDev && condition) {
       console.log('[CONDITIONAL]', ...args)
     }

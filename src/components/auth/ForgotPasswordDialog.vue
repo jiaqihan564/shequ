@@ -69,6 +69,7 @@ import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
 import { forgotPassword } from '@/utils/api'
 import { validateEmail as validateEmailUtil } from '@/utils/validation'
+import { logger } from '@/utils/ui/logger'
 
 defineProps<{
   show: boolean
@@ -146,7 +147,7 @@ const handleSubmit = async () => {
       goToResetPassword()
     }
   } catch (err: any) {
-    console.error('忘记密码失败:', err)
+    logger.error('忘记密码失败:', err)
     emit('error', err)
   } finally {
     isSubmitting.value = false

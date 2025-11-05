@@ -20,6 +20,7 @@
 import { ref, onMounted, onUnmounted, watch } from 'vue'
 import type * as Monaco from 'monaco-editor'
 import { getLoadedMonaco, markCodeEditorUsed } from '@/utils/monaco-preloader'
+import { logger } from '@/utils/ui/logger'
 
 interface Props {
   modelValue: string
@@ -62,10 +63,10 @@ async function loadMonacoEditor(): Promise<typeof Monaco> {
     let monaco = getLoadedMonaco()
     
     if (monaco) {
-      console.log('[MonacoEditor] 使用预加载的 Monaco Editor 实例')
+      logger.info('[MonacoEditor] 使用预加载的 Monaco Editor 实例')
     } else {
       // 2. 如果未预加载，动态导入
-      console.log('[MonacoEditor] 预加载未完成，动态导入 Monaco Editor...')
+      logger.info('[MonacoEditor] 预加载未完成，动态导入 Monaco Editor...')
       monaco = await import('monaco-editor')
     }
     
@@ -74,7 +75,7 @@ async function loadMonacoEditor(): Promise<typeof Monaco> {
     
     return monaco
   } catch (error) {
-    console.error('[MonacoEditor] 加载失败:', error)
+    logger.error('[MonacoEditor] 加载失败:', error)
     loadError.value = '编辑器加载失败，请刷新页面重试'
     throw error
   } finally {
@@ -111,7 +112,7 @@ onMounted(async () => {
       emit('change', value)
     })
   } catch (error) {
-    console.error('[MonacoEditor] 初始化失败:', error)
+    logger.error('[MonacoEditor] 初始化失败:', error)
   }
 })
 

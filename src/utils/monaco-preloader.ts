@@ -11,6 +11,7 @@
 import type * as Monaco from 'monaco-editor'
 import { uiDelayConfig } from '@/config'
 import { STORAGE_KEYS } from '@/config/storage-keys'
+import { logger } from '@/utils/ui/logger'
 
 // Monaco Editor 实例缓存
 let monacoInstance: typeof Monaco | null = null
@@ -30,24 +31,24 @@ let isLoading = false
 export async function preloadMonacoEditor(priority: 'high' | 'low' = 'low'): Promise<void> {
   // 如果已经加载，直接返回
   if (monacoInstance) {
-    console.log('[Monaco Preloader] 已经加载，无需重复预加载')
+    logger.debug('[Monaco Preloader] 已经加载，无需重复预加载')
     return Promise.resolve()
   }
 
   // 如果正在加载中，返回现有的 Promise
   if (loadingPromise) {
-    console.log('[Monaco Preloader] 正在加载中，等待完成...')
+    logger.debug('[Monaco Preloader] 正在加载中，等待完成...')
     return loadingPromise.then(() => {})
   }
 
-  console.log(`[Monaco Preloader] 开始预加载 (优先级: ${priority})`)
+  logger.info(`[Monaco Preloader] 开始预加载 (优先级: ${priority})`)
 
   // 创建加载 Promise
   loadingPromise = new Promise((resolve, reject) => {
     const loadMonaco = async () => {
       try {
         isLoading = true
-        console.log('[Monaco Preloader] 动态导入 Monaco Editor...')
+        logger.info('[Monaco Preloader] 动态导入 Monaco Editor...')
         
         // 动态导入 Monaco Editor
         const monaco = await import('monaco-editor')
@@ -55,10 +56,10 @@ export async function preloadMonacoEditor(priority: 'high' | 'low' = 'low'): Pro
         // 缓存实例
         monacoInstance = monaco
         
-        console.log('[Monaco Preloader] Monaco Editor 预加载完成')
+        logger.info('[Monaco Preloader] Monaco Editor 预加载完成')
         resolve(monaco)
       } catch (error) {
-        console.error('[Monaco Preloader] 预加载失败:', error)
+        logger.error('[Monaco Preloader] 预加载失败:', error)
         reject(error)
       } finally {
         isLoading = false

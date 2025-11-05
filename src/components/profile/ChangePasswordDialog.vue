@@ -149,6 +149,7 @@ import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
 import { changePassword } from '@/utils/api'
 import { checkPasswordStrength, debounce, validatePassword as validatePasswordUtil } from '@/utils/validation'
+import { logger } from '@/utils/ui/logger'
 
 defineProps<{
   show: boolean
@@ -301,7 +302,7 @@ const handleSubmit = async () => {
     emit('success')
     close()
   } catch (error: any) {
-    console.error('修改密码失败:', error)
+    logger.error('修改密码失败:', error)
     emit('error', error)
   } finally {
     isSubmitting.value = false

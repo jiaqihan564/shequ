@@ -2,6 +2,7 @@ import { ref, type Ref } from 'vue'
 import { toast } from '@/utils/toast'
 import { getStoredToken, isTokenExpired } from '@/utils/tokenValidator'
 import { websocketConfig } from '@/config'
+import { logger } from '@/utils/ui/logger'
 
 interface ChatMessage {
   id: number
@@ -16,12 +17,12 @@ interface ChatMessage {
 
 interface WSMessage {
   type: 'message' | 'online_count' | 'heartbeat' | 'system' | 'notification' | 'private_message'
-  data: any
+  data: unknown
 }
 
 type MessageCallback = (message: ChatMessage) => void
 type OnlineCountCallback = (count: number) => void
-type SystemMessageCallback = (data: any) => void
+type SystemMessageCallback = (data: unknown) => void
 
 class GlobalChatService {
   private static instance: GlobalChatService
@@ -46,7 +47,7 @@ class GlobalChatService {
   private systemMessageCallbacks: Set<SystemMessageCallback> = new Set()
 
   private constructor() {
-    console.log('[GlobalChat] Service initialized')
+    logger.info('[GlobalChat] Service initialized')
   }
 
   public static getInstance(): GlobalChatService {
@@ -59,7 +60,7 @@ class GlobalChatService {
   private getWebSocketUrl(): string {
     const token = getStoredToken()
     if (!token) {
-      console.error('[GlobalChat] No authentication token found')
+      logger.error('[GlobalChat] No authentication token found')
       return ''
     }
 
@@ -75,7 +76,7 @@ class GlobalChatService {
       // Use relative path - Vite proxy will forward to backend
       // Example: ws://localhost:3000/api/chat/ws -> http://localhost:3001/api/chat/ws
       wsUrl = `${protocol}//${window.location.host}/api/chat/ws?token=${encodeURIComponent(token)}`
-      console.log('[GlobalChat] Using Vite proxy for WebSocket')
+      logger.info('[GlobalChat] Using Vite proxy for WebSocket')
     } else {
       // Production: construct full URL from environment variable
       let host = window.location.host // Default to current host
@@ -88,21 +89,21 @@ class GlobalChatService {
       wsUrl = `${protocol}//${host}/api/chat/ws?token=${encodeURIComponent(token)}`
     }
 
-    console.log('[GlobalChat] WebSocket URL:', wsUrl.replace(token, 'TOKEN_HIDDEN'))
+    logger.debug('[GlobalChat] WebSocket URL:', wsUrl.replace(token, 'TOKEN_HIDDEN'))
     return wsUrl
   }
 
   public connect(): void {
     // Prevent concurrent connection attempts
     if (this.isConnecting) {
-      console.log('[GlobalChat] Connection already in progress, skipping')
+      logger.info('[GlobalChat] Connection already in progress, skipping')
       return
     }
 
     // Check token validity before attempting connection
     const token = getStoredToken()
     if (!token || isTokenExpired(token)) {
-      console.error('[GlobalChat] Invalid or expired token, cannot connect')
+      logger.error('[GlobalChat] Invalid or expired token, cannot connect')
       this.connectionStatus.value = 'disconnected'
       this.isConnecting = false
       return
@@ -117,26 +118,26 @@ class GlobalChatService {
       
       // Already connected or connecting - skip
       if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) {
-        console.log('[GlobalChat] Already connected or connecting')
+        logger.info('[GlobalChat] Already connected or connecting')
         return
       }
       
       // Connection is closing - wait for it to finish
       if (state === WebSocket.CLOSING) {
-        console.log('[GlobalChat] Connection is closing, please wait...')
+        logger.info('[GlobalChat] Connection is closing, please wait...')
         return
       }
       
       // Connection is closed - clean up
       if (state === WebSocket.CLOSED) {
-        console.log('[GlobalChat] Cleaning up old closed connection')
+        logger.info('[GlobalChat] Cleaning up old closed connection')
         this.ws = null
       }
     }
 
     const wsUrl = this.getWebSocketUrl()
     if (!wsUrl) {
-      console.error('[GlobalChat] Failed to construct WebSocket URL')
+      logger.error('[GlobalChat] Failed to construct WebSocket URL')
       this.connectionStatus.value = 'disconnected'
       this.isConnecting = false
       toast.error('Authentication required. Please login.')
@@ -147,7 +148,7 @@ class GlobalChatService {
     this.isConnecting = true
 
     this.connectionStatus.value = 'connecting'
-    console.log('[GlobalChat] Connecting to WebSocket...')
+    logger.info('[GlobalChat] Connecting to WebSocket...')
 
     try {
       this.ws = new WebSocket(wsUrl)
@@ -156,7 +157,7 @@ class GlobalChatService {
         this.connectionStatus.value = 'connected'
         this.reconnectAttempts = 0
         this.isConnecting = false // Release connection lock
-        console.log('[GlobalChat] ✅ WebSocket connected successfully')
+        logger.info('[GlobalChat] ✅ WebSocket connected successfully')
 
         // Start heartbeat
         this.startHeartbeat()
@@ -183,52 +184,55 @@ class GlobalChatService {
 
             case 'online_count':
               // Online count update
-              if (wsMsg.data && typeof wsMsg.data.count === 'number') {
-                this.onlineCount.value = wsMsg.data.count
+              if (wsMsg.data && typeof wsMsg.data === 'object' && 'count' in wsMsg.data) {
+                const countData = wsMsg.data as { count: number }
+                this.onlineCount.value = countData.count
 
                 // Notify subscribers
-                this.onlineCountCallbacks.forEach(callback => callback(wsMsg.data.count))
+                this.onlineCountCallbacks.forEach(callback => callback(countData.count))
               }
               break
 
             case 'system':
               // System message
-              console.log('[GlobalChat] System message:', wsMsg.data)
+              logger.info('[GlobalChat] System message:', wsMsg.data)
               this.systemMessageCallbacks.forEach(callback => callback(wsMsg.data))
               break
 
             case 'notification':
               // Global notification
-              console.log('[GlobalChat] Notification:', wsMsg.data)
-              if (wsMsg.data?.message) {
-                toast.info(wsMsg.data.message)
+              logger.info('[GlobalChat] Notification:', wsMsg.data)
+              if (wsMsg.data && typeof wsMsg.data === 'object' && 'message' in wsMsg.data) {
+                const notifData = wsMsg.data as { message: string }
+                toast.info(notifData.message)
               }
               break
 
             case 'private_message':
               // Private message notification
-              console.log('[GlobalChat] Private message notification:', wsMsg.data)
+              logger.info('[GlobalChat] Private message notification:', wsMsg.data)
               // Trigger unread count refresh
               window.dispatchEvent(new Event('refresh-unread-count'))
-              if (wsMsg.data?.message) {
-                toast.info(wsMsg.data.message)
+              if (wsMsg.data && typeof wsMsg.data === 'object' && 'message' in wsMsg.data) {
+                const pmData = wsMsg.data as { message: string }
+                toast.info(pmData.message)
               }
               break
           }
         } catch (error) {
-          console.error('[GlobalChat] Failed to parse WebSocket message:', error)
+          logger.error('[GlobalChat] Failed to parse WebSocket message:', error)
         }
       }
 
       this.ws.onerror = (error) => {
-        console.error('[GlobalChat] ❌ WebSocket error:', error)
-        console.error('[GlobalChat] WebSocket readyState:', this.ws?.readyState)
+        logger.error('[GlobalChat] ❌ WebSocket error:', error)
+        logger.error('[GlobalChat] WebSocket readyState:', this.ws?.readyState)
         this.connectionStatus.value = 'disconnected'
         this.isConnecting = false // Release connection lock on error
       }
 
       this.ws.onclose = (event) => {
-        console.log('[GlobalChat] 🔌 WebSocket closed:', {
+        logger.info('[GlobalChat] 🔌 WebSocket closed:', {
           code: event.code,
           reason: event.reason || 'No reason provided',
           wasClean: event.wasClean
@@ -242,7 +246,7 @@ class GlobalChatService {
         // Code 1002: Protocol Error
         if (event.code === 1008 || event.code === 1002 || 
             (event.reason && (event.reason.includes('Unauthorized') || event.reason.includes('401')))) {
-          console.error('[GlobalChat] ❌ Authentication failed - token may be expired')
+          logger.error('[GlobalChat] ❌ Authentication failed - token may be expired')
           toast.error('登录已过期，请重新登录')
           // Clear reconnection attempts to prevent auto-reconnect with invalid token
           this.reconnectAttempts = websocketConfig.maxReconnectAttempts
@@ -252,7 +256,7 @@ class GlobalChatService {
         // Check token validity before attempting reconnection
         const token = getStoredToken()
         if (!token || isTokenExpired(token)) {
-          console.error('[GlobalChat] ❌ Token expired or missing, stopping reconnection')
+          logger.error('[GlobalChat] ❌ Token expired or missing, stopping reconnection')
           this.reconnectAttempts = websocketConfig.maxReconnectAttempts
           return
         }
@@ -260,19 +264,19 @@ class GlobalChatService {
         // Attempt reconnection if not manually closed
         if (!this.isManualClose && this.reconnectAttempts < websocketConfig.maxReconnectAttempts) {
           const delay = websocketConfig.reconnectDelays[Math.min(this.reconnectAttempts, websocketConfig.reconnectDelays.length - 1)]
-          console.log(`[GlobalChat] 🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${websocketConfig.maxReconnectAttempts})`)
+          logger.info(`[GlobalChat] 🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${websocketConfig.maxReconnectAttempts})`)
 
           this.reconnectTimeout = window.setTimeout(() => {
             this.reconnectAttempts++
             this.connect()
           }, delay)
         } else if (this.reconnectAttempts >= websocketConfig.maxReconnectAttempts) {
-          console.error('[GlobalChat] ❌ Max reconnection attempts reached')
+          logger.error('[GlobalChat] ❌ Max reconnection attempts reached')
           toast.error('连接失败，请刷新页面')
         }
       }
     } catch (error) {
-      console.error('[GlobalChat] ❌ Failed to create WebSocket:', error)
+      logger.error('[GlobalChat] ❌ Failed to create WebSocket:', error)
       this.connectionStatus.value = 'disconnected'
       this.isConnecting = false // Release connection lock on exception
       toast.error('Failed to connect to chat server')
@@ -280,7 +284,7 @@ class GlobalChatService {
   }
 
   public disconnect(): void {
-    console.log('[GlobalChat] Disconnecting...')
+    logger.info('[GlobalChat] Disconnecting...')
     this.isManualClose = true
     this.isConnecting = false // Release connection lock
     this.stopHeartbeat()
@@ -294,7 +298,7 @@ class GlobalChatService {
       const state = this.ws.readyState
       // Only close if not already closed or closing
       if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) {
-        console.log('[GlobalChat] Closing WebSocket connection...')
+        logger.info('[GlobalChat] Closing WebSocket connection...')
         this.ws.close(1000, 'Client disconnect')
       }
       this.ws = null
@@ -307,7 +311,7 @@ class GlobalChatService {
   // Use this only when you want to clear messages/counters without closing the connection
   // For full cleanup, call disconnect() first
   public reset(): void {
-    console.log('[GlobalChat] Resetting state...')
+    logger.info('[GlobalChat] Resetting state...')
     this.messages.value = []
     this.onlineCount.value = 0
     this.reconnectAttempts = 0
@@ -324,7 +328,7 @@ class GlobalChatService {
           data: {}
         }
         this.ws.send(JSON.stringify(heartbeatMsg))
-        console.log('[GlobalChat] ❤️ Heartbeat sent')
+        logger.debug('[GlobalChat] ❤️ Heartbeat sent')
       }
     }, websocketConfig.heartbeatInterval)
   }
@@ -354,9 +358,9 @@ class GlobalChatService {
 
     try {
       this.ws.send(JSON.stringify(message))
-      console.log('[GlobalChat] Message sent:', content.substring(0, 50))
+      logger.debug('[GlobalChat] Message sent:', content.substring(0, 50))
     } catch (error) {
-      console.error('[GlobalChat] Failed to send message:', error)
+      logger.error('[GlobalChat] Failed to send message:', error)
       throw new Error('Failed to send message')
     }
   }
@@ -380,7 +384,7 @@ class GlobalChatService {
   // History management
   public markHistoryLoaded(): void {
     this.hasLoadedHistory = true
-    console.log('[GlobalChat] History messages marked as loaded')
+    logger.info('[GlobalChat] History messages marked as loaded')
   }
 
   public isHistoryLoaded(): boolean {

@@ -18,8 +18,9 @@ module.exports = {
   plugins: ['vue', '@typescript-eslint', 'unused-imports', 'import'],
   rules: {
     'vue/multi-word-component-names': 'off',
-    '@typescript-eslint/no-explicit-any': 'off',
-    '@typescript-eslint/ban-ts-comment': 'off',
+    // 逐步启用严格规则 - 从 warn 开始
+    '@typescript-eslint/no-explicit-any': 'warn', // 改为 warn，逐步修复
+    '@typescript-eslint/ban-ts-comment': 'warn', // 改为 warn，需要说明原因
     'unused-imports/no-unused-imports': 'error',
     'import/order': [
       'warn',

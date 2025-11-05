@@ -4,6 +4,7 @@ import AppLayout from '@/layouts/AppLayout.vue'
 import { isTokenExpired, getStoredToken } from '@/utils/tokenValidator'
 import { preloadMonacoEditor, smartPreload, clearMonacoCache } from '@/utils/monaco-preloader'
 import { STORAGE_KEYS } from '@/config/storage-keys'
+import { logger } from '@/utils/ui/logger'
 
 const LoginView = () => import('@/views/auth/LoginView.vue')
 const RegisterView = () => import('@/views/auth/RegisterView.vue')
@@ -230,7 +231,7 @@ router.beforeEach((to, _from, next) => {
   const forceLogout = sessionStorage.getItem('__force_logout__')
   if (forceLogout) {
     sessionStorage.removeItem('__force_logout__')
-    console.log('[Router] 检测到强制登出标记，清理完成')
+    logger.info('[Router] 检测到强制登出标记，清理完成')
     
     // 如果目标是登录页或注册页，直接通过
     if (to.path === '/login' || to.path === '/register') {
@@ -239,7 +240,7 @@ router.beforeEach((to, _from, next) => {
     }
     
     // 否则重定向到登录页
-    console.log('[Router] 强制重定向到登录页')
+    logger.info('[Router] 强制重定向到登录页')
     next({ path: '/login', query: { expired: 'true' } })
     return
   }
@@ -250,7 +251,7 @@ router.beforeEach((to, _from, next) => {
 
   // 需要认证但没有有效token，跳转登录页
   if (requiresAuth && !hasValidToken) {
-    console.log('[Router] 需要认证但token无效，跳转登录页', {
+    logger.info('[Router] 需要认证但token无效，跳转登录页', {
       path: to.path,
       hasToken: !!token,
       isExpired: token ? isTokenExpired(token) : null
@@ -268,17 +269,17 @@ router.beforeEach((to, _from, next) => {
       try {
         const user = JSON.parse(userInfo)
         if (user.role !== 'admin') {
-          console.warn('[Router] 需要管理员权限，重定向到首页')
+          logger.warn('[Router] 需要管理员权限，重定向到首页')
           next('/home')
           return
         }
       } catch (error) {
-        console.error('[Router] 解析用户信息失败:', error)
+        logger.error('[Router] 解析用户信息失败:', error)
         next('/login')
         return
       }
     } else {
-      console.warn('[Router] 需要管理员权限但用户信息不存在')
+      logger.warn('[Router] 需要管理员权限但用户信息不存在')
       next('/login')
       return
     }
@@ -286,7 +287,7 @@ router.beforeEach((to, _from, next) => {
 
   // 已登录用户访问登录/注册页面，重定向到首页
   if ((to.path === '/login' || to.path === '/register') && hasValidToken) {
-    console.log('[Router] 已登录用户访问登录页，重定向到首页')
+    logger.info('[Router] 已登录用户访问登录页，重定向到首页')
     next('/home')
     return
   }
@@ -319,7 +320,7 @@ router.afterEach(to => {
           smartPreload(user.role, hasUsedCodeEditor)
         }
       } catch (error) {
-        console.error('[Router] 解析用户信息失败:', error)
+        logger.error('[Router] 解析用户信息失败:', error)
       }
     }
   }

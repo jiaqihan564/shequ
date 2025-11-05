@@ -57,7 +57,6 @@ declare module 'vue' {
     InfoIcon: typeof import('./src/components/icons/InfoIcon.vue')['default']
     LanguageSelector: typeof import('./src/components/code/LanguageSelector.vue')['default']
     LoginForm: typeof import('./src/components/auth/LoginForm.vue')['default']
-    'LogoutButton.example': typeof import('./src/components/auth/LogoutButton.example.vue')['default']
     MonacoEditor: typeof import('./src/components/code/MonacoEditor.vue')['default']
     NewsCarousel: typeof import('./src/components/news/NewsCarousel.vue')['default']
     OutputPanel: typeof import('./src/components/code/OutputPanel.vue')['default']

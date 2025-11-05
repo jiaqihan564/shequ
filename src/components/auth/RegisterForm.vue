@@ -225,6 +225,7 @@ import {
 } from '@/utils/validation'
 import { detectCurrentRegion } from '@/utils/geo'
 import { authConfig } from '@/config'
+import { logger } from '@/utils/ui/logger'
 
 const emit = defineEmits<{
   success: [data: any]
@@ -362,7 +363,7 @@ const handleSubmit = async (event: Event) => {
     })
     emit('success', result)
   } catch (error) {
-    console.error('注册失败:', error)
+    logger.error('注册失败:', error)
     emit('error', error)
   } finally {
     isSubmitting.value = false

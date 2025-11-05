@@ -156,6 +156,7 @@ import {
 import { detectCurrentRegion } from '@/utils/geo'
 import { authConfig, uiDelayConfig } from '@/config'
 import { STORAGE_KEYS } from '@/config/storage-keys'
+import { logger } from '@/utils/ui/logger'
 
 const props = withDefaults(defineProps<{ locked?: boolean }>(), { locked: false })
 
@@ -323,7 +324,7 @@ const handleLogin = async () => {
     }
     emit('success', response)
   } catch (error: any) {
-    console.error('登录失败:', error)
+    logger.error('登录失败:', error)
     emit('error', error)
   } finally {
     isLoading.value = false

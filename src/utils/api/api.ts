@@ -18,6 +18,12 @@ import { apiConfig, newsConfig, apiDefaultsConfig } from '@/config'
 import { STORAGE_KEYS } from '@/config/storage-keys'
 import { HTTP_STATUS, isServerErrorStatus } from '@/config/http-status'
 import { authManager } from '@/utils/auth/authManager'
+import { 
+  getAuthToken, 
+  generateRequestId, 
+  cleanExpiredCache, 
+  createCacheKey 
+} from './axios-helpers'
 
 // 创建axios实例
 const api: AxiosInstance = axios.create({
@@ -34,11 +40,16 @@ const api: AxiosInstance = axios.create({
 })
 
 // 请求缓存
-const requestCache = new Map<string, { data: any; timestamp: number }>()
+const requestCache = new Map<string, { data: unknown; timestamp: number }>()
 const CACHE_DURATION = apiConfig.cacheDuration
 
 // 请求取消：组件卸载时取消pending请求
 const cancelTokens = new Map<string, AbortController>()
+
+// 定期清理过期缓存（每5分钟）
+setInterval(() => {
+  cleanExpiredCache(requestCache, CACHE_DURATION)
+}, 5 * 60 * 1000)
 
 // 请求拦截器
 api.interceptors.request.use(
@@ -55,7 +66,7 @@ api.interceptors.request.use(
 
     // 为GET请求检查缓存（避免重复请求）
     if (config.method === 'get') {
-      const cacheKey = `${config.url}?${JSON.stringify(config.params || {})}`
+      const cacheKey = createCacheKey(config.url || '', config.params)
       const cached = requestCache.get(cacheKey)
       
       // 如果有有效缓存，直接返回缓存数据（模拟响应）
@@ -96,7 +107,7 @@ api.interceptors.request.use(
  * 保留此函数以保持向后兼容
  */
 export function handleTokenExpired(reason: string = '登录已过期'): void {
-  console.warn('[handleTokenExpired] 此函数已废弃，请使用 authManager.handleTokenExpiration()')
+  logger.warn('[handleTokenExpired] 此函数已废弃，请使用 authManager.handleTokenExpiration()')
   authManager.handleTokenExpiration(reason)
 }
 
@@ -112,7 +123,7 @@ api.interceptors.response.use(
     
     // 缓存GET请求的响应
     if (response.config.method === 'get' && response.status === HTTP_STATUS.OK) {
-      const cacheKey = `${response.config.url}?${JSON.stringify(response.config.params || {})}`
+      const cacheKey = createCacheKey(response.config.url || '', response.config.params)
       requestCache.set(cacheKey, {
         data: response.data,
         timestamp: Date.now()
@@ -148,7 +159,7 @@ api.interceptors.response.use(
       const errorCode = error.response?.data?.code
       const requestUrl = originalRequest?.url || 'unknown'
       
-      console.log('[API拦截器] 捕获到401错误', {
+      logger.info('[API拦截器] 捕获到401错误', {
         url: requestUrl,
         message: errorMessage,
         code: errorCode,
@@ -157,7 +168,7 @@ api.interceptors.response.use(
       
       // 如果是登录请求本身失败，不触发自动登出
       if (originalRequest?.url?.includes('/auth/login')) {
-        console.log('[API拦截器] 登录请求失败，不触发自动登出')
+        logger.info('[API拦截器] 登录请求失败，不触发自动登出')
         const appError = createAppError(
           errorCode?.toString() || 'LOGIN_FAILED',
           errorMessage || '用户名或密码错误',
@@ -176,7 +187,7 @@ api.interceptors.response.use(
         reason = '未登录'
       }
       
-      console.log('[API拦截器] 调用 AuthManager 处理token过期', { reason })
+      logger.info('[API拦截器] 调用 AuthManager 处理token过期', { reason })
       
       // 使用 AuthManager 统一处理（带防抖，自动跳转）
       authManager.handleTokenExpiration(reason)
@@ -187,7 +198,7 @@ api.interceptors.response.use(
 
     // 处理其他HTTP错误
     if (error.response) {
-      console.log('[API拦截器] HTTP错误', {
+      logger.warn('[API拦截器] HTTP错误', {
         status: error.response.status,
         url: originalRequest?.url,
         message: error.response?.data?.message
@@ -203,20 +214,18 @@ api.interceptors.response.use(
 
     // 处理网络错误
     if (error.request) {
-      console.error('[API拦截器] 网络错误', { url: originalRequest?.url })
+      logger.error('[API拦截器] 网络错误', { url: originalRequest?.url })
       return Promise.reject(createAppError('NETWORK_ERROR', '网络连接失败，请检查您的网络'))
     }
 
     // 处理其他错误
-    console.error('[API拦截器] 未知错误', { error })
+    logger.error('[API拦截器] 未知错误', { error })
     return Promise.reject(createAppError('UNKNOWN_ERROR', error.message || '未知错误'))
   }
 )
 
 // 工具函数
-function getAuthToken(): string | null {
-  return localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
-}
+// getAuthToken 和 generateRequestId 现在从 axios-helpers.ts 导入
 
 function getActiveStorage(): Storage {
   if (localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)) return localStorage
@@ -236,7 +245,7 @@ function setAuthTokens(
 
 function setUserInfo(user: User, scope: 'local' | 'session' = 'local'): void {
   const store = scope === 'local' ? localStorage : sessionStorage
-  const withVersion = { ...user } as any
+  const withVersion = { ...user } as { avatar_version?: number; [key: string]: unknown }
   if (!withVersion.avatar_version) {
     // 初次写入或无版本时初始化
     withVersion.avatar_version = Date.now()
@@ -252,11 +261,7 @@ function clearAuthTokens(): void {
   }
 }
 
-function generateRequestId(): string {
-  return `req_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`
-}
-
-function createAppError(code: string, message: string, details?: any): AppError {
+function createAppError(code: string, message: string, details?: unknown): AppError {
   return {
     code,
     message,
@@ -266,9 +271,9 @@ function createAppError(code: string, message: string, details?: any): AppError 
 }
 
 // 统一规范化与深合并后端返回的用户数据
-function normalizeUserData(user: any): User {
+function normalizeUserData(user: Partial<User>): User {
   const store = getActiveStorage()
-  let prev: any = null
+  let prev: Partial<User> | null = null
   try {
     const raw = store.getItem(STORAGE_KEYS.USER_INFO)
     prev = raw ? JSON.parse(raw) : null
@@ -276,40 +281,45 @@ function normalizeUserData(user: any): User {
     prev = null
   }
 
-  const merged: any = {
+  const merged: Partial<User> = {
     ...(prev || {}),
     ...(user || {})
   }
 
-  const mergedProfile: any = {
-    ...((prev && prev.profile) || {}),
-    ...((user && user.profile) || {})
+  const prevProfile = (prev && prev.profile) || {}
+  const userProfile = (user && user.profile) || {}
+  const mergedProfile = {
+    ...prevProfile,
+    ...userProfile
   }
 
   // 将根级 nickname/bio 映射进 profile（后端新返回格式）
-  if (user && Object.prototype.hasOwnProperty.call(user, 'nickname') && mergedProfile.nickname === undefined) {
-    mergedProfile.nickname = user.nickname
+  if (user && 'nickname' in user && mergedProfile.nickname === undefined) {
+    mergedProfile.nickname = user.nickname as string
   }
-  if (user && Object.prototype.hasOwnProperty.call(user, 'bio') && mergedProfile.bio === undefined) {
-    mergedProfile.bio = user.bio
+  if (user && 'bio' in user && mergedProfile.bio === undefined) {
+    mergedProfile.bio = user.bio as string
   }
 
   // 关键资料字段空值不覆盖（地址相关前端自治）
-  const preferPrev = (nextVal: any, prevVal: any) =>
+  const preferPrev = (nextVal: unknown, prevVal: unknown) =>
     nextVal === undefined || nextVal === null || nextVal === '' ? (prevVal ?? '') : nextVal
-  mergedProfile.province = preferPrev(mergedProfile.province, prev?.profile?.province)
-  mergedProfile.city = preferPrev(mergedProfile.city, prev?.profile?.city)
-  mergedProfile.location = preferPrev(mergedProfile.location, prev?.profile?.location)
+  mergedProfile.province = preferPrev(mergedProfile.province, prevProfile.province) as string
+  mergedProfile.city = preferPrev(mergedProfile.city, prevProfile.city) as string
+  mergedProfile.location = preferPrev(mergedProfile.location, prevProfile.location) as string
 
   merged.profile = mergedProfile
 
   // 头像归一化与保留策略
-  const normalized: any = {
+  const normalized = {
     ...merged,
-    avatar: merged.avatar || (merged as any).avatar_url
-  }
+    avatar: merged.avatar || (merged as User & { avatar_url?: string }).avatar_url
+  } as User & { avatar_version?: number }
+  
   if (!normalized.avatar) normalized.avatar = prev?.avatar || ''
-  if (!normalized.avatar_version) normalized.avatar_version = prev?.avatar_version || Date.now()
+  if (!normalized.avatar_version) {
+    normalized.avatar_version = (prev as User & { avatar_version?: number })?.avatar_version || Date.now()
+  }
 
   return normalized as User
 }
@@ -421,7 +431,7 @@ export async function register(registerData: RegisterForm): Promise<RegisterResp
  * @param navigateToLogin 是否跳转到登录页，默认true
  */
 export async function logout(navigateToLogin: boolean = true): Promise<void> {
-  console.log('[API] 用户主动登出')
+  logger.info('[API] 用户主动登出')
   
   try {
     // 尝试调用服务器登出接口（可能会因为token失效而失败，忽略错误）
@@ -893,13 +903,13 @@ export async function fetchNews(params: FetchNewsParams = {}): Promise<NewsItem[
   ]
 
   // 对应的真实新闻链接（示例）
-  const newsUrls = [
-    'https://www.xinhuanet.com',
-    'https://news.cctv.com',
-    'http://www.people.com.cn',
-    'https://www.thepaper.cn',
-    'https://www.jiemian.com'
-  ]
+  // const newsUrls = [
+  //   'https://www.xinhuanet.com',
+  //   'https://news.cctv.com',
+  //   'http://www.people.com.cn',
+  //   'https://www.thepaper.cn',
+  //   'https://www.jiemian.com'
+  // ]
 
   function pick<T>(arr: T[], i: number): T {
     return arr[i % arr.length]
