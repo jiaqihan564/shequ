@@ -232,20 +232,10 @@ export default defineConfig({
             return 'highlight'
           }
           
-          // Monaco Editor 编辑器（超大文件，按功能拆分）
+          // Monaco Editor: 不手动分割，让 Vite 自动处理以避免模块依赖问题
+          // Monaco Editor 包含复杂的 Web Workers 和内部依赖，手动分割会导致循环依赖错误
           if (id.includes('node_modules/monaco-editor/')) {
-            // 进一步拆分 Monaco Editor 内部模块
-            if (id.includes('esm/vs/editor/')) {
-              return 'monaco-editor-core'
-            }
-            if (id.includes('esm/vs/language/')) {
-              return 'monaco-languages'
-            }
-            if (id.includes('esm/vs/basic-languages/')) {
-              return 'monaco-basic-languages'
-            }
-            // 其他 Monaco 相关文件
-            return 'monaco-editor'
+            return // 返回 undefined，让 Vite 自动处理
           }
           
           // 其他 node_modules 统一打包
@@ -335,9 +325,10 @@ export default defineConfig({
       'element-plus/es/components/drawer/style/css',
       'element-plus/es/components/timeline/style/css',
       'element-plus/es/components/table/style/css'
-    ],
-    // 优化：排除不需要预构建的包
-    exclude: ['monaco-editor']
+    ]
+  },
+  worker: {
+    format: 'es'
   },
   // 优化：启用Gzip压缩构建（需要后端支持）
   esbuild: {
