@@ -309,9 +309,6 @@ export const formLimitsConfig = {
 export const mapConfig = {
   /** 高德地图搜索半径（米） */
   searchRadius: getEnvNumber('VITE_AMAP_SEARCH_RADIUS', 3000),
-  
-  /** 3D地图柱状图高度缩放系数 */
-  heightScale3D: getEnvNumber('VITE_MAP_3D_HEIGHT_SCALE', 20),
 }
 
 // ==================== 缓存配置扩展 ====================

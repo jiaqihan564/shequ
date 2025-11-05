@@ -15,9 +15,12 @@ const md: MarkdownIt = new MarkdownIt({
     // 代码高亮
     if (lang && hljs.getLanguage(lang)) {
       try {
-        return '<pre class="hljs"><code>' +
+        return '<div class="code-block-wrapper">' +
+               '<div class="code-block-lang">' + md.utils.escapeHtml(lang) + '</div>' +
+               '<pre class="hljs"><code>' +
                hljs.highlight(str, { language: lang, ignoreIllegals: true }).value +
-               '</code></pre>'
+               '</code></pre>' +
+               '</div>'
       } catch (e) {
         console.error('代码高亮失败:', e)
       }

@@ -33,8 +33,6 @@
     "@vueuse/head": "^2.0.0",
     "axios": "^1.7.7",
     "echarts": "^5.6.0",
-    "echarts-extension-gmap": "^1.7.0",
-    "echarts-gl": "^2.0.9",
     "element-plus": "^2.11.4",
     "highlight.js": "^11.11.1",
     "markdown-it": "^14.1.0",

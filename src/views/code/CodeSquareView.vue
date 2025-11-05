@@ -192,7 +192,7 @@ const stdin = ref('')
 const executionResult = ref<ExecuteCodeResponse | null>(null)
 const isRunning = ref(false)
 
-// 所有支持的语言列表（共17种）
+// 所有支持的语言列表（共15种）
 const languages = [
   'python',
   'javascript',
@@ -201,11 +201,9 @@ const languages = [
   'c',
   'go',
   'rust',
-  'typescript',
   'php',
   'ruby',
   'swift',
-  'kotlin',
   'bash',
   'lua',
   'scala',
@@ -296,11 +294,9 @@ function getLanguageDisplayName(lang: string): string {
     c: 'C',
     go: 'Go',
     rust: 'Rust',
-    typescript: 'TypeScript',
     php: 'PHP',
     ruby: 'Ruby',
     swift: 'Swift',
-    kotlin: 'Kotlin',
     bash: 'Bash',
     lua: 'Lua',
     scala: 'Scala',

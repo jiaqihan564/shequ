@@ -420,3 +420,40 @@ input[type="password"] {
     transform: none;
   }
 }
+
+/* Markdown 代码块样式 */
+.code-block-wrapper {
+  position: relative;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #282c34;
+}
+
+.code-block-lang {
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 6px 12px;
+  background: rgba(102, 126, 234, 0.9);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom-left-radius: 6px;
+  z-index: 1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.code-block-wrapper pre {
+  margin: 0;
+  padding: 16px;
+  padding-top: 40px;
+}
+
+.code-block-wrapper code {
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+}

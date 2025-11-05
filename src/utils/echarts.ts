@@ -25,10 +25,6 @@ import { LabelLayout, UniversalTransition } from 'echarts/features'
 // Import renderer
 import { CanvasRenderer } from 'echarts/renderers'
 
-// Import 3D components from echarts-gl for location distribution
-import { Bar3DChart, Scatter3DChart } from 'echarts-gl/charts'
-import { Grid3DComponent, Geo3DComponent } from 'echarts-gl/components'
-
 // Register all required components
 echarts.use([
   // Chart types
@@ -36,8 +32,6 @@ echarts.use([
   LineChart,
   PieChart,
   MapChart,
-  Bar3DChart,
-  Scatter3DChart,
   
   // Components
   TitleComponent,
@@ -47,8 +41,6 @@ echarts.use([
   VisualMapComponent,
   DataZoomComponent,
   GeoComponent,
-  Grid3DComponent,
-  Geo3DComponent,
   
   // Features
   LabelLayout,

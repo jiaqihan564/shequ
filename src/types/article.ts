@@ -161,7 +161,6 @@ export interface ArticleListQuery {
 // 支持的编程语言列表
 export const SUPPORTED_LANGUAGES = [
   { label: 'JavaScript', value: 'javascript' },
-  { label: 'TypeScript', value: 'typescript' },
   { label: 'Python', value: 'python' },
   { label: 'Go', value: 'go' },
   { label: 'Java', value: 'java' },
@@ -172,7 +171,6 @@ export const SUPPORTED_LANGUAGES = [
   { label: 'Ruby', value: 'ruby' },
   { label: 'Rust', value: 'rust' },
   { label: 'Swift', value: 'swift' },
-  { label: 'Kotlin', value: 'kotlin' },
   { label: 'Dart', value: 'dart' },
   { label: 'SQL', value: 'sql' },
   { label: 'HTML', value: 'html' },
