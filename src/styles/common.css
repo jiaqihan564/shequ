@@ -428,6 +428,7 @@ input[type="password"] {
   border-radius: 8px;
   overflow: hidden;
   background: #282c34;
+  transition: all 0.3s ease;
 }
 
 .code-block-header {
@@ -453,10 +454,12 @@ input[type="password"] {
 
 .code-block-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  align-items: center;
 }
 
-.code-copy-btn {
+/* 通用按钮样式 */
+.code-action-btn {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -470,29 +473,40 @@ input[type="password"] {
   transition: all 0.3s ease;
 }
 
-.code-copy-btn:hover {
+.code-action-btn:hover {
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(102, 126, 234, 0.8);
   color: #ffffff;
 }
 
+.code-action-btn .code-icon {
+  flex-shrink: 0;
+}
+
+.code-action-btn .action-text {
+  white-space: nowrap;
+}
+
+/* 复制按钮成功状态 */
 .code-copy-btn.copied {
   background: rgba(82, 196, 26, 0.2);
   border-color: rgba(82, 196, 26, 0.8);
   color: #52c41a;
 }
 
-.code-copy-btn .code-icon {
-  flex-shrink: 0;
+/* 下载按钮成功状态 */
+.code-download-btn.downloaded {
+  background: rgba(24, 144, 255, 0.2);
+  border-color: rgba(24, 144, 255, 0.8);
+  color: #1890ff;
 }
 
-.code-copy-btn .copy-text {
-  white-space: nowrap;
-}
-
+/* 代码内容区域 */
 .code-block-wrapper pre {
   margin: 0;
   padding: 16px;
+  overflow-x: auto;
+  transition: max-height 0.3s ease;
 }
 
 .code-block-wrapper code {
@@ -501,13 +515,97 @@ input[type="password"] {
   line-height: 1.6;
 }
 
+/* 折叠状态 */
+.code-block-wrapper.collapsed pre {
+  max-height: 200px;
+  overflow: hidden;
+  position: relative;
+}
+
+.code-block-wrapper.collapsed pre::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: linear-gradient(to bottom, transparent, #282c34);
+  pointer-events: none;
+}
+
+/* 全屏模式 */
+.code-block-wrapper.fullscreen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  margin: 0;
+  border-radius: 0;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+}
+
+.code-block-wrapper.fullscreen pre {
+  flex: 1;
+  overflow: auto;
+  max-height: none !important;
+}
+
+.code-block-wrapper.fullscreen .code-block-header {
+  flex-shrink: 0;
+}
+
+/* 全屏关闭按钮 */
+.code-fullscreen-close {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  color: #abb2bf;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  z-index: 10000;
+}
+
+.code-fullscreen-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  transform: rotate(90deg);
+}
+
+.code-fullscreen-close svg {
+  pointer-events: none;
+}
+
 /* 移动端适配 */
 @media (max-width: 768px) {
-  .code-copy-btn .copy-text {
+  .code-action-btn .action-text {
     display: none;
   }
   
-  .code-copy-btn {
+  .code-action-btn {
     padding: 4px 8px;
+  }
+  
+  .code-block-actions {
+    gap: 4px;
+  }
+}
+
+/* 平板适配 */
+@media (max-width: 1024px) {
+  .code-block-wrapper.fullscreen {
+    font-size: 13px;
   }
 }
