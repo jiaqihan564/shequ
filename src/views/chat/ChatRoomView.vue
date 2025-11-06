@@ -41,7 +41,12 @@
           @mouseenter="handleMessageHover(message, $event)"
           @mouseleave="handleMessageLeave"
         >
-          <img :src="getAvatarUrl(message)" :alt="message.nickname || message.username" class="message-avatar" />
+          <img 
+            :src="getAvatarUrl(message)" 
+            :alt="message.nickname || message.username" 
+            class="message-avatar" 
+            @click="goToUserDetail(message.user_id)"
+          />
           <div class="message-content-wrapper">
             <div class="message-header">
               <span class="message-username">
@@ -63,7 +68,12 @@
         @mouseleave="handleCardLeave"
       >
         <div class="card-header">
-          <img :src="getAvatarUrl(hoveredMessage)" :alt="hoveredMessage.nickname || hoveredMessage.username" class="card-avatar" />
+          <img 
+            :src="getAvatarUrl(hoveredMessage)" 
+            :alt="hoveredMessage.nickname || hoveredMessage.username" 
+            class="card-avatar" 
+            @click="goToUserDetail(hoveredMessage.user_id)"
+          />
           <div class="card-user-info">
             <div class="card-nickname">{{ hoveredMessage.nickname || hoveredMessage.username }}</div>
             <div class="card-username">@{{ hoveredMessage.username }}</div>
@@ -362,6 +372,13 @@ watch(() => messages.value.length, () => {
 // 返回
 const goBack = () => {
   router.back()
+}
+
+// 跳转到用户详情
+const goToUserDetail = (userId: number) => {
+  if (!userId) return
+  
+  router.push(`/users/${userId}`)
 }
 
 onMounted(() => {
@@ -751,6 +768,7 @@ onBeforeUnmount(() => {
   border: 2px solid rgba(99, 102, 241, 0.3);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
+  cursor: pointer;
 }
 
 .message-item:hover .message-avatar {
@@ -901,6 +919,15 @@ onBeforeUnmount(() => {
   box-shadow: 
     0 4px 12px rgba(99, 102, 241, 0.2),
     0 2px 6px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.card-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 
+    0 6px 18px rgba(99, 102, 241, 0.4),
+    0 3px 9px rgba(0, 0, 0, 0.2);
 }
 
 .card-user-info {
