@@ -114,35 +114,6 @@
       </el-row>
     </el-card>
 
-    <!-- 服务状态 -->
-    <el-card class="status-card" shadow="hover">
-      <template #header>
-        <h3 class="section-title">
-          <el-icon color="#67c23a"><CircleCheck /></el-icon>
-          服务状态
-        </h3>
-      </template>
-      <el-row :gutter="20">
-        <el-col :xs="24" :sm="12">
-          <div class="status-item">
-            <el-tag :type="metrics.service_status === 'running' ? 'success' : 'danger'" size="large" effect="dark">
-              {{ metrics.service_status === 'running' ? '运行中' : '异常' }}
-            </el-tag>
-          </div>
-        </el-col>
-        <el-col :xs="24" :sm="12">
-          <el-text v-if="metrics.last_error_time" type="warning">
-            <el-icon><Warning /></el-icon>
-            上次错误: {{ formatTime(metrics.last_error_time) }}
-          </el-text>
-          <el-text v-else type="success">
-            <el-icon><CircleCheck /></el-icon>
-            系统运行正常
-          </el-text>
-        </el-col>
-      </el-row>
-    </el-card>
-
     <!-- 实时图表 -->
     <el-card class="chart-card" shadow="hover" v-loading="loading">
       <template #header>
@@ -164,7 +135,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import echarts from '@/utils/echarts'
 import {
   Refresh, Monitor, Clock, UserFilled, Cpu, Odometer,
-  TrendCharts, CircleCheck, Warning
+  TrendCharts
 } from '@element-plus/icons-vue'
 import { getRealtimeMetrics } from '@/utils/api'
 import toast from '@/utils/toast'
@@ -413,19 +384,6 @@ function handleResize() {
   display: flex;
   flex-direction: column;
   gap: 12px;
-}
-
-.status-card {
-  margin-top: 20px;
-  margin-bottom: 20px;
-  border-radius: 12px;
-}
-
-.status-item {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 20px;
 }
 
 .chart-card {
