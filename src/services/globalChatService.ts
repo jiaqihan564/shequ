@@ -16,13 +16,15 @@ interface ChatMessage {
 }
 
 interface WSMessage {
-  type: 'message' | 'online_count' | 'heartbeat' | 'system' | 'notification' | 'private_message'
+  type: 'message' | 'online_count' | 'heartbeat' | 'system' | 'notification' | 'private_message' | 'message_read'
   data: unknown
 }
 
 type MessageCallback = (message: ChatMessage) => void
 type OnlineCountCallback = (count: number) => void
 type SystemMessageCallback = (data: unknown) => void
+type PrivateMessageCallback = (data: any) => void
+type MessageReadCallback = (data: any) => void
 
 class GlobalChatService {
   private static instance: GlobalChatService
@@ -45,6 +47,8 @@ class GlobalChatService {
   private messageCallbacks: Set<MessageCallback> = new Set()
   private onlineCountCallbacks: Set<OnlineCountCallback> = new Set()
   private systemMessageCallbacks: Set<SystemMessageCallback> = new Set()
+  private privateMessageCallbacks: Set<PrivateMessageCallback> = new Set()
+  private messageReadCallbacks: Set<MessageReadCallback> = new Set()
 
   private constructor() {
     logger.info('[GlobalChat] Service initialized')
@@ -210,13 +214,30 @@ class GlobalChatService {
 
             case 'private_message':
               // Private message notification
-              logger.info('[GlobalChat] Private message notification:', wsMsg.data)
+              logger.info('[GlobalChat] Private message received')
               // Trigger unread count refresh
               window.dispatchEvent(new Event('refresh-unread-count'))
-              if (wsMsg.data && typeof wsMsg.data === 'object' && 'message' in wsMsg.data) {
-                const pmData = wsMsg.data as { message: string }
-                toast.info(pmData.message)
-              }
+              // Notify subscribers
+              this.privateMessageCallbacks.forEach(callback => {
+                try {
+                  callback(wsMsg.data)
+                } catch (error) {
+                  logger.error('[GlobalChat] Error in private message callback:', error)
+                }
+              })
+              break
+
+            case 'message_read':
+              // Message read notification
+              logger.info('[GlobalChat] Message read notification')
+              // Notify subscribers
+              this.messageReadCallbacks.forEach(callback => {
+                try {
+                  callback(wsMsg.data)
+                } catch (error) {
+                  logger.error('[GlobalChat] Error in message read callback:', error)
+                }
+              })
               break
           }
         } catch (error) {
@@ -379,6 +400,16 @@ class GlobalChatService {
   public onSystemMessage(callback: SystemMessageCallback): () => void {
     this.systemMessageCallbacks.add(callback)
     return () => this.systemMessageCallbacks.delete(callback)
+  }
+
+  public onPrivateMessage(callback: PrivateMessageCallback): () => void {
+    this.privateMessageCallbacks.add(callback)
+    return () => this.privateMessageCallbacks.delete(callback)
+  }
+
+  public onMessageRead(callback: MessageReadCallback): () => void {
+    this.messageReadCallbacks.add(callback)
+    return () => this.messageReadCallbacks.delete(callback)
   }
 
   // History management

@@ -18,7 +18,7 @@
             @change="handleDateChange"
             size="default"
           />
-          <el-button :icon="Refresh" @click="loadData" :loading="loading">
+          <el-button :icon="Refresh" @click="loadData(true)" :loading="loading">
             刷新
           </el-button>
         </div>
@@ -200,7 +200,7 @@ function handleDateChange() {
   loadData()
 }
 
-const loadData = async () => {
+const loadData = async (forceRefresh: boolean = false) => {
   loading.value = true
   try {
     let startDate: string
@@ -215,7 +215,7 @@ const loadData = async () => {
       startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     }
     
-    const data = await getDailyMetrics(startDate, endDate)
+    const data = await getDailyMetrics(startDate, endDate, forceRefresh)
     today.value = data.today || {}
     
     // 处理趋势数据

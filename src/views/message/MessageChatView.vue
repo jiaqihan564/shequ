@@ -146,6 +146,7 @@ import {
   getConversationMessages,
   sendPrivateMessage,
   startConversation,
+  markConversationAsRead,
   get
 } from '@/utils/api'
 import type { PrivateMessage, ConversationUser } from '@/types/message'
@@ -154,6 +155,7 @@ import toast from '@/utils/toast'
 import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
 import { STORAGE_KEYS } from '@/config/storage-keys'
 import { logger } from '@/utils/ui/logger'
+import { globalChatService } from '@/services/globalChatService'
 
 const route = useRoute()
 const router = useRouter()
@@ -172,7 +174,9 @@ const scrollbarRef = ref<any>()
 const messagesAreaRef = ref<HTMLElement>()
 let lastMessageRef: any = null
 
-let pollTimer: number | null = null
+// WebSocket取消订阅函数
+let unsubscribePrivateMessage: (() => void) | null = null
+let unsubscribeMessageRead: (() => void) | null = null
 
 // 当前用户信息
 const currentUserInfo = computed(() => {
@@ -253,13 +257,25 @@ async function initChat() {
 }
 
 // 加载消息
-async function loadMessages() {
+async function loadMessages(shouldMarkRead = true) {
   if (!conversationId.value) return
 
   loadingMessages.value = true
   try {
     const result = await getConversationMessages(conversationId.value, 50)
     messages.value = result.messages || []
+
+    // 本地立即标记对方发送给我的消息为已读（实时更新UI）
+    messages.value.forEach(msg => {
+      if (!msg.is_self) {
+        msg.is_read = true
+      }
+    })
+
+    // 立即调用标记已读API，确保发送者实时收到已读通知
+    if (shouldMarkRead) {
+      markMessagesAsReadImmediate()
+    }
 
     // 确保DOM完全更新后滚动到底部
     await nextTick()
@@ -277,6 +293,22 @@ async function loadMessages() {
   }
 }
 
+// 立即标记消息为已读
+async function markMessagesAsReadImmediate() {
+  if (!conversationId.value) return
+  
+  try {
+    await markConversationAsRead(conversationId.value)
+    logger.info('[MessageChat] Messages marked as read immediately on page load')
+    
+    // 触发全局未读数刷新
+    window.dispatchEvent(new Event('refresh-unread-count'))
+  } catch (error) {
+    logger.error('[MessageChat] Failed to mark messages as read immediately:', error)
+    // 静默失败，不影响用户体验
+  }
+}
+
 // 加载更多消息
 async function loadMoreMessages() {
   // 待实现：分页加载
@@ -291,28 +323,53 @@ async function sendMessage() {
   if (!content) return
 
   sending.value = true
+  
+  // 创建临时消息对象（乐观更新）
+  const tempMessage: PrivateMessage = {
+    id: Date.now(), // 使用时间戳作为临时ID
+    conversation_id: conversationId.value!,
+    sender: {
+      id: currentUserId.value,
+      username: currentUserInfo.value?.username || '',
+      nickname: currentUserNickname.value,
+      avatar: currentUserAvatar.value
+    },
+    receiver: otherUser.value,
+    content: content,
+    is_read: false,
+    is_self: true,
+    created_at: new Date().toISOString()
+  }
+  
+  // 立即添加到消息列表（乐观更新）
+  messages.value.push(tempMessage)
+  messageInput.value = ''
+  
+  // 立即滚动到底部
+  await nextTick()
+  scrollToBottom(false)
+  
   try {
-    await sendPrivateMessage({
+    // 发送消息到服务器
+    const response = await sendPrivateMessage({
       receiver_id: otherUser.value.id,
       content: content
     })
-
-    messageInput.value = ''
     
-    // 重新加载消息
-    await loadMessages()
-    
-    // 确保滚动到最新消息（使用多次nextTick和更长延迟确保DOM完全更新）
-    await nextTick()
-    await nextTick()
-    // 立即滚动一次（无动画）
-    scrollToBottom(false)
-    // 再延迟滚动一次（带动画），确保内容完全渲染
-    setTimeout(() => scrollToBottom(true), 300)
+    // 更新临时消息的ID为服务器返回的真实ID
+    const tempIndex = messages.value.findIndex(msg => msg.id === tempMessage.id)
+    if (tempIndex !== -1) {
+      messages.value[tempIndex].id = response.message_id
+    }
     
     // 触发全局未读数刷新事件
     window.dispatchEvent(new Event('refresh-unread-count'))
   } catch (error: any) {
+    // 发送失败，移除临时消息
+    const failedIndex = messages.value.findIndex(msg => msg.id === tempMessage.id)
+    if (failedIndex !== -1) {
+      messages.value.splice(failedIndex, 1)
+    }
     toast.error(error.message || '发送失败')
   } finally {
     sending.value = false
@@ -330,30 +387,81 @@ function insertNewLine() {
   messageInput.value += '\n'
 }
 
-// 轮询新消息
-async function pollNewMessages() {
-  if (!conversationId.value) return
-
-  try {
-    const result = await getConversationMessages(conversationId.value, 50)
-    const newMessages = result.messages || []
-
-    if (newMessages.length > messages.value.length) {
-      messages.value = newMessages
-      
-      // 如果有新消息且不是自己发的，滚动到底部
-      if (newMessages.length > 0) {
-        const lastMsg = newMessages[newMessages.length - 1]
-        if (!lastMsg.is_self) {
-          await nextTick()
-          scrollToBottom()
-        }
-      }
-    }
-  } catch (error) {
-    // 静默失败
-    logger.error('轮询消息失败:', error)
+// 处理收到的新私信
+async function handleNewPrivateMessage(data: any) {
+  if (!data || !data.message) return
+  
+  const newMessage = data.message as PrivateMessage
+  
+  // 只处理当前会话的消息
+  if (newMessage.conversation_id !== conversationId.value) {
+    logger.debug('[MessageChat] Received message for different conversation')
+    return
   }
+  
+  logger.info('[MessageChat] New message received via WebSocket:', newMessage.id)
+  
+  // 检查消息是否已存在（避免重复）
+  const exists = messages.value.some(msg => msg.id === newMessage.id)
+  if (exists) {
+    logger.debug('[MessageChat] Message already exists, skipping')
+    return
+  }
+  
+  // 本地立即标记为已读（用户正在当前会话界面）
+  newMessage.is_read = true
+  
+  // 添加到消息列表
+  messages.value.push(newMessage)
+  
+  // 滚动到底部
+  nextTick(() => {
+    scrollToBottom(true)
+  })
+  
+  // 异步通知后端标记为已读（这样发送者会立即收到已读通知）
+  try {
+    await markConversationAsRead(conversationId.value!)
+    logger.info('[MessageChat] Message marked as read on server')
+    
+    // 触发全局未读数刷新
+    window.dispatchEvent(new Event('refresh-unread-count'))
+  } catch (error) {
+    logger.error('[MessageChat] Failed to mark message as read:', error)
+    // 静默失败，不影响用户体验
+  }
+}
+
+// 处理消息已读通知
+function handleMessageRead(data: any) {
+  logger.debug('[MessageChat] Received message_read notification:', data)
+  
+  if (!data || !data.conversation_id) {
+    logger.warn('[MessageChat] Invalid message_read data')
+    return
+  }
+  
+  // 只处理当前会话的已读通知
+  if (data.conversation_id !== conversationId.value) {
+    logger.debug('[MessageChat] Ignoring message_read for different conversation')
+    return
+  }
+  
+  logger.info('[MessageChat] Updating messages as read for conversation:', data.conversation_id)
+  
+  // 更新当前会话中所有自己发送的消息为已读
+  let updatedCount = 0
+  messages.value.forEach(msg => {
+    if (msg.is_self && !msg.is_read) {
+      msg.is_read = true
+      updatedCount++
+    }
+  })
+  
+  logger.info(`[MessageChat] Updated ${updatedCount} messages to read status`)
+  
+  // 强制Vue重新渲染（确保UI更新）
+  messages.value = [...messages.value]
 }
 
 // 滚动到底部 - 增强版，支持多种滚动方法
@@ -456,28 +564,39 @@ function formatBubbleTime(timeString: string): string {
   return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
 }
 
-// 启动轮询
-function startPolling() {
-  pollTimer = window.setInterval(() => {
-    pollNewMessages()
-  }, 3000) // 每3秒检查一次
+// 设置WebSocket监听
+function setupWebSocketListeners() {
+  // 订阅私信消息
+  unsubscribePrivateMessage = globalChatService.onPrivateMessage(handleNewPrivateMessage)
+  
+  // 订阅消息已读通知
+  unsubscribeMessageRead = globalChatService.onMessageRead(handleMessageRead)
+  
+  logger.info('[MessageChat] WebSocket listeners setup complete')
 }
 
-// 停止轮询
-function stopPolling() {
-  if (pollTimer) {
-    clearInterval(pollTimer)
-    pollTimer = null
+// 清理WebSocket监听
+function cleanupWebSocketListeners() {
+  if (unsubscribePrivateMessage) {
+    unsubscribePrivateMessage()
+    unsubscribePrivateMessage = null
   }
+  
+  if (unsubscribeMessageRead) {
+    unsubscribeMessageRead()
+    unsubscribeMessageRead = null
+  }
+  
+  logger.info('[MessageChat] WebSocket listeners cleaned up')
 }
 
 onMounted(() => {
   initChat()
-  startPolling()
+  setupWebSocketListeners()
 })
 
 onUnmounted(() => {
-  stopPolling()
+  cleanupWebSocketListeners()
 })
 </script>
 

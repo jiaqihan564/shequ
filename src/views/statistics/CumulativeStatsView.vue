@@ -7,7 +7,7 @@
           <h1 class="page-title">全站累计统计</h1>
           <p class="page-subtitle">系统运行以来的累计统计数据</p>
         </div>
-        <el-button :icon="Refresh" @click="loadData" :loading="loading">
+        <el-button :icon="Refresh" @click="loadData(true)" :loading="loading">
           刷新数据
         </el-button>
       </div>
@@ -183,10 +183,10 @@ const data = ref<any>({
   content: []
 })
 
-const loadData = async () => {
+const loadData = async (forceRefresh: boolean = false) => {
   loading.value = true
   try {
-    const result = await getCumulativeStats()
+    const result = await getCumulativeStats(forceRefresh)
     data.value = result || { user: [], api: [], security: [], content: [] }
     lastUpdateTime.value = new Date().toLocaleString('zh-CN')
   } catch (error: any) {

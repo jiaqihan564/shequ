@@ -1055,10 +1055,18 @@ export async function getProfileChangeHistory(limit = apiDefaultsConfig.historyD
 
 // 累计统计相关API
 /**
- * 获取累计统计数据
+ * 获取累计统计数据（5分钟缓存，支持强制刷新）
+ * @param forceRefresh 是否强制刷新（绕过缓存）
  */
-export async function getCumulativeStats(): Promise<any> {
-  const response = await api.get<ApiResponse<any>>('/cumulative-stats')
+export async function getCumulativeStats(forceRefresh: boolean = false): Promise<any> {
+  const params: any = {}
+  
+  // 强制刷新时添加时间戳，绕过缓存
+  if (forceRefresh) {
+    params._t = Date.now()
+  }
+  
+  const response = await api.get<ApiResponse<any>>('/cumulative-stats', { params })
   
   if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
@@ -1068,12 +1076,20 @@ export async function getCumulativeStats(): Promise<any> {
 }
 
 /**
- * 获取每日指标
+ * 获取每日指标（5分钟缓存，支持强制刷新）
+ * @param startDate 开始日期
+ * @param endDate 结束日期
+ * @param forceRefresh 是否强制刷新（绕过缓存）
  */
-export async function getDailyMetrics(startDate?: string, endDate?: string): Promise<any> {
+export async function getDailyMetrics(startDate?: string, endDate?: string, forceRefresh: boolean = false): Promise<any> {
   const params: any = {}
   if (startDate) params.start = startDate
   if (endDate) params.end = endDate
+  
+  // 强制刷新时添加时间戳，绕过缓存
+  if (forceRefresh) {
+    params._t = Date.now()
+  }
   
   const response = await api.get<ApiResponse<any>>('/daily-metrics', { params })
   
@@ -1085,10 +1101,18 @@ export async function getDailyMetrics(startDate?: string, endDate?: string): Pro
 }
 
 /**
- * 获取实时指标
+ * 获取实时指标（5分钟缓存，支持强制刷新）
+ * @param forceRefresh 是否强制刷新（绕过缓存）
  */
-export async function getRealtimeMetrics(): Promise<any> {
-  const response = await api.get<ApiResponse<any>>('/realtime-metrics')
+export async function getRealtimeMetrics(forceRefresh: boolean = false): Promise<any> {
+  const params: any = {}
+  
+  // 强制刷新时添加时间戳，绕过缓存
+  if (forceRefresh) {
+    params._t = Date.now()
+  }
+  
+  const response = await api.get<ApiResponse<any>>('/realtime-metrics', { params })
   
   if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
@@ -1449,6 +1473,19 @@ export async function startConversation(userId: number): Promise<StartConversati
   }
   
   throw createAppError('START_CONVERSATION_FAILED', response.data.message || '开始会话失败')
+}
+
+/**
+ * 标记会话消息为已读
+ */
+export async function markConversationAsRead(conversationId: number): Promise<void> {
+  const response = await api.post<ApiResponse<null>>(`/conversations/${conversationId}/mark-read`)
+  
+  if (response.data.code === HTTP_STATUS.OK) {
+    return
+  }
+  
+  throw createAppError('MARK_READ_FAILED', response.data.message || '标记已读失败')
 }
 
 // ========================================

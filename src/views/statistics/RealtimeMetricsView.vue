@@ -22,7 +22,7 @@
             inactive-text="关"
             @change="handleAutoRefreshChange"
           />
-          <el-button :icon="Refresh" @click="loadData" :loading="loading">
+          <el-button :icon="Refresh" @click="loadData(true)" :loading="loading">
             刷新
           </el-button>
         </div>
@@ -150,10 +150,10 @@ const historyData = ref<any[]>([])
 let chart: echarts.ECharts | null = null
 let refreshTimer: number | null = null
 
-const loadData = async () => {
+const loadData = async (forceRefresh: boolean = false) => {
   loading.value = true
   try {
-    const data = await getRealtimeMetrics()
+    const data = await getRealtimeMetrics(forceRefresh)
     metrics.value = data || {}
     
     // 添加到历史数据（最多保留60条）
