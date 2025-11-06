@@ -48,6 +48,7 @@ declare module 'vue' {
     ElSwitch: typeof import('element-plus/es')['ElSwitch']
     ElTag: typeof import('element-plus/es')['ElTag']
     ElText: typeof import('element-plus/es')['ElText']
+    ElTooltip: typeof import('element-plus/es')['ElTooltip']
     ElUpload: typeof import('element-plus/es')['ElUpload']
     ErrorIcon: typeof import('./src/components/icons/ErrorIcon.vue')['default']
     EyeIcon: typeof import('./src/components/icons/EyeIcon.vue')['default']

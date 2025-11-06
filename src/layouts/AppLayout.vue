@@ -27,13 +27,6 @@
             <RouterLink to="/location-distribution" class="nav-item" active-class="active">🌏 地区分布</RouterLink>
           </template>
           
-          <!-- 所有用户可见：历史记录 -->
-          <div class="nav-divider"></div>
-          <div class="nav-section-title">历史记录</div>
-          <RouterLink to="/login-history" class="nav-item" active-class="active">🔐 登录历史</RouterLink>
-          <RouterLink to="/operation-history" class="nav-item" active-class="active">📋 操作历史</RouterLink>
-          <RouterLink to="/profile-history" class="nav-item" active-class="active">📝 资料修改</RouterLink>
-          
           <!-- 仅普通用户可见：社交互动、在线编程、资源分享 -->
           <template v-if="!isUserAdmin">
             <!-- 社交功能 -->
@@ -45,7 +38,6 @@
               ✉️ 私信
               <el-badge v-if="unreadCount > 0" :value="unreadCount" type="danger" />
             </RouterLink>
-            <RouterLink to="/articles" class="nav-item" active-class="active">📝 技术文章</RouterLink>
             
             <!-- 在线编程 -->
             <div class="nav-divider"></div>
@@ -58,7 +50,15 @@
             <div class="nav-divider"></div>
             <div class="nav-section-title">资源分享</div>
             <RouterLink to="/resources" class="nav-item" active-class="active">📦 资源中心</RouterLink>
+            <RouterLink to="/articles" class="nav-item" active-class="active">📝 技术文章</RouterLink>
           </template>
+          
+          <!-- 所有用户可见：历史记录 -->
+          <div class="nav-divider"></div>
+          <div class="nav-section-title">历史记录</div>
+          <RouterLink to="/login-history" class="nav-item" active-class="active">🔐 登录历史</RouterLink>
+          <RouterLink to="/operation-history" class="nav-item" active-class="active">📋 操作历史</RouterLink>
+          <RouterLink to="/profile-history" class="nav-item" active-class="active">📝 资料修改</RouterLink>
         </nav>
       </slot>
     </aside>
