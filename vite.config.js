@@ -5,6 +5,9 @@ import { networkInterfaces } from 'os'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
+import monacoEditorPluginModule from 'vite-plugin-monaco-editor'
+
+const monacoEditorPlugin = monacoEditorPluginModule.default || monacoEditorPluginModule
 
 // https://vite.dev/config/
 export default defineConfig({
@@ -36,6 +39,10 @@ export default defineConfig({
       extensions: ['vue'],
       deep: true,
       resolvers: [ElementPlusResolver()]
+    }),
+    // Monaco Editor 插件配置
+    monacoEditorPlugin({
+      languageWorkers: ['editorWorkerService', 'typescript', 'json', 'html']
     }),
     // 自定义插件：过滤显示的网络地址
     {
