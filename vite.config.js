@@ -108,7 +108,7 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    open: true,
+    open: false,
     cors: true,
     host: '0.0.0.0',
     // 允许所有主机访问（开发环境）- 解决域名访问被阻止的问题

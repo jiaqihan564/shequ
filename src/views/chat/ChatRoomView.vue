@@ -143,7 +143,6 @@ import { useRouter } from 'vue-router'
 import { STORAGE_KEYS } from '@/config/storage-keys'
 import { globalChatService } from '@/services/globalChatService'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
-import { getChatMessages } from '@/utils/api'
 import { toast } from '@/utils/toast'
 import { logger } from '@/utils/ui/logger'
 
@@ -342,35 +341,23 @@ const sendMessage = async () => {
   }
 }
 
-// 加载初始消息（历史消息，WebSocket 连接后会接收新消息）
-const loadInitialMessages = async () => {
-  // 如果全局服务已经加载过历史消息，不重复加载
-  if (globalChatService.isHistoryLoaded()) {
-    logger.info('[ChatRoom] Using existing messages from global service')
-    scrollToBottom()
-    return
-  }
-
+// 快速初始化 - 使用优化的启动流程
+const quickInit = async () => {
   loading.value = true
   try {
-    const result = await getChatMessages(100)
-    const msgs = result.messages || []
-
-    // 填充到 WebSocket 消息列表
-    messages.value.push(...msgs)
-
-    // 标记历史消息已加载
-    globalChatService.markHistoryLoaded()
-
+    // 使用全局服务的快速启动（自动处理缓存恢复、WebSocket连接、消息拉取）
+    await globalChatService.quickStart()
+    
     // 更新 lastMessageId
-    if (msgs.length > 0) {
-      lastMessageId.value = msgs[msgs.length - 1].id
+    if (messages.value.length > 0) {
+      lastMessageId.value = messages.value[messages.value.length - 1].id
     }
-
+    
     // 滚动到底部
     scrollToBottom()
   } catch (error: any) {
-    toast.error(error?.message || 'Failed to load messages')
+    logger.error('[ChatRoom] Quick init failed:', error)
+    toast.error('加载消息失败，请刷新页面')
   } finally {
     loading.value = false
   }
@@ -410,8 +397,8 @@ onMounted(() => {
     logger.error('Failed to get user info:', error)
   }
 
-  // 加载历史消息
-  loadInitialMessages()
+  // 使用快速初始化（自动处理所有初始化逻辑）
+  quickInit()
 
   // 自动聚焦到输入框
   nextTick(() => {

@@ -213,7 +213,7 @@ function stopUnreadPolling() {
   }
 }
 
-onMounted(() => {
+onMounted(async () => {
   try {
     const raw =
       localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
@@ -227,11 +227,11 @@ onMounted(() => {
     if (import.meta.env.DEV) console.warn('读取用户信息失败', e)
   }
 
-  // 初始化全局聊天服务
-  console.log('[AppLayout] Initializing global chat service')
-  if (globalChatService.connectionStatus.value === 'disconnected') {
-    globalChatService.connect()
-  }
+  // 快速启动全局聊天服务（不阻塞页面渲染）
+  console.log('[AppLayout] Quick starting global chat service')
+  globalChatService.quickStart().catch(err => {
+    console.error('[AppLayout] Failed to quick start chat service:', err)
+  })
 
   // 监听手动刷新未读数事件
   window.addEventListener('refresh-unread-count', loadUnreadCount)

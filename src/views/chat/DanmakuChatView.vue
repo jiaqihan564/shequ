@@ -91,8 +91,8 @@ import DanmakuMessage from '@/components/chat/DanmakuMessage.vue'
 import { danmakuConfig, formLimitsConfig } from '@/config'
 import { globalChatService } from '@/services/globalChatService'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
-import { getChatMessages } from '@/utils/api'
 import { toast } from '@/utils/toast'
+import { logger } from '@/utils/ui/logger'
 
 const router = useRouter()
 
@@ -224,11 +224,13 @@ const sendMessage = async () => {
   }
 }
 
-// 加载初始消息
-const loadInitialMessages = async () => {
-  // 如果全局服务已经加载过历史消息，使用现有消息创建弹幕
-  if (globalChatService.isHistoryLoaded() && wsMessages.value.length > 0) {
-    console.log('[DanmakuChat] Using existing messages from global service')
+// 快速初始化 - 使用优化的启动流程
+const quickInit = async () => {
+  loading.value = true
+  try {
+    // 使用全局服务的快速启动（自动处理缓存恢复、WebSocket连接、消息拉取）
+    await globalChatService.quickStart()
+    
     // 从现有消息中创建弹幕（最多显示最近30条）
     const recentMessages = wsMessages.value.slice(-30)
     for (let i = 0; i < recentMessages.length; i++) {
@@ -236,35 +238,14 @@ const loadInitialMessages = async () => {
         addDanmaku(recentMessages[i])
       }, i * 100)
     }
-    if (recentMessages.length > 0) {
-      lastMessageId.value = recentMessages[recentMessages.length - 1].id
-    }
-    return
-  }
-
-  loading.value = true
-  try {
-    const result = await getChatMessages(30)
-    const messages = result.messages || []
-
-    // 标记历史消息已加载
-    if (messages.length > 0) {
-      globalChatService.markHistoryLoaded()
-    }
-
-    // 初始化lastMessageId
-    if (messages.length > 0) {
-      lastMessageId.value = messages[messages.length - 1].id
-
-      // 逐个添加弹幕，间隔100ms
-      for (let i = 0; i < messages.length; i++) {
-        setTimeout(() => {
-          addDanmaku(messages[i])
-        }, i * 100)
-      }
+    
+    // 更新 lastMessageId
+    if (wsMessages.value.length > 0) {
+      lastMessageId.value = wsMessages.value[wsMessages.value.length - 1].id
     }
   } catch (error: any) {
-    toast.error(error?.message || 'Failed to load messages')
+    logger.error('[DanmakuChat] Quick init failed:', error)
+    toast.error('加载消息失败，请刷新页面')
   } finally {
     loading.value = false
   }
@@ -288,8 +269,8 @@ const goBack = () => {
 }
 
 onMounted(() => {
-  // 加载历史消息
-  loadInitialMessages()
+  // 使用快速初始化（自动处理所有初始化逻辑）
+  quickInit()
 
   // 自动聚焦到输入框
   nextTick(() => {

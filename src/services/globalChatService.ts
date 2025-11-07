@@ -1,7 +1,9 @@
-import { ref, type Ref } from 'vue'
+import { ref, watch, type Ref } from 'vue'
 
 import { websocketConfig } from '@/config'
+import { messageCache } from '@/services/messageCache'
 import type { ArticleComment } from '@/types'
+import { getChatMessages } from '@/utils/api'
 import { toast } from '@/utils/toast'
 import { getStoredToken, isTokenExpired } from '@/utils/tokenValidator'
 import { logger } from '@/utils/ui/logger'
@@ -76,7 +78,8 @@ class GlobalChatService {
   private heartbeatInterval: number | null = null
   private isManualClose = false
   private isConnecting = false // Lock to prevent concurrent connections
-  private hasLoadedHistory = false // Track if history messages have been loaded
+  private connectionPromise: Promise<void> | null = null // Promise for async connection
+  private isInitialized = false // Track if service has been initialized
 
   // Subscription callbacks
   private messageCallbacks: Set<MessageCallback> = new Set()
@@ -88,6 +91,7 @@ class GlobalChatService {
 
   private constructor() {
     logger.info('[GlobalChat] Service initialized')
+    this.setupAutoCaching()
   }
 
   public static getInstance(): GlobalChatService {
@@ -95,6 +99,147 @@ class GlobalChatService {
       GlobalChatService.instance = new GlobalChatService()
     }
     return GlobalChatService.instance
+  }
+
+  /**
+   * 快速启动服务 - 优化的初始化流程
+   * 1. 立即恢复缓存消息（用户立即看到内容）
+   * 2. 并行连接WebSocket和拉取最新消息
+   * 3. 合并结果并更新UI
+   */
+  public async quickStart(): Promise<void> {
+    if (this.isInitialized) {
+      logger.info('[GlobalChat] Already initialized, skipping quickStart')
+      return
+    }
+
+    logger.info('[GlobalChat] Quick start initiated')
+    this.isInitialized = true
+
+    // 步骤1: 立即恢复缓存消息（给用户立即看到内容）
+    const cached = messageCache.restore()
+    if (cached.length > 0) {
+      this.messages.value = cached
+      logger.info(`[GlobalChat] ✅ Restored ${cached.length} cached messages`)
+    }
+
+    // 步骤2: 并行操作 - WebSocket连接 + API拉取
+    const results = await Promise.allSettled([
+      this.connectWithTimeout(5000),
+      this.fetchRecentMessages(100)
+    ])
+
+    // 步骤3: 处理结果
+    const [wsResult, apiResult] = results
+
+    if (wsResult.status === 'fulfilled') {
+      logger.info('[GlobalChat] ✅ WebSocket connected successfully')
+    } else {
+      logger.error('[GlobalChat] ❌ WebSocket connection failed:', wsResult.reason)
+      // 即使连接失败，用户仍能看到缓存和API拉取的消息
+    }
+
+    if (apiResult.status === 'fulfilled' && apiResult.value) {
+      const newMessages = apiResult.value
+      if (newMessages.length > 0) {
+        // 合并消息（去重）
+        this.mergeMessages(newMessages)
+        logger.info(`[GlobalChat] ✅ Merged ${newMessages.length} messages from API`)
+      }
+    } else if (apiResult.status === 'rejected') {
+      logger.error('[GlobalChat] ❌ Failed to fetch messages:', apiResult.reason)
+    }
+  }
+
+  /**
+   * 带超时的连接方法
+   */
+  private connectWithTimeout(timeoutMs: number): Promise<void> {
+    if (this.connectionPromise) {
+      return this.connectionPromise
+    }
+
+    this.connectionPromise = new Promise((resolve, reject) => {
+      // 如果已经连接，立即返回
+      if (this.connectionStatus.value === 'connected') {
+        resolve()
+        this.connectionPromise = null
+        return
+      }
+
+      // 开始连接
+      this.connect()
+
+      // 监听连接状态
+      const checkInterval = setInterval(() => {
+        if (this.connectionStatus.value === 'connected') {
+          clearInterval(checkInterval)
+          clearTimeout(timeout)
+          this.connectionPromise = null
+          resolve()
+        }
+      }, 100)
+
+      // 超时处理
+      const timeout = setTimeout(() => {
+        clearInterval(checkInterval)
+        this.connectionPromise = null
+        reject(new Error(`Connection timeout after ${timeoutMs}ms`))
+      }, timeoutMs)
+    })
+
+    return this.connectionPromise
+  }
+
+  /**
+   * 拉取最近的消息
+   */
+  private async fetchRecentMessages(limit: number = 100): Promise<ChatMessage[]> {
+    try {
+      const result = await getChatMessages(limit)
+      return result.messages || []
+    } catch (error) {
+      logger.error('[GlobalChat] Failed to fetch messages:', error)
+      return []
+    }
+  }
+
+  /**
+   * 合并消息（去重）
+   */
+  private mergeMessages(newMessages: ChatMessage[]): void {
+    if (newMessages.length === 0) return
+
+    const existingIds = new Set(this.messages.value.map(m => m.id))
+    const uniqueNewMessages = newMessages.filter(m => !existingIds.has(m.id))
+
+    if (uniqueNewMessages.length > 0) {
+      // 合并并按时间排序
+      this.messages.value = [...this.messages.value, ...uniqueNewMessages].sort(
+        (a, b) => new Date(a.send_time).getTime() - new Date(b.send_time).getTime()
+      )
+
+      // 限制消息数量
+      if (this.messages.value.length > websocketConfig.maxMessages) {
+        this.messages.value = this.messages.value.slice(-websocketConfig.maxMessages)
+      }
+    }
+  }
+
+  /**
+   * 设置自动缓存 - 监听消息变化并自动保存
+   */
+  private setupAutoCaching(): void {
+    watch(
+      this.messages,
+      newMessages => {
+        if (newMessages.length > 0) {
+          messageCache.save(newMessages)
+        }
+      },
+      { deep: true }
+    )
+    logger.debug('[GlobalChat] Auto-caching enabled')
   }
 
   private getWebSocketUrl(): string {
@@ -305,7 +450,8 @@ class GlobalChatService {
     this.onlineCount.value = 0
     this.reconnectAttempts = 0
     this.isManualClose = false
-    this.hasLoadedHistory = false
+    this.isInitialized = false
+    messageCache.clear()
   }
 
   private startHeartbeat(): void {
@@ -534,14 +680,11 @@ class GlobalChatService {
     return () => this.commentCallbacks.delete(callback)
   }
 
-  // History management
-  public markHistoryLoaded(): void {
-    this.hasLoadedHistory = true
-    logger.info('[GlobalChat] History messages marked as loaded')
-  }
-
-  public isHistoryLoaded(): boolean {
-    return this.hasLoadedHistory
+  /**
+   * Get cache information
+   */
+  public getCacheInfo() {
+    return messageCache.getInfo()
   }
 }
 

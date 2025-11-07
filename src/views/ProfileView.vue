@@ -34,7 +34,7 @@
             <input
               ref="fileInputRef"
               type="file"
-              accept="image/png"
+              accept="image/png,image/jpeg,image/jpg,image/webp"
               class="sr-only"
               :disabled="uploading"
               @change="onPickAvatar"
@@ -379,29 +379,59 @@ async function onPickAvatar(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files && input.files[0]
   if (!file) return
-  // 仅允许 PNG
-  const isPngType = file.type === 'image/png'
-  const isPngExt = /\.png$/i.test(file.name)
-  if (!isPngType || !isPngExt) {
-    showToast('error', '仅支持 PNG 格式的头像文件')
+
+  // 支持更多图片格式（PNG、JPEG、WebP）
+  const supportedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp']
+  if (!supportedTypes.includes(file.type)) {
+    showToast('error', '仅支持 PNG、JPEG、WebP 格式的图片')
     ;(event.target as HTMLInputElement).value = ''
     return
   }
+
   try {
     uploading.value = true
-    // 上传头像文件（后端会自动更新数据库）
-    const url = await uploadImage(file)
+
+    // 显示压缩提示
+    showToast('info', '正在压缩图片...')
+
+    // 前端压缩图片到10KB以下（统一转为PNG格式）
+    const { compressImage, formatFileSize } = await import('@/utils/image-compress')
+    const compressed = await compressImage(file, {
+      targetSizeKB: 10, // 目标10KB以下
+      maxDimension: 512, // 最大512px
+      outputFormat: 'image/png', // 统一转为PNG格式
+      initialQuality: 0.9,
+      minQuality: 0.3 // 降低最低质量以确保压缩到10KB
+    })
+
+    console.log('图片压缩完成:', {
+      原始大小: formatFileSize(compressed.originalSize),
+      压缩后: formatFileSize(compressed.compressedSize),
+      压缩率: `${compressed.compressionRatio.toFixed(1)}%`,
+      尺寸: `${compressed.width}x${compressed.height}`
+    })
+
+    // 上传压缩后的文件
+    const url = await uploadImage(compressed.file)
+
     // 立即更新预览
     form.avatar = url
+
     // 从服务器重新获取最新的用户信息（包括头像URL）
     const updated = await getCurrentUser()
     initialUser.value = updated
+
     // 同步表单数据
     if (updated && updated.avatar) {
       form.avatar = updated.avatar
     }
-    showToast('success', '头像已更新')
+
+    showToast(
+      'success',
+      `头像已更新 (${formatFileSize(compressed.originalSize)} → ${formatFileSize(compressed.compressedSize)})`
+    )
   } catch (e: any) {
+    console.error('头像上传失败:', e)
     showToast('error', e?.message || '头像上传失败')
   } finally {
     uploading.value = false
