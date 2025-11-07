@@ -20,7 +20,7 @@
     <section v-if="user" class="user-welcome">
       <el-avatar
         :size="64"
-        :src="hasValidAvatar(user.avatar) ? user.avatar : undefined"
+        :src="avatarSrc || undefined"
         :style="{ backgroundColor: getAvatarColor(user.id), fontSize: '28px', fontWeight: '600' }"
       >
         {{ getAvatarInitial(user.profile?.nickname || user.username) }}
@@ -54,7 +54,7 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
 
 import CommunityFeed from '@/components/home/CommunityFeed.vue'
@@ -64,7 +64,20 @@ import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar
 
 const user = ref<User | null>(null)
 
-onMounted(() => {
+// 计算带版本号的头像 URL（用于破除浏览器缓存）
+const avatarSrc = computed(() => {
+  const u = user.value as any
+  if (!u?.avatar) return ''
+  // 检查头像是否有效
+  if (!hasValidAvatar(u.avatar)) return ''
+  // 添加版本号参数破缓存
+  const v = u.avatar_version || u.updatedAt || Date.now()
+  const sep = u.avatar.includes('?') ? '&' : '?'
+  return `${u.avatar}${sep}v=${v}`
+})
+
+// 读取用户信息
+function loadUserInfo() {
   try {
     const raw =
       localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
@@ -74,6 +87,29 @@ onMounted(() => {
   } catch (e: unknown) {
     if (import.meta.env.DEV) console.warn('读取用户信息失败', e)
   }
+}
+
+// 监听用户信息更新事件
+function handleUserUpdated(e: Event) {
+  const customEvent = e as CustomEvent
+  // 事件的 detail 直接就是 user 对象
+  if (customEvent.detail) {
+    user.value = customEvent.detail as User
+  } else {
+    // 如果事件没有携带用户数据，从 localStorage 重新读取
+    loadUserInfo()
+  }
+}
+
+onMounted(() => {
+  loadUserInfo()
+  // 监听用户信息更新事件（头像更新、资料更新等）
+  window.addEventListener('user:updated', handleUserUpdated as EventListener)
+})
+
+onUnmounted(() => {
+  // 清理事件监听
+  window.removeEventListener('user:updated', handleUserUpdated as EventListener)
 })
 </script>
 
