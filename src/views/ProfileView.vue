@@ -1,5 +1,13 @@
 <template>
   <div class="profile container">
+    <!-- 头像裁剪器 -->
+    <AvatarCropper
+      :show="showCropper"
+      :image-src="cropperImageSrc"
+      @cancel="onCropCancel"
+      @confirm="onCropConfirm"
+    />
+    
     <header class="profile-header">
       <h2 class="title">个人资料</h2>
       <p class="sub">查看与更新你的账户信息</p>
@@ -234,6 +242,7 @@ import { reactive, ref, computed, onMounted, watch } from 'vue'
 import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
 import ChangePasswordDialog from '@/components/profile/ChangePasswordDialog.vue'
+import AvatarCropper from '@/components/profile/AvatarCropper.vue'
 import { STORAGE_KEYS } from '@/config/storage-keys'
 import ImagePreview from '@/shared/ui/ImagePreview.vue'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
@@ -251,6 +260,8 @@ const avatarPreviewOpen = ref(false)
 const isEditing = ref(false)
 const uploading = ref(false)
 const fileInputRef = ref<HTMLInputElement | null>(null)
+const showCropper = ref(false)
+const cropperImageSrc = ref('')
 const changePasswordDialogOpen = ref(false)
 const showEmail = ref(false)
 const { municipalities } = useRegions()
@@ -388,27 +399,47 @@ async function onPickAvatar(event: Event) {
     return
   }
 
+  // 创建预览URL，显示裁剪器
+  cropperImageSrc.value = URL.createObjectURL(file)
+  showCropper.value = true
+  
+  // 清空input，允许重复选择同一文件
+  ;(event.target as HTMLInputElement).value = ''
+}
+
+// 处理裁剪确认
+async function onCropConfirm(blob: Blob) {
+  showCropper.value = false
+  
+  // 释放预览URL
+  if (cropperImageSrc.value) {
+    URL.revokeObjectURL(cropperImageSrc.value)
+    cropperImageSrc.value = ''
+  }
+
   try {
     uploading.value = true
 
-    // 显示压缩提示
-    showToast('info', '正在压缩图片...')
+    // 将Blob转换为File
+    const croppedFile = new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
 
-    // 前端压缩图片到10KB以下（统一转为PNG格式）
+    // 压缩裁剪后的图片到5KB以下
     const { compressImage, formatFileSize } = await import('@/utils/image-compress')
-    const compressed = await compressImage(file, {
-      targetSizeKB: 10, // 目标10KB以下
-      maxDimension: 512, // 最大512px
-      outputFormat: 'image/png', // 统一转为PNG格式
-      initialQuality: 0.9,
-      minQuality: 0.3 // 降低最低质量以确保压缩到10KB
+    const compressed = await compressImage(croppedFile, {
+      targetSizeKB: 4.8, // 目标4.8KB（留余量）
+      maxDimension: 384, // 384px（裁剪已经是384x384）
+      outputFormat: 'image/jpeg', // JPEG格式
+      initialQuality: 0.7, // 降低初始质量
+      minQuality: 0.01 // 最低质量
     })
 
-    console.log('图片压缩完成:', {
-      原始大小: formatFileSize(compressed.originalSize),
-      压缩后: formatFileSize(compressed.compressedSize),
-      压缩率: `${compressed.compressionRatio.toFixed(1)}%`,
-      尺寸: `${compressed.width}x${compressed.height}`
+    // 在控制台输出详细信息（供开发调试）
+    const compressedKB = (compressed.compressedSize / 1024).toFixed(2)
+    console.log('📊 图片压缩详情:', {
+      裁剪后大小: formatFileSize(blob.size),
+      压缩后大小: formatFileSize(compressed.compressedSize) + ` (${compressedKB}KB)`,
+      压缩后尺寸: `${compressed.width}x${compressed.height}`,
+      压缩率: `${compressed.compressionRatio.toFixed(1)}%`
     })
 
     // 上传压缩后的文件
@@ -426,16 +457,30 @@ async function onPickAvatar(event: Event) {
       form.avatar = updated.avatar
     }
 
-    showToast(
-      'success',
-      `头像已更新 (${formatFileSize(compressed.originalSize)} → ${formatFileSize(compressed.compressedSize)})`
-    )
+    // 只显示最终成功提示
+    showToast('success', '头像已更新')
   } catch (e: any) {
     console.error('头像上传失败:', e)
-    showToast('error', e?.message || '头像上传失败')
+    // 显示更友好的错误提示
+    const errorMsg = e?.message || '头像上传失败'
+    if (errorMsg.includes('无法压缩到')) {
+      showToast('error', '图片过大，请选择更简单的图片或裁剪后再试')
+    } else {
+      showToast('error', errorMsg)
+    }
   } finally {
     uploading.value = false
-    ;(event.target as HTMLInputElement).value = ''
+  }
+}
+
+// 处理裁剪取消
+function onCropCancel() {
+  showCropper.value = false
+  
+  // 释放预览URL
+  if (cropperImageSrc.value) {
+    URL.revokeObjectURL(cropperImageSrc.value)
+    cropperImageSrc.value = ''
   }
 }
 function triggerPickAvatar() {

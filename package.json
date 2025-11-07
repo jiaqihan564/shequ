@@ -45,6 +45,8 @@
     "qrcode": "^1.5.4",
     "spark-md5": "^3.0.2",
     "vue": "^3.5.18",
+    "vue-advanced-cropper": "^2.8.9",
+    "vue-cropper": "^0.6.5",
     "vue-router": "^4.4.5"
   },
   "devDependencies": {

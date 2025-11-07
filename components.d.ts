@@ -7,11 +7,14 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AvatarCropper: typeof import('./src/components/profile/AvatarCropper.vue')['default']
+    AvatarCropperModal: typeof import('./src/components/profile/AvatarCropperModal.vue')['default']
     ChangePasswordDialog: typeof import('./src/components/profile/ChangePasswordDialog.vue')['default']
     CheckIcon: typeof import('./src/components/icons/CheckIcon.vue')['default']
     CloseIcon: typeof import('./src/components/icons/CloseIcon.vue')['default']
     CodeExampleSelector: typeof import('./src/components/code/CodeExampleSelector.vue')['default']
     CommentItem: typeof import('./src/components/article/CommentItem.vue')['default']
+    CommunityFeed: typeof import('./src/components/home/CommunityFeed.vue')['default']
     DanmakuMessage: typeof import('./src/components/chat/DanmakuMessage.vue')['default']
     ElAlert: typeof import('element-plus/es')['ElAlert']
     ElAvatar: typeof import('element-plus/es')['ElAvatar']
@@ -61,6 +64,7 @@ declare module 'vue' {
     NewsCarousel: typeof import('./src/components/news/NewsCarousel.vue')['default']
     OutputPanel: typeof import('./src/components/code/OutputPanel.vue')['default']
     PerformanceMonitor: typeof import('./src/components/shared/PerformanceMonitor.vue')['default']
+    QuickStats: typeof import('./src/components/home/QuickStats.vue')['default']
     RegisterForm: typeof import('./src/components/auth/RegisterForm.vue')['default']
     ResourceCommentItem: typeof import('./src/components/resource/ResourceCommentItem.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
