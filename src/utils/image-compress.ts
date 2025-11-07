@@ -160,7 +160,6 @@ export async function compressImage(
       
       // 如果还是太大，无法再压缩
       if (blob.size > targetSize) {
-        console.warn('图片已压缩到最小尺寸和质量，但仍超过目标大小')
         break
       }
     }
@@ -170,7 +169,6 @@ export async function compressImage(
 
   // 最后一次检查：如果还是超过目标，强制降低到目标以下
   if (blob.size > targetSize && targetWidth > 64) {
-    console.warn(`⚠️ 执行最终强制压缩：${blob.size} -> ${targetSize} 字节`)
     // 强制缩小到目标大小
     while (blob.size > targetSize && targetWidth > 64) {
       targetWidth = Math.round(targetWidth * 0.9)
@@ -308,8 +306,6 @@ export async function compressAndConvertToPNG(
   maxSizeKB: number = 200,
   targetQuality: number = 0.6
 ): Promise<File> {
-  console.log(`🖼️ 开始极致压缩: ${file.name} (${formatFileSize(file.size)}) -> 目标 ${maxSizeKB}KB`)
-
   // 加载图片
   const img = await loadImage(file)
   const originalWidth = img.width
@@ -326,7 +322,6 @@ export async function compressAndConvertToPNG(
     const ratio = Math.min(maxDimension / width, maxDimension / height)
     width = Math.round(width * ratio)
     height = Math.round(height * ratio)
-    console.log(`📏 缩小尺寸: ${originalWidth}x${originalHeight} -> ${width}x${height}`)
   }
 
   // 超大图片直接缩到800px
@@ -334,7 +329,6 @@ export async function compressAndConvertToPNG(
     const ratio = Math.min(800 / originalWidth, 800 / originalHeight)
     width = Math.round(originalWidth * ratio)
     height = Math.round(originalHeight * ratio)
-    console.log(`📏 超大图片压缩到: ${width}x${height}`)
   }
 
   canvas.width = width
@@ -353,8 +347,6 @@ export async function compressAndConvertToPNG(
   const format: 'image/jpeg' = 'image/jpeg'
   let blob = await canvasToBlob(canvas, format, quality)
   const maxSize = maxSizeKB * 1024 // 转换为字节
-
-  console.log(`🔄 初始压缩 (JPEG): ${formatFileSize(blob.size)}, 质量: ${quality.toFixed(2)}`)
 
   let attempts = 0
   const maxAttempts = 50 // 增加尝试次数
@@ -379,7 +371,6 @@ export async function compressAndConvertToPNG(
       ctx.imageSmoothingQuality = 'high'
       ctx.drawImage(img, 0, 0, width, height)
       quality = 0.5 // 重置质量
-      console.log(`📐 缩小到: ${width}x${height}`)
     }
     // 策略3: 已经很小了，继续降质量
     else if (quality > 0.15) {
@@ -395,7 +386,6 @@ export async function compressAndConvertToPNG(
       ctx.fillRect(0, 0, width, height)
       ctx.drawImage(img, 0, 0, width, height)
       quality = 0.4
-      console.log(`📐 进一步缩小: ${width}x${height}`)
     }
     // 策略5: 极限压缩
     else {
@@ -403,15 +393,10 @@ export async function compressAndConvertToPNG(
     }
 
     blob = await canvasToBlob(canvas, format, quality)
-    
-    if (attempts % 5 === 0 || blob.size <= maxSize) {
-      console.log(`🔄 尝试 ${attempts}: ${formatFileSize(blob.size)}, ${width}x${height}, Q:${quality.toFixed(2)}`)
-    }
   }
 
   // 最终强制压缩
   if (blob.size > maxSize) {
-    console.warn(`⚠️ 进入极限压缩模式...`)
     while (blob.size > maxSize && (width > 200 || height > 200)) {
       width = Math.max(200, Math.round(width * 0.7))
       height = Math.max(200, Math.round(height * 0.7))
@@ -421,12 +406,8 @@ export async function compressAndConvertToPNG(
       ctx.fillRect(0, 0, width, height)
       ctx.drawImage(img, 0, 0, width, height)
       blob = await canvasToBlob(canvas, format, 0.3)
-      console.log(`💪 极限: ${width}x${height}, ${formatFileSize(blob.size)}`)
     }
   }
-
-  const compressionRatio = ((file.size - blob.size) / file.size * 100).toFixed(1)
-  console.log(`✅ 压缩完成: ${formatFileSize(file.size)} -> ${formatFileSize(blob.size)} (节省${compressionRatio}%)`)
 
   // 生成新的文件名（根据实际格式）
   const originalName = file.name.replace(/\.[^/.]+$/, '')

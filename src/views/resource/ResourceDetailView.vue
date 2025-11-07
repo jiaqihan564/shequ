@@ -59,7 +59,7 @@
         <template #header>
           <h3>预览图 ({{ resource.images.length }}张)</h3>
         </template>
-        <el-carousel height="500px" indicator-position="outside" arrow="always">
+        <el-carousel height="600px" indicator-position="outside" arrow="always">
           <el-carousel-item v-for="(img, index) in resource.images" :key="img.id">
             <div class="image-container">
               <el-image
@@ -717,42 +717,38 @@ onUnmounted(() => {
   border-radius: 12px;
 }
 
-/* 预览图容器 - 优化显示效果 */
+/* 预览图容器 - 填满显示 */
 .image-container {
   width: 100%;
   height: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 8px;
   overflow: hidden;
   position: relative;
+  background: #f5f7fa;
 }
 
 .preview-image {
   width: 100%;
   height: 100%;
-  object-fit: cover;
   
   /* 图片增强 - 补偿压缩损失 */
   image-rendering: -webkit-optimize-contrast;
   image-rendering: crisp-edges;
   filter: contrast(1.05) saturate(1.1) brightness(1.02);
   
-  transition: all 0.3s ease;
+  transition: filter 0.3s ease;
 }
 
 .preview-image:hover {
   filter: contrast(1.08) saturate(1.15) brightness(1.05);
-  transform: scale(1.02);
 }
 
-/* 深度选择器 - 确保图片填充 */
+/* 深度选择器 - 确保图片填满容器 */
 .preview-image :deep(img) {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: center;
   display: block;
 }
 

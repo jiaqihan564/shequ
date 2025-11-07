@@ -104,21 +104,17 @@
                 <el-button
                   :icon="Picture"
                   size="small"
-                  :loading="uploadingDocImage"
                   text
                   @click="selectDocImage"
                 >
-                  {{ uploadingDocImage ? '上传中...' : '插入图片' }}
+                  插入图片
                 </el-button>
                 <el-button :icon="View" size="small" text @click="toggleDocPreview">
                   {{ showDocPreview ? '编辑' : '预览' }}
                 </el-button>
               </el-button-group>
-            <el-text v-if="!uploadingDocImage" type="info" size="small" style="margin-left: 12px">
-              支持多种格式，提交时极致压缩（~150KB）
-            </el-text>
-              <el-text v-if="uploadingDocImage" type="primary" size="small">
-                正在上传图片，请稍候...
+              <el-text type="info" size="small" style="margin-left: 12px">
+                支持多种格式，提交时极致压缩（~150KB）
               </el-text>
             </div>
 
@@ -185,7 +181,6 @@ const imageFileList = ref<UploadFiles>([])
 const categories = ref<ResourceCategory[]>([])
 const docMdFileInput = ref<HTMLInputElement | null>(null)
 const documentEditor = ref<any>(null)
-const uploadingDocImage = ref(false)
 const showDocPreview = ref(false)
 
 // 本地文档图片存储：blob URL -> File 对象
@@ -289,8 +284,6 @@ async function handleDocImageUpload(event: Event) {
     insertDocImageMarkdown(blobUrl, file.name.replace(/\.[^/.]+$/, ''))
     
     toast.success('图片已插入，提交时将自动压缩上传')
-    
-    console.log(`📷 本地文档图片已添加: ${file.name}, URL: ${blobUrl}`)
   } catch (error: any) {
     console.error('插入图片失败:', error)
     toast.error(error.message || '插入图片失败')
@@ -304,8 +297,6 @@ function insertDocImageMarkdown(url: string, alt: string = '图片') {
   if (textarea) {
     // 使用保存的光标位置
     const pos = savedDocCursorPosition
-    console.log('插入文档图片 - 保存的光标位置:', pos)
-    console.log('插入文档图片 - 当前内容长度:', form.document.length)
 
     const before = form.document.substring(0, pos)
     const after = form.document.substring(pos)
@@ -432,9 +423,7 @@ async function handleSubmit() {
 
           // 极致压缩预览图到150KB以内
           const maxSizeKB = Math.round(uploadConfig.resourcePreviewImageSize / 1024)
-          console.log(`📷 压缩预览图 ${i + 1}: ${imgFile.raw.name}`)
           const compressedFile = await compressAndConvertToPNG(imgFile.raw, maxSizeKB, 0.5)
-          console.log(`✅ 预览图压缩完成: ${formatFileSize(imgFile.raw.size)} -> ${formatFileSize(compressedFile.size)}`)
 
           const url = await uploadResourceImage(compressedFile)
           imageUrls.push(url)
@@ -488,11 +477,8 @@ async function handleSubmit() {
  */
 async function processLocalDocImages() {
   if (localDocImages.size === 0) {
-    console.log('📷 没有本地文档图片需要处理')
     return
   }
-
-  console.log(`📷 开始处理 ${localDocImages.size} 张本地文档图片...`)
   toast.info(`正在处理 ${localDocImages.size} 张文档图片...`)
 
   const urlMap = new Map<string, string>() // blob URL -> server URL
@@ -500,17 +486,12 @@ async function processLocalDocImages() {
 
   for (const [blobUrl, file] of localDocImages.entries()) {
     try {
-      console.log(`📷 [${processedCount + 1}/${localDocImages.size}] 处理图片: ${file.name}`)
-      
       // 1. 压缩并转换（极致压缩到150KB以内）
       const maxSizeKB = Math.round(uploadConfig.documentImageTargetSize / 1024)
       const compressedFile = await compressAndConvertToPNG(file, maxSizeKB, 0.5)
       
-      console.log(`  ✓ 转换成功: ${file.name} -> ${compressedFile.name}`)
-      
       // 2. 上传到服务器
       const serverUrl = await uploadDocumentImage(compressedFile)
-      console.log(`  ✓ 上传成功: ${serverUrl}`)
       
       // 3. 保存映射关系
       urlMap.set(blobUrl, serverUrl)
@@ -538,7 +519,6 @@ async function processLocalDocImages() {
   // 6. 清空本地图片映射
   localDocImages.clear()
 
-  console.log(`✅ 所有文档图片处理完成`)
   toast.success(`${processedCount} 张文档图片已压缩上传`)
 }
 

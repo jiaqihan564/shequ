@@ -83,11 +83,10 @@
                 <el-button
                   :icon="Picture"
                   size="small"
-                  :loading="uploading"
                   text
                   @click="selectImage"
                 >
-                  {{ uploading ? '上传中...' : '插入图片' }}
+                  插入图片
                 </el-button>
                 <el-button :icon="View" size="small" text @click="togglePreview">
                   {{ showPreview ? '编辑' : '预览' }}
@@ -220,7 +219,6 @@ const router = useRouter()
 
 const isEditMode = ref(false)
 const submitting = ref(false)
-const uploading = ref(false)
 const showPreview = ref(false)
 const categories = ref<ArticleCategory[]>([])
 const tags = ref<ArticleTag[]>([])
@@ -301,11 +299,6 @@ function selectImage() {
   const textarea = contentEditor.value?.$el?.querySelector('textarea')
   if (textarea) {
     savedCursorPosition = textarea.selectionStart || 0
-    console.log('保存光标位置:', savedCursorPosition)
-    console.log('当前内容长度:', form.content.length)
-    console.log('光标位置是否有效:', savedCursorPosition <= form.content.length)
-  } else {
-    console.error('未找到textarea元素')
   }
 
   const input = document.createElement('input')
@@ -344,8 +337,6 @@ async function handleImageUpload(event: Event) {
     insertImageMarkdown(blobUrl, file.name.replace(/\.[^/.]+$/, ''))
     
     toast.success('图片已插入，发布时将自动压缩上传')
-    
-    console.log(`📷 本地图片已添加: ${file.name}, URL: ${blobUrl}`)
   } catch (error: any) {
     console.error('插入图片失败:', error)
     toast.error(error.message || '插入图片失败')
@@ -360,14 +351,8 @@ function insertImageMarkdown(url: string, alt: string = '图片') {
   if (textarea) {
     // 使用保存的光标位置
     const pos = savedCursorPosition
-    console.log('插入图片 - 保存的光标位置:', pos)
-    console.log('插入图片 - 当前内容长度:', form.content.length)
-
     const before = form.content.substring(0, pos)
     const after = form.content.substring(pos)
-
-    console.log('插入图片 - 光标前内容:', before.substring(Math.max(0, before.length - 50)))
-    console.log('插入图片 - 光标后内容:', after.substring(0, 50))
 
     // 插入时确保前后有换行
     const needsNewlineBefore = pos > 0 && before[before.length - 1] !== '\n'
@@ -377,14 +362,10 @@ function insertImageMarkdown(url: string, alt: string = '图片') {
     const prefix = needsNewlineBefore ? '\n' : ''
     const fullMarkdown = prefix + markdown + suffix
 
-    console.log('插入图片 - 完整markdown:', fullMarkdown)
-
     // 计算新的光标位置（在图片markdown之后）
     const newPos = pos + prefix.length + markdown.length
 
     form.content = before + fullMarkdown + after
-
-    console.log('插入图片 - 新光标位置:', newPos)
 
     // 将光标定位到插入的图片markdown之后
     nextTick(() => {
@@ -579,11 +560,8 @@ async function handleSubmit() {
  */
 async function processLocalImages() {
   if (localImages.size === 0) {
-    console.log('📷 没有本地图片需要处理')
     return
   }
-
-  console.log(`📷 开始处理 ${localImages.size} 张本地图片...`)
   toast.info(`正在处理 ${localImages.size} 张图片...`)
 
   const urlMap = new Map<string, string>() // blob URL -> server URL
@@ -591,17 +569,12 @@ async function processLocalImages() {
 
   for (const [blobUrl, file] of localImages.entries()) {
     try {
-      console.log(`📷 [${processedCount + 1}/${localImages.size}] 处理图片: ${file.name}`)
-      
       // 1. 压缩并转换（极致压缩到200KB以内）
       const maxSizeKB = Math.round(uploadConfig.articleImageMaxSize / 1024)
       const compressedFile = await compressAndConvertToPNG(file, maxSizeKB, 0.5)
       
-      console.log(`  ✓ 转换成功: ${file.name} -> ${compressedFile.name}`)
-      
       // 2. 上传到服务器
       const serverUrl = await uploadDocumentImage(compressedFile)
-      console.log(`  ✓ 上传成功: ${serverUrl}`)
       
       // 3. 保存映射关系
       urlMap.set(blobUrl, serverUrl)
@@ -629,7 +602,6 @@ async function processLocalImages() {
   // 6. 清空本地图片映射
   localImages.clear()
 
-  console.log(`✅ 所有图片处理完成`)
   toast.success(`${processedCount} 张图片已压缩上传`)
 }
 
