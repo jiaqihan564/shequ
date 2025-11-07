@@ -86,26 +86,6 @@ export const thirdPartyConfig = {
   sentryDSN: getEnvString('VITE_SENTRY_DSN', '')
 }
 
-// ==================== 新闻配置 ====================
-
-export const newsConfig = {
-  /** 新闻提供商 */
-  provider: getEnvString('VITE_NEWS_PROVIDER', 'rss') as 'mock' | 'newsapi' | 'rss',
-
-  /** NewsAPI.org API Key */
-  newsApiKey: getEnvString('VITE_NEWSAPI_KEY', ''),
-
-  /** GNews API Key */
-  gNewsApiKey: getEnvString('GNEWS_API_KEY', ''),
-
-  /** 新闻代理 URL */
-  proxyUrl: getEnvString('VITE_NEWS_PROXY_URL', '/news'),
-
-  /** Mock 新闻延迟范围（毫秒） */
-  mockDelayMin: getEnvNumber('VITE_NEWS_MOCK_DELAY_MIN', 200),
-  mockDelayMax: getEnvNumber('VITE_NEWS_MOCK_DELAY_MAX', 400)
-}
-
 // ==================== 代码执行配置 ====================
 
 export const codeExecutionConfig = {
@@ -332,7 +312,6 @@ export const config = {
   app: appConfig,
   features: featureFlags,
   thirdParty: thirdPartyConfig,
-  news: newsConfig,
   codeExecution: codeExecutionConfig,
   geo: geoConfig,
   auth: authConfig,
