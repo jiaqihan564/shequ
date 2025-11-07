@@ -74,8 +74,8 @@
               v-model="query.category_id"
               placeholder="全部分类"
               clearable
-              @change="handleFilterChange"
               style="width: 100%"
+              @change="handleFilterChange"
             >
               <el-option
                 v-for="cat in categories"
@@ -89,11 +89,7 @@
 
         <el-col :xs="24" :sm="12" :md="6">
           <el-form-item label="排序方式">
-            <el-select
-              v-model="query.sort_by"
-              @change="handleFilterChange"
-              style="width: 100%"
-            >
+            <el-select v-model="query.sort_by" style="width: 100%" @change="handleFilterChange">
               <el-option label="最新发布" value="latest" />
               <el-option label="最热门" value="hot" />
               <el-option label="最多浏览" value="popular" />
@@ -127,8 +123,8 @@
           :key="tag.id"
           :type="query.tag_id === tag.id ? 'primary' : 'info'"
           :effect="query.tag_id === tag.id ? 'dark' : 'plain'"
-          @click="handleTagClick(tag.id)"
           style="cursor: pointer; margin-right: 8px; margin-bottom: 8px"
+          @click="handleTagClick(tag.id)"
         >
           {{ tag.name }}
         </el-tag>
@@ -159,7 +155,12 @@
                 :size="32"
                 :src="hasValidAvatar(article.author.avatar) ? article.author.avatar : undefined"
                 :alt="article.author.nickname"
-                :style="{ backgroundColor: getAvatarColor(article.author.id), cursor: 'pointer', fontSize: '14px', fontWeight: '600' }"
+                :style="{
+                  backgroundColor: getAvatarColor(article.author.id),
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: '600'
+                }"
               >
                 {{ getAvatarInitial(article.author.nickname) }}
               </el-avatar>
@@ -168,13 +169,16 @@
 
             <div class="stats">
               <el-tag type="info" size="small" effect="plain">
-                <el-icon><View /></el-icon> {{ article.view_count }}
+                <el-icon><View /></el-icon>
+                {{ article.view_count }}
               </el-tag>
               <el-tag type="success" size="small" effect="plain">
-                <el-icon><Star /></el-icon> {{ article.like_count }}
+                <el-icon><Star /></el-icon>
+                {{ article.like_count }}
               </el-tag>
               <el-tag type="warning" size="small" effect="plain">
-                <el-icon><ChatDotRound /></el-icon> {{ article.comment_count }}
+                <el-icon><ChatDotRound /></el-icon>
+                {{ article.comment_count }}
               </el-tag>
             </div>
           </div>
@@ -227,14 +231,29 @@ export default {
 </script>
 
 <script setup lang="ts">
+import {
+  Edit,
+  Search,
+  View,
+  Star,
+  ChatDotRound,
+  FolderOpened,
+  Message,
+  DataAnalysis
+} from '@element-plus/icons-vue'
 import { ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { Edit, Search, View, Star, ChatDotRound, FolderOpened, Message, DataAnalysis } from '@element-plus/icons-vue'
-import { getArticles, getArticleCategories, getArticleTags } from '@/utils/api'
-import type { ArticleListItem, ArticleCategory, ArticleTag, ArticleListQuery } from '@/types/article'
-import toast from '@/utils/toast'
-import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
+
 import SkeletonLoader from '@/components/shared/SkeletonLoader.vue'
+import type {
+  ArticleListItem,
+  ArticleCategory,
+  ArticleTag,
+  ArticleListQuery
+} from '@/types/article'
+import { getArticles, getArticleCategories, getArticleTags } from '@/utils/api'
+import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
+import toast from '@/utils/toast'
 
 const router = useRouter()
 const loading = ref(false)
@@ -274,10 +293,7 @@ async function loadArticles() {
 // 加载分类和标签
 async function loadMetadata() {
   try {
-    const [cats, tagList] = await Promise.all([
-      getArticleCategories(),
-      getArticleTags()
-    ])
+    const [cats, tagList] = await Promise.all([getArticleCategories(), getArticleTags()])
     categories.value = cats
     tags.value = tagList
   } catch (error) {

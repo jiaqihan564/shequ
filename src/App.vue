@@ -8,4 +8,3 @@ import ToastContainer from '@/shared/ui/ToastContainer.vue'
     <ToastContainer position="top-right" />
   </div>
 </template>
-

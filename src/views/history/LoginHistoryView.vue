@@ -17,7 +17,9 @@
           <div class="item-meta">
             <span class="meta-item">🕒 {{ formatTime(item.login_time) }}</span>
             <span class="meta-item">📍 {{ item.login_ip || '未知' }}</span>
-            <span v-if="item.user_agent" class="meta-item">💻 {{ parseUserAgent(item.user_agent) }}</span>
+            <span v-if="item.user_agent" class="meta-item">
+              💻 {{ parseUserAgent(item.user_agent) }}
+            </span>
           </div>
         </div>
       </div>
@@ -166,4 +168,3 @@ onMounted(() => {
   font-size: 14px;
 }
 </style>
-

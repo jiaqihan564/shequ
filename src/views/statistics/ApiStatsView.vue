@@ -7,7 +7,10 @@
 
     <div class="stats-cards">
       <div class="stat-card">
-        <div class="card-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+        <div
+          class="card-icon"
+          style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+        >
           🚀
         </div>
         <div class="card-content">
@@ -17,7 +20,10 @@
       </div>
 
       <div class="stat-card">
-        <div class="card-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">
+        <div
+          class="card-icon"
+          style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
+        >
           ✓
         </div>
         <div class="card-content">
@@ -27,12 +33,18 @@
       </div>
 
       <div class="stat-card">
-        <div class="card-icon" style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%)">
+        <div
+          class="card-icon"
+          style="background: linear-gradient(135deg, #fa709a 0%, #fee140 100%)"
+        >
           ⏱️
         </div>
         <div class="card-content">
           <div class="card-label">平均响应</div>
-          <div class="card-value">{{ avgLatency.toFixed(0) }}<span class="unit">ms</span></div>
+          <div class="card-value">
+            {{ avgLatency.toFixed(0) }}
+            <span class="unit">ms</span>
+          </div>
         </div>
       </div>
     </div>
@@ -60,7 +72,15 @@
               </td>
               <td class="count">{{ item.total_count }}</td>
               <td class="success-rate">
-                <span :class="item.success_rate >= 95 ? 'rate-good' : item.success_rate >= 80 ? 'rate-ok' : 'rate-bad'">
+                <span
+                  :class="
+                    item.success_rate >= 95
+                      ? 'rate-good'
+                      : item.success_rate >= 80
+                        ? 'rate-ok'
+                        : 'rate-bad'
+                  "
+                >
                   {{ item.success_rate?.toFixed(1) }}%
                 </span>
               </td>
@@ -103,7 +123,7 @@ const loadData = async () => {
     // 获取最近7天的接口排行
     const endDate = new Date().toISOString().split('T')[0]
     const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    
+
     const rankingData = await getEndpointRanking(startDate, endDate)
     rankings.value = rankingData || []
 
@@ -322,4 +342,3 @@ tbody tr:hover {
   padding: 40px;
 }
 </style>
-

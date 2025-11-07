@@ -7,8 +7,13 @@
         <el-avatar
           :size="45"
           :src="hasValidAvatar(otherUser?.avatar) ? otherUser?.avatar : undefined"
+          :style="{
+            backgroundColor: getAvatarColor(otherUser?.id),
+            cursor: 'pointer',
+            fontSize: '20px',
+            fontWeight: '600'
+          }"
           @click="goToUserDetail"
-          :style="{ backgroundColor: getAvatarColor(otherUser?.id), cursor: 'pointer', fontSize: '20px', fontWeight: '600' }"
         >
           {{ getAvatarInitial(otherUser?.nickname) }}
         </el-avatar>
@@ -18,29 +23,30 @@
         </div>
       </div>
       <div class="header-right">
-        <el-button :icon="Refresh" circle @click="loadMessages" :loading="loading" />
+        <el-button :icon="Refresh" circle :loading="loading" @click="loadMessages" />
       </div>
     </el-header>
 
     <!-- 消息列表区域 -->
-    <el-main class="chat-main" ref="messageListRef">
+    <el-main ref="messageListRef" class="chat-main">
       <el-scrollbar ref="scrollbarRef" height="100%">
         <div v-if="loadingMessages" class="loading-area">
           <el-skeleton :rows="3" animated />
         </div>
 
-        <div v-else class="messages-area" ref="messagesAreaRef">
+        <div v-else ref="messagesAreaRef" class="messages-area">
           <div
             v-for="(msg, index) in messages"
             :key="msg.id"
+            :ref="
+              el => {
+                if (index === messages.length - 1) lastMessageRef = el
+              }
+            "
             :class="['message-wrapper', msg.is_self ? 'self' : 'other']"
-            :ref="el => { if (index === messages.length - 1) lastMessageRef = el }"
           >
             <!-- 时间分隔线 -->
-            <div
-              v-if="shouldShowTimeDivider(index)"
-              class="time-divider"
-            >
+            <div v-if="shouldShowTimeDivider(index)" class="time-divider">
               <el-divider>{{ formatMessageTime(msg.created_at) }}</el-divider>
             </div>
 
@@ -50,10 +56,19 @@
               <el-avatar
                 v-if="!msg.is_self"
                 :size="36"
-                :src="hasValidAvatar(msg.sender?.avatar || otherUser?.avatar) ? (msg.sender?.avatar || otherUser?.avatar) : undefined"
+                :src="
+                  hasValidAvatar(msg.sender?.avatar || otherUser?.avatar)
+                    ? msg.sender?.avatar || otherUser?.avatar
+                    : undefined
+                "
                 class="message-avatar"
+                :style="{
+                  backgroundColor: getAvatarColor(otherUser?.id),
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: '600'
+                }"
                 @click="goToUserDetail"
-                :style="{ backgroundColor: getAvatarColor(otherUser?.id), cursor: 'pointer', fontSize: '16px', fontWeight: '600' }"
               >
                 {{ getAvatarInitial(otherUser?.nickname) }}
               </el-avatar>
@@ -75,7 +90,11 @@
                 :size="36"
                 :src="hasValidAvatar(currentUserAvatar) ? currentUserAvatar : undefined"
                 class="message-avatar"
-                :style="{ backgroundColor: getAvatarColor(currentUserId), fontSize: '16px', fontWeight: '600' }"
+                :style="{
+                  backgroundColor: getAvatarColor(currentUserId),
+                  fontSize: '16px',
+                  fontWeight: '600'
+                }"
               >
                 {{ getAvatarInitial(currentUserNickname) }}
               </el-avatar>
@@ -84,17 +103,13 @@
 
           <!-- 加载更多 -->
           <div v-if="hasMore" class="load-more">
-            <el-button text @click="loadMoreMessages">
-              加载更早的消息
-            </el-button>
+            <el-button text @click="loadMoreMessages">加载更早的消息</el-button>
           </div>
 
           <!-- 空状态 -->
           <div v-if="messages.length === 0 && !loadingMessages" class="empty-messages">
             <el-empty description="还没有消息">
-              <el-text type="info">
-                发送第一条消息开始对话吧！
-              </el-text>
+              <el-text type="info">发送第一条消息开始对话吧！</el-text>
             </el-empty>
           </div>
         </div>
@@ -124,9 +139,9 @@
           <el-button
             type="primary"
             :icon="Promotion"
-            @click="sendMessage"
             :disabled="!canSend"
             :loading="sending"
+            @click="sendMessage"
           >
             发送
           </el-button>
@@ -137,11 +152,14 @@
 </template>
 
 <script setup lang="ts">
+import { ArrowLeft, Refresh, Promotion, CircleCheck, InfoFilled } from '@element-plus/icons-vue'
 import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  ArrowLeft, Refresh, Promotion, CircleCheck, InfoFilled
-} from '@element-plus/icons-vue'
+
+import { STORAGE_KEYS } from '@/config/storage-keys'
+import { globalChatService } from '@/services/globalChatService'
+import type { User } from '@/types'
+import type { PrivateMessage, ConversationUser } from '@/types/message'
 import {
   getConversationMessages,
   sendPrivateMessage,
@@ -149,13 +167,9 @@ import {
   markConversationAsRead,
   get
 } from '@/utils/api'
-import type { PrivateMessage, ConversationUser } from '@/types/message'
-import type { User } from '@/types'
-import toast from '@/utils/toast'
 import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
-import { STORAGE_KEYS } from '@/config/storage-keys'
+import toast from '@/utils/toast'
 import { logger } from '@/utils/ui/logger'
-import { globalChatService } from '@/services/globalChatService'
 
 const route = useRoute()
 const router = useRouter()
@@ -180,7 +194,8 @@ let unsubscribeMessageRead: (() => void) | null = null
 
 // 当前用户信息
 const currentUserInfo = computed(() => {
-  const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+  const userInfo =
+    localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
   if (userInfo) {
     try {
       return JSON.parse(userInfo)
@@ -237,7 +252,7 @@ async function initChat() {
 
     // 加载消息
     await loadMessages()
-    
+
     // 额外的滚动保障，确保组件完全挂载后滚动到底部
     await nextTick()
     setTimeout(() => scrollToBottom(), 300)
@@ -296,11 +311,11 @@ async function loadMessages(shouldMarkRead = true) {
 // 立即标记消息为已读
 async function markMessagesAsReadImmediate() {
   if (!conversationId.value) return
-  
+
   try {
     await markConversationAsRead(conversationId.value)
     logger.info('[MessageChat] Messages marked as read immediately on page load')
-    
+
     // 触发全局未读数刷新
     window.dispatchEvent(new Event('refresh-unread-count'))
   } catch (error) {
@@ -323,7 +338,7 @@ async function sendMessage() {
   if (!content) return
 
   sending.value = true
-  
+
   // 创建临时消息对象（乐观更新）
   const tempMessage: PrivateMessage = {
     id: Date.now(), // 使用时间戳作为临时ID
@@ -340,28 +355,28 @@ async function sendMessage() {
     is_self: true,
     created_at: new Date().toISOString()
   }
-  
+
   // 立即添加到消息列表（乐观更新）
   messages.value.push(tempMessage)
   messageInput.value = ''
-  
+
   // 立即滚动到底部
   await nextTick()
   scrollToBottom(false)
-  
+
   try {
     // 发送消息到服务器
     const response = await sendPrivateMessage({
       receiver_id: otherUser.value.id,
       content: content
     })
-    
+
     // 更新临时消息的ID为服务器返回的真实ID
     const tempIndex = messages.value.findIndex(msg => msg.id === tempMessage.id)
     if (tempIndex !== -1) {
       messages.value[tempIndex].id = response.message_id
     }
-    
+
     // 触发全局未读数刷新事件
     window.dispatchEvent(new Event('refresh-unread-count'))
   } catch (error: any) {
@@ -390,40 +405,40 @@ function insertNewLine() {
 // 处理收到的新私信
 async function handleNewPrivateMessage(data: any) {
   if (!data || !data.message) return
-  
+
   const newMessage = data.message as PrivateMessage
-  
+
   // 只处理当前会话的消息
   if (newMessage.conversation_id !== conversationId.value) {
     logger.debug('[MessageChat] Received message for different conversation')
     return
   }
-  
+
   logger.info('[MessageChat] New message received via WebSocket:', newMessage.id)
-  
+
   // 检查消息是否已存在（避免重复）
   const exists = messages.value.some(msg => msg.id === newMessage.id)
   if (exists) {
     logger.debug('[MessageChat] Message already exists, skipping')
     return
   }
-  
+
   // 本地立即标记为已读（用户正在当前会话界面）
   newMessage.is_read = true
-  
+
   // 添加到消息列表
   messages.value.push(newMessage)
-  
+
   // 滚动到底部
   nextTick(() => {
     scrollToBottom(true)
   })
-  
+
   // 异步通知后端标记为已读（这样发送者会立即收到已读通知）
   try {
     await markConversationAsRead(conversationId.value!)
     logger.info('[MessageChat] Message marked as read on server')
-    
+
     // 触发全局未读数刷新
     window.dispatchEvent(new Event('refresh-unread-count'))
   } catch (error) {
@@ -435,20 +450,20 @@ async function handleNewPrivateMessage(data: any) {
 // 处理消息已读通知
 function handleMessageRead(data: any) {
   logger.debug('[MessageChat] Received message_read notification:', data)
-  
+
   if (!data || !data.conversation_id) {
     logger.warn('[MessageChat] Invalid message_read data')
     return
   }
-  
+
   // 只处理当前会话的已读通知
   if (data.conversation_id !== conversationId.value) {
     logger.debug('[MessageChat] Ignoring message_read for different conversation')
     return
   }
-  
+
   logger.info('[MessageChat] Updating messages as read for conversation:', data.conversation_id)
-  
+
   // 更新当前会话中所有自己发送的消息为已读
   let updatedCount = 0
   messages.value.forEach(msg => {
@@ -457,9 +472,9 @@ function handleMessageRead(data: any) {
       updatedCount++
     }
   })
-  
+
   logger.info(`[MessageChat] Updated ${updatedCount} messages to read status`)
-  
+
   // 强制Vue重新渲染（确保UI更新）
   messages.value = [...messages.value]
 }
@@ -477,7 +492,7 @@ function scrollToBottom(smooth = true) {
     }
     return false
   }
-  
+
   // 方法2: 使用scrollbar容器滚动到底部（备用方案）
   const scrollByContainer = () => {
     if (scrollbarRef.value) {
@@ -492,13 +507,13 @@ function scrollToBottom(smooth = true) {
     }
     return false
   }
-  
+
   // 立即尝试方法1
   if (scrollToLastMessage()) return
-  
+
   // 方法1失败，尝试方法2
   if (scrollByContainer()) return
-  
+
   // 都失败了，延迟重试
   setTimeout(() => {
     scrollToLastMessage() || scrollByContainer()
@@ -526,12 +541,12 @@ function goToUserDetail() {
 // 是否显示时间分隔线
 function shouldShowTimeDivider(index: number): boolean {
   if (index === 0) return true
-  
+
   const current = new Date(messages.value[index].created_at)
   const previous = new Date(messages.value[index - 1].created_at)
-  
+
   // 超过5分钟显示时间
-  return (current.getTime() - previous.getTime()) > 5 * 60 * 1000
+  return current.getTime() - previous.getTime() > 5 * 60 * 1000
 }
 
 // 格式化消息时间（分隔线）
@@ -547,9 +562,13 @@ function formatMessageTime(timeString: string): string {
     return '昨天 ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
   } else if (days < 7) {
     const weekdays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六']
-    return weekdays[date.getDay()] + ' ' + date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    return (
+      weekdays[date.getDay()] +
+      ' ' +
+      date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    )
   }
-  
+
   return date.toLocaleString('zh-CN', {
     month: 'numeric',
     day: 'numeric',
@@ -568,10 +587,10 @@ function formatBubbleTime(timeString: string): string {
 function setupWebSocketListeners() {
   // 订阅私信消息
   unsubscribePrivateMessage = globalChatService.onPrivateMessage(handleNewPrivateMessage)
-  
+
   // 订阅消息已读通知
   unsubscribeMessageRead = globalChatService.onMessageRead(handleMessageRead)
-  
+
   logger.info('[MessageChat] WebSocket listeners setup complete')
 }
 
@@ -581,12 +600,12 @@ function cleanupWebSocketListeners() {
     unsubscribePrivateMessage()
     unsubscribePrivateMessage = null
   }
-  
+
   if (unsubscribeMessageRead) {
     unsubscribeMessageRead()
     unsubscribeMessageRead = null
   }
-  
+
   logger.info('[MessageChat] WebSocket listeners cleaned up')
 }
 
@@ -821,4 +840,3 @@ onUnmounted(() => {
   }
 }
 </style>
-

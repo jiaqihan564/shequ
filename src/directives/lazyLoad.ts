@@ -1,20 +1,23 @@
 /**
  * 图片懒加载指令
  * 使用 Intersection Observer API 实现高性能图片懒加载
- * 
+ *
  * 使用方式：
  * <img v-lazy="imageUrl" alt="..." />
  * <img v-lazy="{ src: imageUrl, placeholder: placeholderUrl }" alt="..." />
  */
 
 import type { DirectiveBinding } from 'vue'
+
 import { lazyLoadConfig } from '@/config'
 
 // 占位符图片（Base64 编码的1x1透明GIF）
-const DEFAULT_PLACEHOLDER = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
+const DEFAULT_PLACEHOLDER =
+  'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7'
 
 // 加载失败时的占位符
-const ERROR_PLACEHOLDER = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E加载失败%3C/text%3E%3C/svg%3E'
+const ERROR_PLACEHOLDER =
+  'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext fill="%23999" x="50%25" y="50%25" text-anchor="middle" dy=".3em"%3E加载失败%3C/text%3E%3C/svg%3E'
 
 // IntersectionObserver 实例（全局共享）
 let observer: IntersectionObserver | null = null
@@ -36,8 +39,8 @@ function getObserver(): IntersectionObserver {
   }
 
   observer = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
+    entries => {
+      entries.forEach(entry => {
         if (entry.isIntersecting) {
           const img = entry.target as HTMLImageElement
           const src = img.dataset.lazySrc
@@ -138,7 +141,7 @@ export const lazyLoad = {
 
     // 设置占位符
     el.src = placeholder || DEFAULT_PLACEHOLDER
-    
+
     // 保存原始src和error图片
     el.dataset.lazySrc = src
     if (error) {
@@ -176,13 +179,13 @@ export const lazyLoad = {
     // 如果src改变了，重新加载
     if (src !== oldSrc && src) {
       el.dataset.lazySrc = src
-      
+
       if (loadedImages.has(src)) {
         el.src = src
       } else {
         el.src = placeholder || DEFAULT_PLACEHOLDER
         el.classList.remove('lazy-loaded', 'lazy-error', 'lazy-loading')
-        
+
         const obs = getObserver()
         obs.observe(el)
       }
@@ -231,4 +234,3 @@ export function clearImageCache() {
 }
 
 export default lazyLoad
-

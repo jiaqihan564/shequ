@@ -17,7 +17,7 @@
       </div>
     </section>
 
-    <section class="user-welcome" v-if="user">
+    <section v-if="user" class="user-welcome">
       <el-avatar
         :size="64"
         :src="hasValidAvatar(user.avatar) ? user.avatar : undefined"
@@ -43,7 +43,7 @@
 
     <section class="news-section">
       <h3 class="section-title">热点新闻</h3>
-      <NewsCarousel :items="news" :isLoading="loadingNews" :intervalMs="5000" />
+      <NewsCarousel :items="news" :is-loading="loadingNews" :interval-ms="5000" />
     </section>
   </div>
 </template>
@@ -58,14 +58,14 @@ export default {
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { RouterLink } from 'vue-router'
 
+import NewsCarousel from '@/components/news/NewsCarousel.vue'
+import { pollingConfig } from '@/config'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 import type { User } from '@/types'
 import type { NewsItem } from '@/types'
 import { fetchNews } from '@/utils/api'
-import NewsCarousel from '@/components/news/NewsCarousel.vue'
-import toast from '@/utils/toast'
 import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
-import { pollingConfig } from '@/config'
-import { STORAGE_KEYS } from '@/config/storage-keys'
+import toast from '@/utils/toast'
 
 const user = ref<User | null>(null)
 const news = ref<NewsItem[]>([])
@@ -74,7 +74,8 @@ let newsTimer: number | null = null
 
 onMounted(() => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+    const raw =
+      localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
     if (raw) user.value = JSON.parse(raw)
   } catch (e) {
     if (import.meta.env.DEV) console.warn('读取用户信息失败', e)

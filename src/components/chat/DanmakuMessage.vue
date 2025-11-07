@@ -1,14 +1,14 @@
 <template>
-  <div 
+  <div
     class="danmaku-wrapper"
-    :style="{ 
+    :style="{
       top: `${track * trackHeight}px`,
       animationDuration: `${duration}s`
     }"
     @mouseenter="handleEnter"
     @mouseleave="handleLeave"
   >
-    <div 
+    <div
       ref="danmakuRef"
       class="danmaku-item"
       :class="{ paused: isPaused }"
@@ -16,12 +16,9 @@
     >
       <span class="message-content">{{ message.content }}</span>
     </div>
-    
+
     <!-- 用户信息卡片 -->
-    <div 
-      v-show="showCard" 
-      class="user-info-card"
-    >
+    <div v-show="showCard" class="user-info-card">
       <div class="card-header">
         <img :src="avatarUrl" :alt="message.nickname || message.username" class="card-avatar" />
         <div class="card-user-info">
@@ -76,8 +73,8 @@ const isPaused = ref(false)
 // 用户头像URL
 const avatarUrl = computed(() => {
   if (props.message.avatar) {
-    return props.message.avatar.startsWith('http') 
-      ? props.message.avatar 
+    return props.message.avatar.startsWith('http')
+      ? props.message.avatar
       : `http://localhost:8080${props.message.avatar}`
   }
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(props.message.nickname || props.message.username)}&background=667eea&color=fff&size=128`
@@ -152,7 +149,7 @@ onMounted(() => {
   font-size: 16px;
   font-weight: 700;
   color: #fff;
-  text-shadow: 
+  text-shadow:
     0 2px 8px rgba(0, 0, 0, 0.5),
     0 1px 3px rgba(0, 0, 0, 0.8);
   backdrop-filter: blur(12px) saturate(150%);
@@ -161,7 +158,7 @@ onMounted(() => {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   user-select: none;
   border: 1px solid rgba(255, 255, 255, 0.15);
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(0, 0, 0, 0.25),
     0 2px 6px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.2);
@@ -185,8 +182,12 @@ onMounted(() => {
 
 .danmaku-item:hover,
 .danmaku-item.paused {
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.95) 0%, rgba(139, 92, 246, 0.95) 100%) !important;
-  box-shadow: 
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.95) 0%,
+    rgba(139, 92, 246, 0.95) 100%
+  ) !important;
+  box-shadow:
     0 12px 32px rgba(99, 102, 241, 0.6),
     0 6px 16px rgba(139, 92, 246, 0.4),
     0 0 0 3px rgba(255, 255, 255, 0.2),
@@ -209,7 +210,7 @@ onMounted(() => {
   width: 300px;
   background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   border-radius: 16px;
-  box-shadow: 
+  box-shadow:
     0 12px 40px rgba(0, 0, 0, 0.25),
     0 6px 20px rgba(0, 0, 0, 0.15),
     0 0 0 1px rgba(99, 102, 241, 0.15);
@@ -218,11 +219,13 @@ onMounted(() => {
   pointer-events: auto;
   overflow: hidden;
   opacity: 1;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 
 /* 隐藏状态 - 通过 v-show 控制 */
-.user-info-card[style*="display: none"] {
+.user-info-card[style*='display: none'] {
   opacity: 0;
   pointer-events: none;
 }
@@ -275,10 +278,11 @@ onMounted(() => {
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid transparent;
-  background: linear-gradient(white, white) padding-box,
-              linear-gradient(135deg, #6366f1, #8b5cf6) border-box;
+  background:
+    linear-gradient(white, white) padding-box,
+    linear-gradient(135deg, #6366f1, #8b5cf6) border-box;
   flex-shrink: 0;
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(99, 102, 241, 0.2),
     0 2px 6px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
@@ -286,7 +290,7 @@ onMounted(() => {
 
 .card-avatar:hover {
   transform: scale(1.1) rotate(5deg);
-  box-shadow: 
+  box-shadow:
     0 6px 18px rgba(99, 102, 241, 0.3),
     0 3px 9px rgba(0, 0, 0, 0.15);
 }
@@ -321,11 +325,13 @@ onMounted(() => {
 
 .card-divider {
   height: 1px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(99, 102, 241, 0.15) 25%, 
-    rgba(139, 92, 246, 0.15) 75%, 
-    transparent 100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(99, 102, 241, 0.15) 25%,
+    rgba(139, 92, 246, 0.15) 75%,
+    transparent 100%
+  );
 }
 
 .card-content {
@@ -365,4 +371,3 @@ onMounted(() => {
   background-clip: text;
 }
 </style>
-

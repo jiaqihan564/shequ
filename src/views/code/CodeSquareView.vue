@@ -5,9 +5,7 @@
         <h2 class="page-title">代码广场</h2>
         <p class="page-subtitle">探索公开分享的代码片段</p>
       </div>
-      <button class="btn btn-primary" @click="$router.push('/code-editor')">
-        新建代码
-      </button>
+      <button class="btn btn-primary" @click="$router.push('/code-editor')">新建代码</button>
     </div>
 
     <!-- 筛选器 -->
@@ -72,15 +70,15 @@
 
         <div class="card-footer">
           <div class="card-actions">
-            <button class="action-btn run-btn" @click="runSnippet(snippet)" title="运行代码">
+            <button class="action-btn run-btn" title="运行代码" @click="runSnippet(snippet)">
               <span class="btn-icon">▶️</span>
               <span class="btn-text">运行</span>
             </button>
-            <button class="action-btn view-btn" @click="viewSnippet(snippet)" title="查看完整代码">
+            <button class="action-btn view-btn" title="查看完整代码" @click="viewSnippet(snippet)">
               <span class="btn-icon">👁️</span>
               <span class="btn-text">查看</span>
             </button>
-            <button class="action-btn fork-btn" @click="forkSnippet(snippet)" title="复制到编辑器">
+            <button class="action-btn fork-btn" title="复制到编辑器" @click="forkSnippet(snippet)">
               <span class="btn-icon">📋</span>
               <span class="btn-text">复制</span>
             </button>
@@ -110,7 +108,7 @@
           <h3>运行代码: {{ currentRunSnippet?.title }}</h3>
           <button class="close-btn" @click="closeRunDialog">×</button>
         </div>
-        
+
         <div class="run-dialog-body">
           <!-- 代码显示 -->
           <div class="section">
@@ -156,11 +154,7 @@
 
         <div class="modal-footer">
           <button class="btn btn-secondary" @click="closeRunDialog">关闭</button>
-          <button 
-            class="btn btn-primary" 
-            @click="executeCurrentCode"
-            :disabled="isRunning"
-          >
+          <button class="btn btn-primary" :disabled="isRunning" @click="executeCurrentCode">
             {{ isRunning ? '运行中...' : '运行代码' }}
           </button>
         </div>
@@ -172,9 +166,10 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+
+import type { CodeSnippetWithUser, ExecuteCodeResponse } from '@/types/code'
 import { getPublicSnippets, executeCode } from '@/utils/code-api'
 import { toast } from '@/utils/toast'
-import type { CodeSnippetWithUser, ExecuteCodeResponse } from '@/types/code'
 
 const router = useRouter()
 
@@ -365,7 +360,7 @@ async function executeCurrentCode() {
       stdin: stdin.value
     })
     executionResult.value = result
-    
+
     if (result.status === 'success') {
       toast.success('代码执行成功')
     } else if (result.status === 'error') {
@@ -721,7 +716,9 @@ function closeRunDialog() {
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.3);
   transform: translate(-50%, -50%);
-  transition: width 0.3s, height 0.3s;
+  transition:
+    width 0.3s,
+    height 0.3s;
 }
 
 .action-btn:hover::before {
@@ -861,7 +858,9 @@ function closeRunDialog() {
 .modal-content {
   background: #fff;
   border-radius: 12px;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
   max-width: 900px;
   width: 100%;
   max-height: 90vh;
@@ -958,7 +957,6 @@ function closeRunDialog() {
   color: #1e40af;
   border: 1px solid #93c5fd;
 }
-
 
 .status-stat {
   font-weight: 700;
@@ -1118,4 +1116,3 @@ function closeRunDialog() {
   }
 }
 </style>
-

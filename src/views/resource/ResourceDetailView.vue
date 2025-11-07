@@ -51,7 +51,11 @@
       </el-card>
 
       <!-- 预览图轮播 -->
-      <el-card v-if="resource.images && resource.images.length > 0" class="images-card" shadow="never">
+      <el-card
+        v-if="resource.images && resource.images.length > 0"
+        class="images-card"
+        shadow="never"
+      >
         <template #header>
           <h3>预览图 ({{ resource.images.length }}张)</h3>
         </template>
@@ -73,7 +77,7 @@
         <template #header>
           <h3>详细文档</h3>
         </template>
-        <div class="markdown-body" v-html="renderedDocument" @click="handleImageClick"></div>
+        <div class="markdown-body" @click="handleImageClick" v-html="renderedDocument"></div>
       </el-card>
 
       <!-- 操作按钮 -->
@@ -87,24 +91,12 @@
           >
             {{ resource.is_liked ? '已点赞' : '点赞' }} ({{ resource.like_count }})
           </el-button>
-          
-          <el-button
-            type="default"
-            :icon="ChatDotRound"
-            size="large"
-            @click="scrollToComments"
-          >
+
+          <el-button type="default" :icon="ChatDotRound" size="large" @click="scrollToComments">
             评论 ({{ commentCount }})
           </el-button>
-          
-          <el-button
-            type="default"
-            :icon="Share"
-            size="large"
-            @click="handleShare"
-          >
-            分享
-          </el-button>
+
+          <el-button type="default" :icon="Share" size="large" @click="handleShare">分享</el-button>
         </div>
       </el-card>
 
@@ -133,8 +125,8 @@
           <el-button
             type="primary"
             :disabled="!newComment.trim()"
-            @click="submitComment"
             style="margin-top: 12px"
+            @click="submitComment"
           >
             发表评论
           </el-button>
@@ -163,8 +155,8 @@
     <el-image-viewer
       v-if="showImageViewer"
       :url-list="[currentImageUrl]"
-      @close="closeImageViewer"
       :z-index="3000"
+      @close="closeImageViewer"
     />
 
     <!-- 分享对话框 -->
@@ -183,11 +175,7 @@
         />
 
         <div class="share-link-section">
-          <el-input
-            :model-value="shareLink"
-            readonly
-            size="large"
-          >
+          <el-input :model-value="shareLink" readonly size="large">
             <template #prepend>
               <el-icon><Link /></el-icon>
             </template>
@@ -196,8 +184,8 @@
             type="primary"
             size="large"
             :icon="CopyDocument"
-            @click="copyLink"
             style="margin-top: 12px; width: 100%"
+            @click="copyLink"
           >
             复制链接
           </el-button>
@@ -206,24 +194,15 @@
         <el-divider>或通过以下方式分享</el-divider>
 
         <div class="share-methods">
-          <el-button
-            class="share-btn"
-            @click="shareToWeChat"
-          >
+          <el-button class="share-btn" @click="shareToWeChat">
             <span class="share-icon">💬</span>
             微信
           </el-button>
-          <el-button
-            class="share-btn"
-            @click="shareToWeibo"
-          >
+          <el-button class="share-btn" @click="shareToWeibo">
             <span class="share-icon">📱</span>
             微博
           </el-button>
-          <el-button
-            class="share-btn"
-            @click="shareToQQ"
-          >
+          <el-button class="share-btn" @click="shareToQQ">
             <span class="share-icon">🐧</span>
             QQ
           </el-button>
@@ -236,12 +215,7 @@
     </el-dialog>
 
     <!-- 微信二维码对话框 -->
-    <el-dialog
-      v-model="wechatQrVisible"
-      title="微信扫码分享"
-      width="400px"
-      align-center
-    >
+    <el-dialog v-model="wechatQrVisible" title="微信扫码分享" width="400px" align-center>
       <div class="qrcode-container">
         <el-alert
           title="使用微信扫描二维码分享资源"
@@ -262,15 +236,38 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import {
+  Download,
+  Star,
+  StarFilled,
+  ChatDotRound,
+  Share,
+  CopyDocument,
+  Link
+} from '@element-plus/icons-vue'
 import QRCode from 'qrcode'
-import { Download, Star, StarFilled, ChatDotRound, Share, CopyDocument, Link } from '@element-plus/icons-vue'
-import { getResourceDetail, toggleResourceLike, getResourceProxyDownloadUrl, postResourceComment, getResourceComments } from '@/utils/api'
-import { renderMarkdown } from '@/utils/markdown'
-import type { Resource, ResourceComment } from '@/types/resource'
-import toast from '@/utils/toast'
+import { ref, onMounted, computed, nextTick, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
+
 import ResourceCommentItem from '@/components/resource/ResourceCommentItem.vue'
+import { STORAGE_KEYS } from '@/config/storage-keys'
+import { globalChatService, type CommentNotification } from '@/services/globalChatService'
+import type { Resource, ResourceComment } from '@/types/resource'
+import {
+  getResourceDetail,
+  toggleResourceLike,
+  getResourceProxyDownloadUrl,
+  postResourceComment,
+  getResourceComments
+} from '@/utils/api'
+import {
+  countComments,
+  insertReplyIntoTree,
+  removeCommentById,
+  upsertRootComment
+} from '@/utils/commentTree'
+import { renderMarkdown } from '@/utils/markdown'
+import toast from '@/utils/toast'
 import { logger } from '@/utils/ui/logger'
 
 const route = useRoute()
@@ -285,6 +282,22 @@ const qrcodeCanvas = ref<HTMLCanvasElement | null>(null)
 const commentCount = ref(0)
 const showImageViewer = ref(false)
 const currentImageUrl = ref('')
+
+let unsubscribeComment: (() => void) | null = null
+
+const currentUserId = computed(() => {
+  const userInfo =
+    localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+  if (userInfo) {
+    try {
+      const data = JSON.parse(userInfo)
+      return data.id
+    } catch {
+      return null
+    }
+  }
+  return null
+})
 
 const imageUrls = computed(() => {
   return resource.value?.images.map(img => img.image_url) || []
@@ -302,13 +315,134 @@ const shareLink = computed(() => {
   return ''
 })
 
+function normalizeResourceComment(comment: ResourceComment): ResourceComment {
+  const replies = Array.isArray(comment.replies)
+    ? comment.replies.map(normalizeResourceComment)
+    : []
+
+  return {
+    ...comment,
+    user: comment.user ? { ...comment.user } : undefined,
+    reply_to_user: comment.reply_to_user ? { ...comment.reply_to_user } : undefined,
+    replies,
+    reply_count: typeof comment.reply_count === 'number' ? comment.reply_count : replies.length
+  }
+}
+
+function syncResourceCommentCount() {
+  commentCount.value = countComments(comments.value)
+}
+
+function handleNewResourceComment(notification: CommentNotification) {
+  if (!notification.comment) {
+    if (resource.value) {
+      loadComments(resource.value.id)
+    }
+    return
+  }
+
+  const normalized = normalizeResourceComment(notification.comment as any)
+  const [nextComments, isNew] = upsertRootComment(comments.value, normalized)
+  comments.value = nextComments
+  syncResourceCommentCount()
+
+  if (notification.user_id !== currentUserId.value && isNew) {
+    toast.info(`${notification.nickname || notification.username} 发表了新评论`)
+  }
+}
+
+function handleNewResourceReply(notification: CommentNotification) {
+  if (!notification.comment) {
+    if (resource.value) {
+      loadComments(resource.value.id)
+    }
+    return
+  }
+
+  const normalized = normalizeResourceComment(notification.comment as any)
+  const [nextComments, inserted] = insertReplyIntoTree(comments.value, normalized)
+
+  if (!inserted) {
+    logger.warn('[资源评论] 找不到回复所属的父评论，回退到重新加载')
+    if (resource.value) {
+      loadComments(resource.value.id)
+    }
+    return
+  }
+
+  comments.value = nextComments
+  syncResourceCommentCount()
+
+  if (notification.user_id !== currentUserId.value) {
+    toast.info(`${notification.nickname || notification.username} 发表了回复`)
+  }
+}
+
+function handleResourceCommentDeleted(notification: CommentNotification) {
+  const [nextComments, removed] = removeCommentById(comments.value, notification.comment_id)
+
+  if (!removed) {
+    logger.warn('[资源评论] 未能本地删除评论，回退到重新加载')
+    if (resource.value) {
+      loadComments(resource.value.id)
+    }
+    return
+  }
+
+  comments.value = nextComments
+  syncResourceCommentCount()
+  toast.info('评论已被删除')
+}
+
+function subscribeToComments(resourceId: number) {
+  if (unsubscribeComment) {
+    unsubscribeComment()
+  }
+
+  unsubscribeComment = globalChatService.onComment((notification: CommentNotification) => {
+    // 只处理资源评论，且是当前资源
+    if (notification.entity !== 'resource' || notification.resource_id !== resourceId) {
+      return
+    }
+
+    logger.debug('[资源评论] 收到 WebSocket 通知:', {
+      type: notification.type,
+      resource_id: notification.resource_id,
+      current_resource: resourceId,
+      user_id: notification.user_id,
+      current_user: currentUserId.value,
+      is_self: notification.user_id === currentUserId.value
+    })
+
+    switch (notification.type) {
+      case 'new_comment':
+        handleNewResourceComment(notification)
+        break
+      case 'new_reply':
+        handleNewResourceReply(notification)
+        break
+      case 'comment_deleted':
+        handleResourceCommentDeleted(notification)
+        break
+    }
+  })
+
+  logger.debug('[资源评论] 已订阅 WebSocket 通知', {
+    resourceId,
+    status: globalChatService.connectionStatus.value
+  })
+}
+
 async function loadResource() {
   const id = Number(route.params.id)
   loading.value = true
-  
+
   try {
     resource.value = await getResourceDetail(id)
     await loadComments(id)
+
+    // 订阅实时评论更新
+    subscribeToComments(id)
   } catch (error: any) {
     toast.error(error.message || '加载失败')
   } finally {
@@ -319,18 +453,17 @@ async function loadResource() {
 async function loadComments(resourceId: number) {
   try {
     const response = await getResourceComments(resourceId)
-    comments.value = response.comments || []
-    commentCount.value = response.total || 0
-    
-    // 调试日志：检查评论数据结构
-    logger.debug('加载评论成功:', {
+    comments.value = (response.comments || []).map(normalizeResourceComment)
+    syncResourceCommentCount()
+
+    logger.debug('[资源评论] 加载评论成功:', {
+      resourceId,
       total: response.total,
       commentsCount: comments.value.length,
-      firstComment: comments.value[0],
-      hasReplies: comments.value.some(c => c.replies && c.replies.length > 0)
+      timestamp: new Date().toLocaleTimeString()
     })
   } catch (error) {
-    logger.error('加载评论失败:', error)
+    logger.error('[资源评论] 加载评论失败:', error)
     comments.value = []
     commentCount.value = 0
   }
@@ -338,13 +471,13 @@ async function loadComments(resourceId: number) {
 
 async function handleDownload() {
   if (!resource.value) return
-  
+
   try {
     toast.info('正在准备下载...')
-    
+
     // 使用代理下载URL（支持大文件和断点续传）
     const downloadUrl = getResourceProxyDownloadUrl(resource.value.id)
-    
+
     // 创建隐藏的a标签触发下载
     const link = document.createElement('a')
     link.href = downloadUrl
@@ -353,7 +486,7 @@ async function handleDownload() {
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    
+
     // 更新下载次数显示
     resource.value.download_count++
     toast.success('下载已开始')
@@ -364,7 +497,7 @@ async function handleDownload() {
 
 async function handleLike() {
   if (!resource.value) return
-  
+
   try {
     const isLiked = await toggleResourceLike(resource.value.id)
     resource.value.is_liked = isLiked
@@ -388,23 +521,32 @@ async function submitComment() {
     toast.warning('请输入评论内容')
     return
   }
-  
+
   try {
+    logger.debug('[资源评论] 发表评论开始')
     await postResourceComment(resource.value.id, { content: newComment.value })
     newComment.value = ''
     toast.success('评论成功')
-    await loadComments(resource.value.id)
-    commentCount.value++
+    logger.debug('[资源评论] 评论发表成功，等待 WebSocket 推送')
+
+    // 如果 WebSocket 未连接，回退到手动刷新
+    if (globalChatService.connectionStatus.value !== 'connected') {
+      logger.warn('[资源评论] WebSocket 未连接，回退到手动刷新评论列表')
+      await loadComments(resource.value.id)
+    }
   } catch (error: any) {
+    logger.error('[资源评论] 评论发表失败:', error)
     toast.error(error.message || '评论失败')
   }
 }
 
 async function handleCommentPosted() {
-  // 重新加载评论列表
-  if (resource.value) {
+  if (!resource.value) return
+
+  // 仅在 WebSocket 未连接时才手动刷新
+  if (globalChatService.connectionStatus.value !== 'connected') {
+    logger.warn('[资源评论] WebSocket 未连接，子组件请求刷新评论列表')
     await loadComments(resource.value.id)
-    commentCount.value++
   }
 }
 
@@ -459,10 +601,10 @@ async function copyLink() {
 async function shareToWeChat() {
   wechatQrVisible.value = true
   shareDialogVisible.value = false
-  
+
   // 等待DOM更新
   await nextTick()
-  
+
   // 生成二维码
   if (qrcodeCanvas.value) {
     try {
@@ -490,7 +632,10 @@ function shareToWeibo() {
 function shareToQQ() {
   const url = encodeURIComponent(shareLink.value)
   const title = encodeURIComponent(resource.value?.title || '')
-  window.open(`https://connect.qq.com/widget/shareqq/index.html?url=${url}&title=${title}`, '_blank')
+  window.open(
+    `https://connect.qq.com/widget/shareqq/index.html?url=${url}&title=${title}`,
+    '_blank'
+  )
 }
 
 function formatFileSize(bytes: number): string {
@@ -498,11 +643,25 @@ function formatFileSize(bytes: number): string {
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
 }
 
 onMounted(() => {
   loadResource()
+
+  // 确保 WebSocket 已连接
+  if (globalChatService.connectionStatus.value !== 'connected') {
+    logger.debug('[资源评论] WebSocket 未连接，正在连接...')
+    globalChatService.connect()
+  }
+})
+
+// 组件卸载时取消订阅
+onUnmounted(() => {
+  if (unsubscribeComment) {
+    unsubscribeComment()
+    logger.debug('[资源评论] 已取消评论订阅')
+  }
 })
 </script>
 
@@ -542,7 +701,9 @@ onMounted(() => {
   gap: 20px;
 }
 
-.info-card, .images-card, .document-card {
+.info-card,
+.images-card,
+.document-card {
   border-radius: 12px;
 }
 
@@ -715,7 +876,9 @@ onMounted(() => {
   border-radius: 8px;
   margin: 16px 0;
   cursor: zoom-in;
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
 }
 
 .markdown-body :deep(img:hover) {
@@ -824,4 +987,3 @@ onMounted(() => {
   }
 }
 </style>
-

@@ -10,7 +10,12 @@
           </h1>
           <p class="page-subtitle">分享和下载实用资源</p>
         </div>
-        <el-button type="primary" :icon="Upload" size="large" @click="$router.push('/resources/upload')">
+        <el-button
+          type="primary"
+          :icon="Upload"
+          size="large"
+          @click="$router.push('/resources/upload')"
+        >
           上传资源
         </el-button>
       </div>
@@ -73,8 +78,8 @@
               v-model="query.category_id"
               placeholder="全部分类"
               clearable
-              @change="handleFilterChange"
               style="width: 100%"
+              @change="handleFilterChange"
             >
               <el-option
                 v-for="cat in categories"
@@ -88,11 +93,7 @@
 
         <el-col :xs="24" :sm="12" :md="6">
           <el-form-item label="排序方式">
-            <el-select
-              v-model="query.sort_by"
-              @change="handleFilterChange"
-              style="width: 100%"
-            >
+            <el-select v-model="query.sort_by" style="width: 100%" @change="handleFilterChange">
               <el-option label="最新上传" value="latest" />
               <el-option label="最受欢迎" value="popular" />
               <el-option label="下载最多" value="downloads" />
@@ -116,7 +117,6 @@
           </el-form-item>
         </el-col>
       </el-row>
-
     </el-card>
 
     <!-- 分类标签 -->
@@ -124,10 +124,7 @@
       <div class="tags-section">
         <span class="tags-label">分类：</span>
         <div class="tags-container">
-          <el-check-tag
-            :checked="!query.category_id"
-            @change="handleCategoryTagClick(null)"
-          >
+          <el-check-tag :checked="!query.category_id" @change="handleCategoryTagClick(null)">
             全部分类
           </el-check-tag>
           <el-check-tag
@@ -148,10 +145,18 @@
     </template>
 
     <div v-else-if="resources.length > 0" class="resources-grid">
-      <el-card v-for="resource in resources" :key="resource.id" class="resource-card" shadow="hover" @click="goToDetail(resource.id)">
+      <el-card
+        v-for="resource in resources"
+        :key="resource.id"
+        class="resource-card"
+        shadow="hover"
+        @click="goToDetail(resource.id)"
+      >
         <div class="resource-cover">
           <el-image
-            :src="resource.cover_image || 'https://via.placeholder.com/400x300/409eff/ffffff?text=资源'"
+            :src="
+              resource.cover_image || 'https://via.placeholder.com/400x300/409eff/ffffff?text=资源'
+            "
             fit="cover"
             style="width: 100%; height: 180px"
           >
@@ -166,13 +171,26 @@
           <h3 class="resource-title">{{ resource.title }}</h3>
           <p class="resource-desc">{{ resource.description }}</p>
           <div class="resource-meta">
-            <el-tag v-if="resource.category" type="primary" size="small">{{ resource.category.name }}</el-tag>
-            <span class="file-info">{{ formatFileSize(resource.file_size) }} · {{ resource.file_extension }}</span>
+            <el-tag v-if="resource.category" type="primary" size="small">
+              {{ resource.category.name }}
+            </el-tag>
+            <span class="file-info">
+              {{ formatFileSize(resource.file_size) }} · {{ resource.file_extension }}
+            </span>
           </div>
           <div class="resource-stats">
-            <span><el-icon><Download /></el-icon> {{ resource.download_count }}</span>
-            <span><el-icon><View /></el-icon> {{ resource.view_count }}</span>
-            <span><el-icon><Star /></el-icon> {{ resource.like_count }}</span>
+            <span>
+              <el-icon><Download /></el-icon>
+              {{ resource.download_count }}
+            </span>
+            <span>
+              <el-icon><View /></el-icon>
+              {{ resource.view_count }}
+            </span>
+            <span>
+              <el-icon><Star /></el-icon>
+              {{ resource.like_count }}
+            </span>
           </div>
         </div>
       </el-card>
@@ -203,13 +221,26 @@ export default {
 </script>
 
 <script setup lang="ts">
+import {
+  FolderOpened,
+  Upload,
+  Search,
+  Download,
+  View,
+  Star,
+  Document,
+  ChatDotRound,
+  Message,
+  DataAnalysis,
+  Picture
+} from '@element-plus/icons-vue'
 import { ref, onMounted, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import { FolderOpened, Upload, Search, Download, View, Star, Document, ChatDotRound, Message, DataAnalysis, Picture } from '@element-plus/icons-vue'
-import { getResources, getResourceCategories } from '@/utils/api'
-import type { ResourceListItem, ResourceCategory } from '@/types/resource'
-import toast from '@/utils/toast'
+
 import SkeletonLoader from '@/components/shared/SkeletonLoader.vue'
+import type { ResourceListItem, ResourceCategory } from '@/types/resource'
+import { getResources, getResourceCategories } from '@/utils/api'
+import toast from '@/utils/toast'
 
 const router = useRouter()
 
@@ -300,7 +331,7 @@ function formatFileSize(bytes: number): string {
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
 }
 
 onMounted(() => {
@@ -316,7 +347,9 @@ onMounted(() => {
   padding: 20px;
 }
 
-.header-card, .filters-card, .tags-card {
+.header-card,
+.filters-card,
+.tags-card {
   margin-bottom: 20px;
   border-radius: 12px;
 }
@@ -411,7 +444,8 @@ onMounted(() => {
   overflow: hidden;
 }
 
-.resource-meta, .resource-stats {
+.resource-meta,
+.resource-stats {
   display: flex;
   gap: 12px;
   align-items: center;
@@ -487,4 +521,3 @@ onMounted(() => {
   padding: 20px 0;
 }
 </style>
-

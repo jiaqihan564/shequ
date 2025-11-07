@@ -1,10 +1,10 @@
 <template>
   <div class="code-example-selector">
-    <select 
-      v-model="selectedExampleId" 
-      @change="handleExampleChange" 
+    <select
+      v-model="selectedExampleId"
       class="example-select"
       :disabled="!examples || examples.length === 0"
+      @change="handleExampleChange"
     >
       <option value="">选择示例代码...</option>
       <option v-for="example in examples" :key="example.id" :value="example.id">
@@ -16,6 +16,7 @@
 
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+
 import codeExamples from '@/data/code-examples'
 import type { CodeExample } from '@/types/code'
 
@@ -38,16 +39,19 @@ const examples = computed(() => {
 })
 
 // 监听语言变化，重置选择
-watch(() => props.language, () => {
-  selectedExampleId.value = ''
-})
+watch(
+  () => props.language,
+  () => {
+    selectedExampleId.value = ''
+  }
+)
 
 function handleExampleChange() {
   if (!selectedExampleId.value) return
-  
+
   const example = examples.value.find(ex => ex.id === selectedExampleId.value)
   if (!example) return
-  
+
   // 如果编辑器有内容，询问是否替换
   if (props.currentCode.trim() && props.currentCode !== example.code) {
     if (!confirm(`当前代码将被替换为示例"${example.title}"，是否继续？`)) {
@@ -55,10 +59,10 @@ function handleExampleChange() {
       return
     }
   }
-  
+
   // 发送加载示例事件
   emit('load-example', example)
-  
+
   // 加载后不重置选择，这样用户可以看到当前加载的是哪个示例
 }
 
@@ -115,4 +119,3 @@ defineExpose({
   }
 }
 </style>
-

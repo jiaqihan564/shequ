@@ -2,22 +2,28 @@
   <div :class="['comment-item', { 'is-reply': isReply }]">
     <el-avatar
       :size="isReply ? 32 : 40"
-      :src="hasValidAvatar(comment.user?.avatar || comment.author?.avatar) ? (comment.user?.avatar || comment.author?.avatar) : undefined"
+      :src="
+        hasValidAvatar(comment.user?.avatar || comment.author?.avatar)
+          ? comment.user?.avatar || comment.author?.avatar
+          : undefined
+      "
       :alt="comment.user?.nickname || comment.author?.nickname"
-      @click="goToUserDetail"
-      :style="{ 
-        backgroundColor: getAvatarColor(comment.user?.id || comment.author?.id || comment.user_id), 
+      :style="{
+        backgroundColor: getAvatarColor(comment.user?.id || comment.author?.id || comment.user_id),
         cursor: 'pointer',
         fontSize: isReply ? '14px' : '18px',
         fontWeight: '600'
       }"
+      @click="goToUserDetail"
     >
       {{ getAvatarInitial(comment.user?.nickname || comment.author?.nickname) }}
     </el-avatar>
     <div class="comment-content">
       <div class="comment-header">
         <div class="commenter-info">
-          <span class="commenter-name">{{ comment.user?.nickname || comment.author?.nickname }}</span>
+          <span class="commenter-name">
+            {{ comment.user?.nickname || comment.author?.nickname }}
+          </span>
           <span v-if="comment.reply_to_user" class="reply-to">
             回复 @{{ comment.reply_to_user.nickname }}
           </span>
@@ -26,12 +32,7 @@
       </div>
       <div class="comment-text">{{ comment.content }}</div>
       <div class="comment-actions">
-        <el-button
-          text
-          :icon="ChatDotRound"
-          size="small"
-          @click="toggleReplyBox"
-        >
+        <el-button text :icon="ChatDotRound" size="small" @click="toggleReplyBox">
           回复{{ comment.reply_count > 0 ? ` (${comment.reply_count})` : '' }}
         </el-button>
       </div>
@@ -62,7 +63,10 @@
       </div>
 
       <!-- 递归显示子评论 -->
-      <div v-if="comment.replies && Array.isArray(comment.replies) && comment.replies.length > 0" class="replies-list">
+      <div
+        v-if="comment.replies && Array.isArray(comment.replies) && comment.replies.length > 0"
+        class="replies-list"
+      >
         <CommentItem
           v-for="reply in comment.replies"
           :key="reply.id"
@@ -77,13 +81,14 @@
 </template>
 
 <script setup lang="ts">
+import { ChatDotRound } from '@element-plus/icons-vue'
 import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChatDotRound } from '@element-plus/icons-vue'
-import { postComment } from '@/utils/api'
+
 import type { ArticleComment } from '@/types'
-import toast from '@/utils/toast'
+import { postComment } from '@/utils/api'
 import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
+import toast from '@/utils/toast'
 
 interface Props {
   comment: ArticleComment
@@ -141,10 +146,12 @@ async function submitReply() {
       parent_id: props.comment.id,
       reply_to_user_id: props.comment.user_id || props.comment.user?.id
     })
-    
+
     replyContent.value = ''
     showReplyBox.value = false
     toast.success('回复成功')
+    // WebSocket 会自动推送更新，无需手动触发刷新
+    // 但为了确保自己的回复立即显示，还是通知父组件
     emit('commentPosted')
   } catch (error: any) {
     toast.error(error.message || '回复失败')
@@ -162,12 +169,12 @@ function formatDate(dateString: string): string {
   const date = new Date(dateString)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
-  
+
   // 修复：如果时间差为负数或接近0，显示"刚刚"
   if (diff <= 0) {
     return '刚刚'
   }
-  
+
   const days = Math.floor(diff / (1000 * 60 * 60 * 24))
 
   if (days === 0) {
@@ -311,4 +318,3 @@ function formatDate(dateString: string): string {
   }
 }
 </style>
-

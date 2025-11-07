@@ -21,4 +21,3 @@ export * from './ui/avatar'
 
 // 上传相关
 export * from './upload/chunk-upload'
-

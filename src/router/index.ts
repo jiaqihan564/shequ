@@ -1,9 +1,9 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
-import AppLayout from '@/layouts/AppLayout.vue'
-import { isTokenExpired, getStoredToken } from '@/utils/tokenValidator'
-import { preloadMonacoEditor, smartPreload, clearMonacoCache } from '@/utils/monaco-preloader'
 import { STORAGE_KEYS } from '@/config/storage-keys'
+import AppLayout from '@/layouts/AppLayout.vue'
+import { preloadMonacoEditor, smartPreload, clearMonacoCache } from '@/utils/monaco-preloader'
+import { isTokenExpired, getStoredToken } from '@/utils/tokenValidator'
 import { logger } from '@/utils/ui/logger'
 
 const LoginView = () => import('@/views/auth/LoginView.vue')
@@ -37,14 +37,15 @@ const CodeShareView = () => import('@/views/code/CodeShareView.vue')
 const CodeSquareView = () => import('@/views/code/CodeSquareView.vue')
 
 const routes: RouteRecordRaw[] = [
-  { 
-    path: '/', 
+  {
+    path: '/',
     redirect: () => {
       // 动态重定向：管理员跳转到个人资料页，普通用户跳转到首页
       const token = getStoredToken()
       if (token && !isTokenExpired(token)) {
-        const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || 
-                        sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+        const userInfo =
+          localStorage.getItem(STORAGE_KEYS.USER_INFO) ||
+          sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
         if (userInfo) {
           try {
             const user = JSON.parse(userInfo)
@@ -247,25 +248,25 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const requiresAuth = to.matched.some(r => r.meta?.requiresAuth)
   const requiresAdmin = to.matched.some(r => r.meta?.requiresAdmin)
-  
+
   // 检查是否是强制登出跳转（由AuthManager触发）
   const forceLogout = sessionStorage.getItem('__force_logout__')
   if (forceLogout) {
     sessionStorage.removeItem('__force_logout__')
     logger.info('[Router] 检测到强制登出标记，清理完成')
-    
+
     // 如果目标是登录页或注册页，直接通过
     if (to.path === '/login' || to.path === '/register') {
       next()
       return
     }
-    
+
     // 否则重定向到登录页
     logger.info('[Router] 强制重定向到登录页')
     next({ path: '/login', query: { expired: 'true' } })
     return
   }
-  
+
   // 获取token并检查基本有效性
   const token = getStoredToken()
   const hasValidToken = !!token && !isTokenExpired(token)
@@ -283,9 +284,9 @@ router.beforeEach((to, _from, next) => {
 
   // 检查管理员权限 - 防止普通用户通过URL直接访问管理员页面
   if (requiresAdmin && hasValidToken) {
-    const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || 
-                     sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
-    
+    const userInfo =
+      localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+
     if (userInfo) {
       try {
         const user = JSON.parse(userInfo)
@@ -312,9 +313,9 @@ router.beforeEach((to, _from, next) => {
   // 检查普通用户专属页面 - 防止管理员访问普通用户界面（历史记录除外）
   const userOnly = to.matched.some(r => r.meta?.userOnly)
   if (userOnly && hasValidToken) {
-    const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || 
-                     sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
-    
+    const userInfo =
+      localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+
     if (userInfo) {
       try {
         const user = JSON.parse(userInfo)
@@ -336,9 +337,9 @@ router.beforeEach((to, _from, next) => {
 
   // 已登录用户访问登录/注册页面，重定向到首页（普通用户）或个人资料页（管理员）
   if ((to.path === '/login' || to.path === '/register') && hasValidToken) {
-    const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || 
-                     sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
-    
+    const userInfo =
+      localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+
     if (userInfo) {
       try {
         const user = JSON.parse(userInfo)
@@ -351,7 +352,7 @@ router.beforeEach((to, _from, next) => {
         logger.error('[Router] 解析用户信息失败:', error)
       }
     }
-    
+
     logger.info('[Router] 已登录用户访问登录页，重定向到首页')
     next('/home')
     return
@@ -370,12 +371,13 @@ router.afterEach(to => {
   // 智能预加载 Monaco Editor
   const token = getStoredToken()
   if (token && !isTokenExpired(token)) {
-    const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+    const userInfo =
+      localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
     if (userInfo) {
       try {
         const user = JSON.parse(userInfo)
         const hasUsedCodeEditor = localStorage.getItem(STORAGE_KEYS.CODE_EDITOR_USED) === 'true'
-        
+
         // 判断是否需要预加载
         if (to.path.startsWith('/code-')) {
           // 访问代码相关路由，高优先级预加载

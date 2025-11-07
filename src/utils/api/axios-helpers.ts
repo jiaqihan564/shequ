@@ -4,6 +4,7 @@
  */
 
 import type { InternalAxiosRequestConfig } from 'axios'
+
 import { STORAGE_KEYS } from '@/config/storage-keys'
 import { logger } from '@/utils/ui/logger'
 
@@ -12,8 +13,7 @@ import { logger } from '@/utils/ui/logger'
  */
 export function getAuthToken(): string | null {
   return (
-    localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ||
-    sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
+    localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
   )
 }
 
@@ -28,7 +28,9 @@ export function generateRequestId(): string {
  * 请求拦截器：添加认证 token
  * 可用于任何 axios 实例
  */
-export function addAuthTokenInterceptor(config: InternalAxiosRequestConfig): InternalAxiosRequestConfig {
+export function addAuthTokenInterceptor(
+  config: InternalAxiosRequestConfig
+): InternalAxiosRequestConfig {
   const token = getAuthToken()
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
@@ -39,7 +41,9 @@ export function addAuthTokenInterceptor(config: InternalAxiosRequestConfig): Int
 /**
  * 请求拦截器：添加请求 ID
  */
-export function addRequestIdInterceptor(config: InternalAxiosRequestConfig): InternalAxiosRequestConfig {
+export function addRequestIdInterceptor(
+  config: InternalAxiosRequestConfig
+): InternalAxiosRequestConfig {
   const requestId = generateRequestId()
   config.headers['X-Request-ID'] = requestId
   return config
@@ -51,11 +55,14 @@ export function addRequestIdInterceptor(config: InternalAxiosRequestConfig): Int
  */
 export function handleResponseError(error: unknown): Promise<never> {
   if (error && typeof error === 'object' && 'response' in error) {
-    const axiosError = error as { response?: { data?: { message?: string }; status?: number }; message?: string }
+    const axiosError = error as {
+      response?: { data?: { message?: string }; status?: number }
+      message?: string
+    }
     const message = axiosError.response?.data?.message || axiosError.message || '请求失败'
-    logger.error('API 请求错误:', { 
-      message, 
-      status: axiosError.response?.status 
+    logger.error('API 请求错误:', {
+      message,
+      status: axiosError.response?.status
     })
     return Promise.reject(new Error(message))
   }
@@ -71,15 +78,15 @@ export function cleanExpiredCache<T>(
 ): void {
   const now = Date.now()
   const keysToDelete: string[] = []
-  
+
   cache.forEach((value, key) => {
     if (now - value.timestamp > maxAge) {
       keysToDelete.push(key)
     }
   })
-  
+
   keysToDelete.forEach(key => cache.delete(key))
-  
+
   if (keysToDelete.length > 0) {
     logger.debug(`清理了 ${keysToDelete.length} 个过期缓存`)
   }
@@ -91,4 +98,3 @@ export function cleanExpiredCache<T>(
 export function createCacheKey(url: string, params?: Record<string, unknown>): string {
   return `${url}?${JSON.stringify(params || {})}`
 }
-

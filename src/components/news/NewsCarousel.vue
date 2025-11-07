@@ -29,8 +29,8 @@
           </a>
         </article>
 
-        <button class="nav prev" @click="prev" aria-label="上一条">‹</button>
-        <button class="nav next" @click="next" aria-label="下一条">›</button>
+        <button class="nav prev" aria-label="上一条" @click="prev">‹</button>
+        <button class="nav next" aria-label="下一条" @click="next">›</button>
 
         <div class="dots" role="tablist" aria-label="轮播分页">
           <button
@@ -38,10 +38,10 @@
             :key="item.id + '_dot'"
             class="dot-btn"
             :class="{ active: i === currentIndex }"
-            @click="go(i)"
             role="tab"
             :aria-selected="i === currentIndex"
             :aria-controls="'slide-' + i"
+            @click="go(i)"
           ></button>
         </div>
       </div>
@@ -51,8 +51,9 @@
 
 <script setup lang="ts">
 import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
-import type { NewsItem } from '@/types'
+
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
+import type { NewsItem } from '@/types'
 
 interface Props {
   items: NewsItem[]
@@ -239,10 +240,16 @@ onBeforeUnmount(() => {
   transition: background 200ms ease;
 }
 
-.nav:hover { background: rgba(17, 24, 39, 0.7); }
+.nav:hover {
+  background: rgba(17, 24, 39, 0.7);
+}
 
-.prev { left: 12px; }
-.next { right: 12px; }
+.prev {
+  left: 12px;
+}
+.next {
+  right: 12px;
+}
 
 .dots {
   position: absolute;
@@ -264,12 +271,16 @@ onBeforeUnmount(() => {
   cursor: pointer;
 }
 
-.dot-btn.active { background: #fff; }
+.dot-btn.active {
+  background: #fff;
+}
 
 @media (max-width: 768px) {
-  .image { height: 220px; }
-  .title { font-size: 16px; }
+  .image {
+    height: 220px;
+  }
+  .title {
+    font-size: 16px;
+  }
 }
 </style>
-
-

@@ -68,7 +68,11 @@ async function fetchWithTimeout(
   }
 }
 
-async function reverseGeocode(lat: number, lon: number, timeoutMs = geoConfig.timeout): Promise<DetectedRegion> {
+async function reverseGeocode(
+  lat: number,
+  lon: number,
+  timeoutMs = geoConfig.timeout
+): Promise<DetectedRegion> {
   // 并行请求 BigDataCloud 与 Nominatim，提高准确度与鲁棒性
   const bdcUrl = `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${lat}&longitude=${lon}&localityLanguage=zh-CN`
   const nomiUrl = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&accept-language=zh-CN`

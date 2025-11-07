@@ -44,8 +44,8 @@ export interface CodeExecution {
   stdin: string
   output: string
   error: string
-  execution_time?: number  // 毫秒
-  memory_usage?: number    // 字节
+  execution_time?: number // 毫秒
+  memory_usage?: number // 字节
   status: 'success' | 'error' | 'timeout'
   created_at: string
 }
@@ -54,14 +54,14 @@ export interface ExecuteCodeRequest {
   language: string
   code: string
   stdin?: string
-  save_as?: string  // 可选：保存代码片段的标题
+  save_as?: string // 可选：保存代码片段的标题
 }
 
 export interface ExecuteCodeResponse {
   output: string
   error?: string
-  execution_time: number  // 毫秒
-  memory_usage?: number   // 字节（已废弃，不再使用）
+  execution_time: number // 毫秒
+  memory_usage?: number // 字节（已废弃，不再使用）
   status: 'success' | 'error' | 'timeout'
   snippet_id?: number
 }
@@ -128,5 +128,3 @@ export interface CodeExample {
 export interface CodeExamplesData {
   [language: string]: CodeExample[]
 }
-
-

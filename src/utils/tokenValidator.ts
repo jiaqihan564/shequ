@@ -1,6 +1,6 @@
 /**
  * Token Validation Utilities
- * 
+ *
  * Provides functions to decode and validate JWT tokens without external dependencies.
  * Uses manual base64 decoding to avoid adding jwt-decode library.
  */
@@ -32,14 +32,14 @@ export function decodeToken(token: string): JWTPayload | null {
 
     // Decode the payload (second part)
     const payload = parts[1]
-    
+
     // Replace URL-safe characters and pad if necessary
     const base64 = payload.replace(/-/g, '+').replace(/_/g, '/')
     const padded = base64 + '='.repeat((4 - (base64.length % 4)) % 4)
-    
+
     // Decode base64
     const decoded = atob(padded)
-    
+
     // Parse JSON
     return JSON.parse(decoded) as JWTPayload
   } catch (error) {
@@ -67,7 +67,7 @@ export function isTokenExpired(token: string | null, bufferSeconds: number = 60)
 
   // Get current time in seconds
   const currentTime = Math.floor(Date.now() / 1000)
-  
+
   // Check if token is expired (with buffer)
   return payload.exp <= currentTime + bufferSeconds
 }
@@ -108,7 +108,7 @@ export function formatRemainingTime(seconds: number): string {
   const secs = seconds % 60
 
   const parts: string[] = []
-  
+
   if (hours > 0) {
     parts.push(`${hours}小时`)
   }
@@ -127,6 +127,7 @@ export function formatRemainingTime(seconds: number): string {
  * @returns Token string or null if not found
  */
 export function getStoredToken(): string | null {
-  return localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
+  return (
+    localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
+  )
 }
-

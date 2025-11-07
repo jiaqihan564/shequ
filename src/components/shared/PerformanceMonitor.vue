@@ -2,7 +2,7 @@
   <div v-if="show" class="performance-monitor">
     <div class="monitor-header">
       <span class="monitor-title">⚡ Performance</span>
-      <button class="monitor-close" @click="show = false" aria-label="Close">×</button>
+      <button class="monitor-close" aria-label="Close" @click="show = false">×</button>
     </div>
     <div class="monitor-body">
       <div class="metric">
@@ -23,6 +23,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
+
 import { performanceConfig } from '@/config'
 
 const show = ref(true)
@@ -38,7 +39,7 @@ let frames = 0
 // Check if memory API is available
 onMounted(() => {
   // @ts-ignore - performance.memory is non-standard but widely supported
-  memorySupported.value = !!(performance.memory)
+  memorySupported.value = !!performance.memory
   startMonitoring()
 })
 
@@ -203,4 +204,3 @@ function getFpsClass(fpsValue: number): string {
   }
 }
 </style>
-

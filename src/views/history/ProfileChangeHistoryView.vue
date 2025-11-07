@@ -65,22 +65,22 @@ const formatTime = (time: string) => {
 
 const getFieldLabel = (fieldName: string) => {
   const labels: any = {
-    'nickname': '昵称',
-    'bio': '个人简介',
-    'avatar': '头像',
-    'email': '邮箱',
-    'phone': '手机号'
+    nickname: '昵称',
+    bio: '个人简介',
+    avatar: '头像',
+    email: '邮箱',
+    phone: '手机号'
   }
   return labels[fieldName] || fieldName
 }
 
 const getFieldIcon = (fieldName: string) => {
   const icons: any = {
-    'nickname': '👤',
-    'bio': '📝',
-    'avatar': '📸',
-    'email': '📧',
-    'phone': '📱'
+    nickname: '👤',
+    bio: '📝',
+    avatar: '📸',
+    email: '📧',
+    phone: '📱'
   }
   return icons[fieldName] || '📋'
 }
@@ -222,4 +222,3 @@ onMounted(() => {
   font-size: 14px;
 }
 </style>
-

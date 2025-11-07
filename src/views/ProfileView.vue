@@ -231,22 +231,17 @@ export default {
 <script setup lang="ts">
 import { reactive, ref, computed, onMounted, watch } from 'vue'
 
-import ChangePasswordDialog from '@/components/profile/ChangePasswordDialog.vue'
 import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
+import ChangePasswordDialog from '@/components/profile/ChangePasswordDialog.vue'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 import ImagePreview from '@/shared/ui/ImagePreview.vue'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import type { User, UserProfile, AvatarHistoryItem } from '@/types'
-import {
-  getCurrentUser,
-  updateUser,
-  uploadImage,
-  getAvatarHistory
-} from '@/utils/api'
+import { getCurrentUser, updateUser, uploadImage, getAvatarHistory } from '@/utils/api'
 import { readDetectedRegion, detectCurrentRegion } from '@/utils/geo'
 import { ensureRegionsLoaded, useRegions } from '@/utils/regions'
 import { toast as toastQueue } from '@/utils/toast'
-import { STORAGE_KEYS } from '@/config/storage-keys'
 
 type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -309,7 +304,8 @@ const avatarSrc = computed(() => {
   // 从本地存储中读取版本，或用时间戳兜底
   let v = 0
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+    const raw =
+      localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
     if (raw) {
       const u = JSON.parse(raw)
       v = u.avatar_version || u.updatedAt || 0
@@ -452,7 +448,8 @@ onMounted(async () => {
   await ensureRegionsLoaded()
   let user: User | null = null
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+    const raw =
+      localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
     if (raw) user = JSON.parse(raw)
   } catch (e) {
     if (import.meta.env.DEV) console.warn('读取用户信息失败', e)
@@ -492,20 +489,20 @@ function buildPayload(): Partial<User> {
   // 仅允许修改昵称与个人简介
   const profilePayload: any = {}
   const p = u.profile || {}
-  
+
   // 只在字段有实际内容且与原值不同时才更新
   const newNickname = (form.profile?.nickname || '').trim()
   const oldNickname = (p.nickname || '').trim()
   if (newNickname && newNickname !== oldNickname) {
     profilePayload.nickname = newNickname
   }
-  
+
   const newBio = (form.profile?.bio || '').trim()
   const oldBio = (p.bio || '').trim()
   if (newBio && newBio !== oldBio) {
     profilePayload.bio = newBio
   }
-  
+
   if (Object.keys(profilePayload).length > 0) payload.profile = profilePayload
   return payload
 }

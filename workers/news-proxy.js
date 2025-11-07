@@ -32,7 +32,7 @@ export default {
     gnews.searchParams.set('apikey', apiKey)
 
     try {
-      const res = await fetch(gnews.toString(), { headers: { 'Accept': 'application/json' } })
+      const res = await fetch(gnews.toString(), { headers: { Accept: 'application/json' } })
       if (!res.ok) {
         return new Response(JSON.stringify({ error: 'Upstream error', status: res.status }), {
           status: 502,
@@ -42,7 +42,7 @@ export default {
       const data = await res.json()
       const articles = Array.isArray(data?.articles) ? data.articles : []
 
-      const mapped = articles.map((a) => {
+      const mapped = articles.map(a => {
         const id = `g_${btoa(a.url || a.title || Math.random().toString()).replace(/=+$/g, '')}`
         return {
           id,

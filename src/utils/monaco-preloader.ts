@@ -1,6 +1,6 @@
 /**
  * Monaco Editor 预加载服务
- * 
+ *
  * 功能：
  * 1. 在浏览器空闲时异步预加载 Monaco Editor，避免阻塞主线程
  * 2. 智能判断是否需要预加载（基于用户角色和历史使用记录）
@@ -9,6 +9,7 @@
  */
 
 import type * as Monaco from 'monaco-editor'
+
 import { uiDelayConfig } from '@/config'
 import { STORAGE_KEYS } from '@/config/storage-keys'
 import { logger } from '@/utils/ui/logger'
@@ -24,7 +25,7 @@ let isLoading = false
 
 /**
  * 预加载 Monaco Editor
- * 
+ *
  * @param priority - 加载优先级：'high' 使用 setTimeout(0) 立即加载，'low' 使用 requestIdleCallback 空闲加载
  * @returns Promise<void>
  */
@@ -49,13 +50,13 @@ export async function preloadMonacoEditor(priority: 'high' | 'low' = 'low'): Pro
       try {
         isLoading = true
         logger.info('[Monaco Preloader] 动态导入 Monaco Editor...')
-        
+
         // 动态导入 Monaco Editor
         const monaco = await import('monaco-editor')
-        
+
         // 缓存实例
         monacoInstance = monaco
-        
+
         logger.info('[Monaco Preloader] Monaco Editor 预加载完成')
         resolve(monaco)
       } catch (error) {
@@ -87,7 +88,7 @@ export async function preloadMonacoEditor(priority: 'high' | 'low' = 'low'): Pro
 
 /**
  * 获取已加载的 Monaco Editor 实例
- * 
+ *
  * @returns Monaco Editor 实例或 null
  */
 export function getLoadedMonaco(): typeof Monaco | null {
@@ -99,7 +100,7 @@ export function getLoadedMonaco(): typeof Monaco | null {
 
 /**
  * 检查 Monaco Editor 是否已加载
- * 
+ *
  * @returns boolean
  */
 export function isMonacoLoaded(): boolean {
@@ -108,7 +109,7 @@ export function isMonacoLoaded(): boolean {
 
 /**
  * 检查 Monaco Editor 是否正在加载中
- * 
+ *
  * @returns boolean
  */
 export function isMonacoLoading(): boolean {
@@ -129,7 +130,7 @@ export function clearMonacoCache(): void {
 /**
  * 智能预加载 Monaco Editor
  * 根据用户角色和历史使用记录判断是否需要预加载
- * 
+ *
  * @param userRole - 用户角色 ('admin' | 'user')
  * @param hasUsedCodeEditor - 用户是否使用过代码编辑器
  */
@@ -163,4 +164,3 @@ export function markCodeEditorUsed(): void {
     console.warn('[Monaco Preloader] 无法写入 localStorage:', error)
   }
 }
-

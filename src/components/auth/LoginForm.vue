@@ -121,7 +121,7 @@
         </button>
       </form>
 
-        <div class="login-footer">
+      <div class="login-footer">
         <p class="signup-text">
           还没有账号？
           <a href="#" class="signup-link" @click.prevent="handleSignup">立即注册</a>
@@ -144,19 +144,19 @@ import ForgotPasswordDialog from '@/components/auth/ForgotPasswordDialog.vue'
 import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
 import UserIcon from '@/components/icons/UserIcon.vue'
+import { authConfig, uiDelayConfig } from '@/config'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import type { LoginForm, FormErrors } from '@/types'
 import { login } from '@/utils/api'
+import { detectCurrentRegion } from '@/utils/geo'
+import { logger } from '@/utils/ui/logger'
 import {
   validateUsernameOrEmail,
   validatePassword as validatePasswordUtil,
   checkPasswordStrength,
   debounce
 } from '@/utils/validation'
-import { detectCurrentRegion } from '@/utils/geo'
-import { authConfig, uiDelayConfig } from '@/config'
-import { STORAGE_KEYS } from '@/config/storage-keys'
-import { logger } from '@/utils/ui/logger'
 
 const props = withDefaults(defineProps<{ locked?: boolean }>(), { locked: false })
 
@@ -295,10 +295,10 @@ const handleLogin = async () => {
     // 使用统一的地理位置检测服务
     let province = authConfig.defaultProvince
     let city = authConfig.defaultCity
-    
+
     try {
       const region = await detectCurrentRegion(false, {
-        method: 'ip',  // 登录时只使用IP定位，不请求浏览器定位避免弹窗干扰
+        method: 'ip', // 登录时只使用IP定位，不请求浏览器定位避免弹窗干扰
         timeoutMs: uiDelayConfig.geoLoginTimeout
       })
       if (region && region.province) {
@@ -315,7 +315,7 @@ const handleLogin = async () => {
       province,
       city
     }
-    
+
     const response = await login(loginData)
     if (form.rememberMe) {
       localStorage.setItem(STORAGE_KEYS.REMEMBERED_USERNAME, form.username)

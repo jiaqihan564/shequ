@@ -4,13 +4,13 @@
       :size="isReply ? 32 : 40"
       :src="hasValidAvatar(comment.user?.avatar) ? comment.user.avatar : undefined"
       :alt="comment.user?.nickname"
-      @click="goToUserDetail"
-      :style="{ 
-        backgroundColor: getAvatarColor(comment.user?.id || comment.user_id), 
+      :style="{
+        backgroundColor: getAvatarColor(comment.user?.id || comment.user_id),
         cursor: 'pointer',
         fontSize: isReply ? '14px' : '18px',
         fontWeight: '600'
       }"
+      @click="goToUserDetail"
     >
       {{ getAvatarInitial(comment.user?.nickname) }}
     </el-avatar>
@@ -26,12 +26,7 @@
       </div>
       <div class="comment-text">{{ comment.content }}</div>
       <div class="comment-actions">
-        <el-button
-          text
-          :icon="ChatDotRound"
-          size="small"
-          @click="toggleReplyBox"
-        >
+        <el-button text :icon="ChatDotRound" size="small" @click="toggleReplyBox">
           回复{{ comment.reply_count > 0 ? ` (${comment.reply_count})` : '' }}
         </el-button>
       </div>
@@ -62,7 +57,10 @@
       </div>
 
       <!-- 递归显示子评论 -->
-      <div v-if="comment.replies && Array.isArray(comment.replies) && comment.replies.length > 0" class="replies-list">
+      <div
+        v-if="comment.replies && Array.isArray(comment.replies) && comment.replies.length > 0"
+        class="replies-list"
+      >
         <ResourceCommentItem
           v-for="reply in comment.replies"
           :key="reply.id"
@@ -77,13 +75,14 @@
 </template>
 
 <script setup lang="ts">
+import { ChatDotRound } from '@element-plus/icons-vue'
 import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { ChatDotRound } from '@element-plus/icons-vue'
-import { postResourceComment } from '@/utils/api'
+
 import type { ResourceComment } from '@/types/resource'
-import toast from '@/utils/toast'
+import { postResourceComment } from '@/utils/api'
 import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
+import toast from '@/utils/toast'
 
 interface Props {
   comment: ResourceComment
@@ -141,7 +140,7 @@ async function submitReply() {
       parent_id: props.comment.id,
       reply_to_user_id: props.comment.user_id || props.comment.user?.id
     })
-    
+
     replyContent.value = ''
     showReplyBox.value = false
     toast.success('回复成功')
@@ -162,12 +161,12 @@ function formatDate(dateString: string): string {
   const date = new Date(dateString)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
-  
+
   // 修复：如果时间差为负数或接近0，显示"刚刚"
   if (diff <= 0) {
     return '刚刚'
   }
-  
+
   const days = Math.floor(diff / (1000 * 60 * 60 * 24))
 
   if (days === 0) {
@@ -301,4 +300,3 @@ function formatDate(dateString: string): string {
   }
 }
 </style>
-

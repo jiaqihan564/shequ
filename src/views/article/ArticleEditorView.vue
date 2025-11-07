@@ -34,12 +34,7 @@
         <!-- 分类 -->
         <el-form-item label="文章分类" required>
           <el-checkbox-group v-model="form.category_ids">
-            <el-checkbox
-              v-for="cat in categories"
-              :key="cat.id"
-              :label="cat.id"
-              border
-            >
+            <el-checkbox v-for="cat in categories" :key="cat.id" :label="cat.id" border>
               {{ cat.name }} ({{ cat.article_count || 0 }})
             </el-checkbox>
           </el-checkbox-group>
@@ -54,12 +49,7 @@
             placeholder="选择或搜索标签"
             style="width: 100%"
           >
-            <el-option
-              v-for="tag in tags"
-              :key="tag.id"
-              :label="tag.name"
-              :value="tag.id"
-            >
+            <el-option v-for="tag in tags" :key="tag.id" :label="tag.name" :value="tag.id">
               <span>{{ tag.name }}</span>
               <span style="float: right; color: #8492a6; font-size: 13px">
                 {{ tag.article_count || 0 }} 篇
@@ -77,12 +67,7 @@
             style="display: none"
             @change="handleMdFileImport"
           />
-          <el-button
-            :icon="FolderOpened"
-            @click="selectMdFile"
-          >
-            导入Markdown文件
-          </el-button>
+          <el-button :icon="FolderOpened" @click="selectMdFile">导入Markdown文件</el-button>
           <el-text type="info" size="small" style="margin-left: 12px">
             支持导入 .md 或 .markdown 文件，文件大小不超过 5MB
           </el-text>
@@ -98,18 +83,13 @@
                 <el-button
                   :icon="Picture"
                   size="small"
-                  @click="selectImage"
                   :loading="uploading"
                   text
+                  @click="selectImage"
                 >
                   {{ uploading ? '上传中...' : '插入图片' }}
                 </el-button>
-                <el-button
-                  :icon="View"
-                  size="small"
-                  @click="togglePreview"
-                  text
-                >
+                <el-button :icon="View" size="small" text @click="togglePreview">
                   {{ showPreview ? '编辑' : '预览' }}
                 </el-button>
               </el-button-group>
@@ -194,13 +174,7 @@
               </el-form-item>
             </el-card>
 
-            <el-button
-              type="primary"
-              :icon="Plus"
-              plain
-              @click="addCodeBlock"
-              style="width: 100%"
-            >
+            <el-button type="primary" :icon="Plus" plain style="width: 100%" @click="addCodeBlock">
               添加代码块
             </el-button>
           </div>
@@ -209,20 +183,10 @@
         <!-- 操作按钮 -->
         <el-form-item>
           <div class="form-actions">
-            <el-button
-              type="primary"
-              size="large"
-              :loading="submitting"
-              @click="handleSubmit"
-            >
+            <el-button type="primary" size="large" :loading="submitting" @click="handleSubmit">
               {{ submitting ? '发布中...' : '立即发布' }}
             </el-button>
-            <el-button
-              size="large"
-              @click="$router.push('/articles')"
-            >
-              取消
-            </el-button>
+            <el-button size="large" @click="$router.push('/articles')">取消</el-button>
           </div>
         </el-form-item>
       </el-form>
@@ -231,10 +195,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, reactive, computed, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
 import { Plus, Delete, FolderOpened, Picture, View } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
+import { ref, onMounted, reactive, computed, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
+import { uploadConfig, formLimitsConfig } from '@/config'
+import type { ArticleCategory, ArticleTag, ArticleCodeBlock } from '@/types'
+import { SUPPORTED_LANGUAGES } from '@/types/article'
 import {
   createArticle,
   updateArticle,
@@ -243,11 +211,8 @@ import {
   getArticleTags,
   uploadImage
 } from '@/utils/api'
-import type { ArticleCategory, ArticleTag, ArticleCodeBlock } from '@/types'
-import { SUPPORTED_LANGUAGES } from '@/types/article'
-import toast from '@/utils/toast'
 import { renderMarkdown } from '@/utils/markdown'
-import { uploadConfig, formLimitsConfig } from '@/config'
+import toast from '@/utils/toast'
 
 const route = useRoute()
 const router = useRouter()
@@ -275,10 +240,7 @@ const form = reactive({
 
 async function loadMetadata() {
   try {
-    const [cats, tagList] = await Promise.all([
-      getArticleCategories(),
-      getArticleTags()
-    ])
+    const [cats, tagList] = await Promise.all([getArticleCategories(), getArticleTags()])
     categories.value = cats
     tags.value = tagList
   } catch (error) {
@@ -341,7 +303,7 @@ function selectImage() {
   } else {
     console.error('未找到textarea元素')
   }
-  
+
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
@@ -389,28 +351,28 @@ function insertImageMarkdown(url: string, alt: string = '图片') {
     const pos = savedCursorPosition
     console.log('插入图片 - 保存的光标位置:', pos)
     console.log('插入图片 - 当前内容长度:', form.content.length)
-    
+
     const before = form.content.substring(0, pos)
     const after = form.content.substring(pos)
-    
+
     console.log('插入图片 - 光标前内容:', before.substring(Math.max(0, before.length - 50)))
     console.log('插入图片 - 光标后内容:', after.substring(0, 50))
-    
+
     // 插入时确保前后有换行
     const needsNewlineBefore = pos > 0 && before[before.length - 1] !== '\n'
     // 确保图片后面总是有换行，这样光标可以定位到新行
     const suffix = '\n'
-    
+
     const prefix = needsNewlineBefore ? '\n' : ''
     const fullMarkdown = prefix + markdown + suffix
-    
+
     console.log('插入图片 - 完整markdown:', fullMarkdown)
-    
+
     // 计算新的光标位置（在图片markdown之后）
     const newPos = pos + prefix.length + markdown.length
-    
+
     form.content = before + fullMarkdown + after
-    
+
     console.log('插入图片 - 新光标位置:', newPos)
 
     // 将光标定位到插入的图片markdown之后
@@ -420,15 +382,18 @@ function insertImageMarkdown(url: string, alt: string = '图片') {
         textarea.focus()
         // 使用 setSelectionRange 方法设置光标位置
         textarea.setSelectionRange(newPos, newPos)
-        
+
         // 改进滚动：确保光标位置可见
         // 计算光标所在行的大致位置
         const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight) || 20
         const lines = form.content.substring(0, newPos).split('\n').length
         const cursorTop = lines * lineHeight
-        
+
         // 如果光标不在可视区域内，滚动到合适位置
-        if (cursorTop < textarea.scrollTop || cursorTop > textarea.scrollTop + textarea.clientHeight) {
+        if (
+          cursorTop < textarea.scrollTop ||
+          cursorTop > textarea.scrollTop + textarea.clientHeight
+        ) {
           textarea.scrollTop = Math.max(0, cursorTop - textarea.clientHeight / 2)
         }
       })
@@ -447,16 +412,16 @@ function selectMdFile() {
 async function handleMdFileImport(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
-  
+
   if (!file) return
-  
+
   // 验证文件类型
   if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) {
     toast.error('请选择 .md 或 .markdown 文件')
     input.value = ''
     return
   }
-  
+
   // 验证文件大小
   const maxSize = uploadConfig.articleMarkdownMaxSize
   if (file.size > maxSize) {
@@ -464,29 +429,25 @@ async function handleMdFileImport(event: Event) {
     input.value = ''
     return
   }
-  
+
   // 如果当前已有内容，需要确认
   const hasContent = form.title || form.content || form.description
   if (hasContent) {
     try {
-      await ElMessageBox.confirm(
-        '导入文件将覆盖当前内容，是否继续？',
-        '确认导入',
-        {
-          confirmButtonText: '确定',
-          cancelButtonText: '取消',
-          type: 'warning'
-        }
-      )
+      await ElMessageBox.confirm('导入文件将覆盖当前内容，是否继续？', '确认导入', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      })
     } catch {
       input.value = ''
       return
     }
   }
-  
+
   // 读取文件内容
   const reader = new FileReader()
-  reader.onload = (e) => {
+  reader.onload = e => {
     try {
       const content = e.target?.result as string
       parseMarkdownContent(content)
@@ -496,12 +457,12 @@ async function handleMdFileImport(event: Event) {
     }
     input.value = ''
   }
-  
+
   reader.onerror = () => {
     toast.error('文件读取失败')
     input.value = ''
   }
-  
+
   reader.readAsText(file, 'UTF-8')
 }
 
@@ -509,40 +470,49 @@ function parseMarkdownContent(content: string) {
   // 检查是否有YAML Front Matter
   const frontMatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n([\s\S]*)$/
   const match = content.match(frontMatterRegex)
-  
+
   if (match) {
     // 解析YAML Front Matter
     const yamlContent = match[1]
     const markdownContent = match[2]
-    
+
     // 简单解析YAML（基本的键值对）
     const lines = yamlContent.split('\n')
     for (const line of lines) {
       const [key, ...valueParts] = line.split(':')
       if (key && valueParts.length > 0) {
-        const value = valueParts.join(':').trim().replace(/^["']|["']$/g, '')
+        const value = valueParts
+          .join(':')
+          .trim()
+          .replace(/^["']|["']$/g, '')
         const normalizedKey = key.trim().toLowerCase()
-        
+
         if (normalizedKey === 'title' && !form.title.trim()) {
           form.title = value
-        } else if ((normalizedKey === 'description' || normalizedKey === 'summary') && !form.description.trim()) {
+        } else if (
+          (normalizedKey === 'description' || normalizedKey === 'summary') &&
+          !form.description.trim()
+        ) {
           form.description = value
         } else if (normalizedKey === 'tags') {
           // 尝试解析标签数组 [tag1, tag2] 或 tag1, tag2
           const tagsStr = value.replace(/^\[|\]$/g, '').trim()
-          const tagNames = tagsStr.split(',').map(t => t.trim()).filter(t => t)
+          const tagNames = tagsStr
+            .split(',')
+            .map(t => t.trim())
+            .filter(t => t)
           form.tag_names = tagNames
         }
       }
     }
-    
+
     form.content = markdownContent.trim()
   } else {
     // 没有Front Matter，直接使用内容
     // 尝试从第一行提取标题（仅当标题为空时）
     const lines = content.split('\n')
     const firstLine = lines[0]?.trim()
-    
+
     if (firstLine && firstLine.startsWith('#') && !form.title.trim()) {
       // 第一行是标题，且当前标题为空
       form.title = firstLine.replace(/^#+\s*/, '')
@@ -572,7 +542,7 @@ async function handleSubmit() {
   submitting.value = true
   try {
     form.status = 1 // 发布状态
-    
+
     if (isEditMode.value) {
       await updateArticle(Number(route.params.id), form)
       toast.success('文章更新成功')

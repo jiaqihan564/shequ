@@ -12,18 +12,18 @@
       <div class="editor-toolbar">
         <LanguageSelector
           v-model="selectedLanguage"
-          @change="onLanguageChange"
           class="language-selector"
+          @change="onLanguageChange"
         />
         <CodeExampleSelector
           :language="selectedLanguage"
           :current-code="code"
-          @load-example="handleLoadExample"
           class="example-selector"
+          @load-example="handleLoadExample"
         />
         <div class="toolbar-actions">
           <button class="btn btn-sm btn-secondary" @click="clearCode">清空</button>
-          <button class="btn btn-sm btn-primary" @click="runCode" :disabled="isRunning">
+          <button class="btn btn-sm btn-primary" :disabled="isRunning" @click="runCode">
             {{ isRunning ? '运行中...' : '运行代码 (Ctrl+Enter)' }}
           </button>
           <button class="btn btn-sm btn-success" @click="showSaveDialog">保存</button>
@@ -85,9 +85,7 @@
             </label>
           </div>
           <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" @click="showSave = false">
-              取消
-            </button>
+            <button type="button" class="btn btn-secondary" @click="showSave = false">取消</button>
             <button type="submit" class="btn btn-primary">保存</button>
           </div>
         </form>
@@ -99,32 +97,24 @@
       <div class="modal-content share-link-modal" @click.stop>
         <h3>🎉 分享链接已生成</h3>
         <p class="share-tip">您的代码片段已公开，可以通过以下链接分享：</p>
-        
+
         <div class="share-link-container">
-          <input 
-            :value="shareLink" 
-            readonly 
+          <input
+            :value="shareLink"
+            readonly
             class="form-input share-link-input"
             @click="selectShareLink"
           />
-          <button class="btn btn-primary copy-btn" @click="copyShareLink">
-            📋 复制链接
-          </button>
+          <button class="btn btn-primary copy-btn" @click="copyShareLink">📋 复制链接</button>
         </div>
 
         <div class="share-actions">
-          <button class="btn btn-secondary" @click="openShareLink">
-            🔗 在新标签页中打开
-          </button>
-          <button class="btn btn-secondary" @click="viewMySnippets">
-            📚 查看我的代码
-          </button>
+          <button class="btn btn-secondary" @click="openShareLink">🔗 在新标签页中打开</button>
+          <button class="btn btn-secondary" @click="viewMySnippets">📚 查看我的代码</button>
         </div>
 
         <div class="modal-actions">
-          <button class="btn btn-primary" @click="showShareLink = false">
-            完成
-          </button>
+          <button class="btn btn-primary" @click="showShareLink = false">完成</button>
         </div>
       </div>
     </div>
@@ -134,14 +124,15 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+
+import CodeExampleSelector from '@/components/code/CodeExampleSelector.vue'
+import LanguageSelector from '@/components/code/LanguageSelector.vue'
 import MonacoEditor from '@/components/code/MonacoEditor.vue'
 import OutputPanel from '@/components/code/OutputPanel.vue'
-import LanguageSelector from '@/components/code/LanguageSelector.vue'
-import CodeExampleSelector from '@/components/code/CodeExampleSelector.vue'
-import { executeCode, saveSnippet, generateShareLink, getSnippetById } from '@/utils/code-api'
-import { toast } from '@/utils/toast'
 import { codeExamples } from '@/data/code-examples'
 import type { LanguageInfo, CodeExample } from '@/types/code'
+import { executeCode, saveSnippet, generateShareLink, getSnippetById } from '@/utils/code-api'
+import { toast } from '@/utils/toast'
 import { logger } from '@/utils/ui/logger'
 
 const router = useRouter()
@@ -193,10 +184,9 @@ const monacoLanguage = computed(() => {
   return langMap[selectedLanguage.value] || 'plaintext'
 })
 
-
 function onLanguageChange(langId: string, language: LanguageInfo) {
   currentLanguage.value = language
-  
+
   // 自动加载新语言的第一个示例代码
   const examples = codeExamples[langId]
   if (examples && examples.length > 0) {
@@ -207,7 +197,7 @@ function onLanguageChange(langId: string, language: LanguageInfo) {
     output.value = ''
     errorMessage.value = ''
     executionTime.value = null
-    
+
     toast.info(`已切换到 ${language.name}，并加载示例代码`)
   }
 }
@@ -294,10 +284,10 @@ async function saveCode() {
       description: saveDescription.value,
       is_public: saveIsPublic.value
     })
-    
+
     toast.success('保存成功')
     showSave.value = false
-    
+
     // 如果选择公开，自动生成分享链接
     if (saveIsPublic.value && snippet.id) {
       try {
@@ -372,7 +362,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 onMounted(async () => {
   window.addEventListener('keydown', handleKeydown)
-  
+
   // 检查是否从 query 参数加载代码片段
   const snippetId = route.query.snippet_id
   if (snippetId) {
@@ -395,12 +385,12 @@ onMounted(async () => {
       const codeContent = decodeURIComponent(route.query.code as string)
       selectedLanguage.value = language || 'python'
       code.value = codeContent
-      
+
       // 如果有标题，也加载标题
       if (route.query.title) {
         saveTitle.value = decodeURIComponent(route.query.title as string)
       }
-      
+
       toast.success('已复制代码到编辑器')
     } catch (error) {
       logger.error('加载代码失败:', error)
@@ -797,4 +787,3 @@ onUnmounted(() => {
   }
 }
 </style>
-

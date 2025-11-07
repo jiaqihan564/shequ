@@ -7,7 +7,9 @@
       </header>
 
       <div class="forgot-content">
-        <p class="forgot-description">请输入您注册时使用的邮箱地址，我们将为您生成重置密码的链接。</p>
+        <p class="forgot-description">
+          请输入您注册时使用的邮箱地址，我们将为您生成重置密码的链接。
+        </p>
 
         <form class="forgot-form" @submit.prevent="handleSubmit">
           <div class="form-field">
@@ -39,19 +41,10 @@
           </div>
 
           <div class="dialog-actions">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              :disabled="isSubmitting"
-              @click="close"
-            >
+            <button type="button" class="btn btn-secondary" :disabled="isSubmitting" @click="close">
               取消
             </button>
-            <button
-              type="submit"
-              class="btn btn-primary"
-              :disabled="!canSubmit"
-            >
+            <button type="submit" class="btn btn-primary" :disabled="!canSubmit">
               {{ isSubmitting ? '验证中…' : '下一步' }}
             </button>
           </div>
@@ -68,8 +61,8 @@ import { useRouter } from 'vue-router'
 import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
 import { forgotPassword } from '@/utils/api'
-import { validateEmail as validateEmailUtil } from '@/utils/validation'
 import { logger } from '@/utils/ui/logger'
+import { validateEmail as validateEmailUtil } from '@/utils/validation'
 
 defineProps<{
   show: boolean
@@ -356,4 +349,3 @@ const goToResetPassword = () => {
   box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 </style>
-

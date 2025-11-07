@@ -8,57 +8,87 @@
             <RouterLink to="/home" class="nav-item" active-class="active">📱 首页</RouterLink>
             <div class="nav-divider"></div>
           </template>
-          
+
           <RouterLink to="/profile" class="nav-item" active-class="active">👤 个人资料</RouterLink>
-          
+
           <!-- 仅管理员可见：统计分析模块 -->
           <template v-if="isUserAdmin">
             <div class="nav-divider"></div>
             <div class="nav-section-title">数据中心</div>
-            <RouterLink to="/cumulative-stats" class="nav-item" active-class="active">🌐 全站累计</RouterLink>
-            <RouterLink to="/daily-metrics" class="nav-item" active-class="active">📅 每日指标</RouterLink>
-            <RouterLink to="/realtime-metrics" class="nav-item" active-class="active">⚡ 实时监控</RouterLink>
+            <RouterLink to="/cumulative-stats" class="nav-item" active-class="active">
+              🌐 全站累计
+            </RouterLink>
+            <RouterLink to="/daily-metrics" class="nav-item" active-class="active">
+              📅 每日指标
+            </RouterLink>
+            <RouterLink to="/realtime-metrics" class="nav-item" active-class="active">
+              ⚡ 实时监控
+            </RouterLink>
             <div class="nav-divider"></div>
             <div class="nav-section-title">统计分析</div>
-            <RouterLink to="/user-stats" class="nav-item" active-class="active">👥 用户统计</RouterLink>
-            <RouterLink to="/api-stats" class="nav-item" active-class="active">📊 API统计</RouterLink>
+            <RouterLink to="/user-stats" class="nav-item" active-class="active">
+              👥 用户统计
+            </RouterLink>
+            <RouterLink to="/api-stats" class="nav-item" active-class="active">
+              📊 API统计
+            </RouterLink>
             <div class="nav-divider"></div>
             <div class="nav-section-title">地理分布</div>
-            <RouterLink to="/location-distribution" class="nav-item" active-class="active">🌏 地区分布</RouterLink>
+            <RouterLink to="/location-distribution" class="nav-item" active-class="active">
+              🌏 地区分布
+            </RouterLink>
           </template>
-          
+
           <!-- 仅普通用户可见：社交互动、在线编程、资源分享 -->
           <template v-if="!isUserAdmin">
             <!-- 社交功能 -->
             <div class="nav-divider"></div>
             <div class="nav-section-title">社交互动</div>
             <RouterLink to="/chatroom" class="nav-item" active-class="active">💬 聊天室</RouterLink>
-            <RouterLink to="/danmaku-chat" class="nav-item" active-class="active">🎬 弹幕聊天室</RouterLink>
+            <RouterLink to="/danmaku-chat" class="nav-item" active-class="active">
+              🎬 弹幕聊天室
+            </RouterLink>
             <RouterLink to="/messages" class="nav-item" active-class="active">
               ✉️ 私信
               <el-badge v-if="unreadCount > 0" :value="unreadCount" type="danger" />
             </RouterLink>
-            
+
             <!-- 在线编程 -->
             <div class="nav-divider"></div>
             <div class="nav-section-title">在线编程</div>
-            <RouterLink to="/code-editor" class="nav-item" active-class="active">💻 代码编辑器</RouterLink>
-            <RouterLink to="/code-square" class="nav-item" active-class="active">🎯 代码广场</RouterLink>
-            <RouterLink to="/code-history" class="nav-item" active-class="active">📚 代码历史</RouterLink>
-            
+            <RouterLink to="/code-editor" class="nav-item" active-class="active">
+              💻 代码编辑器
+            </RouterLink>
+            <RouterLink to="/code-square" class="nav-item" active-class="active">
+              🎯 代码广场
+            </RouterLink>
+            <RouterLink to="/code-history" class="nav-item" active-class="active">
+              📚 代码历史
+            </RouterLink>
+
             <!-- 资源中心 -->
             <div class="nav-divider"></div>
             <div class="nav-section-title">资源分享</div>
-            <RouterLink to="/resources" class="nav-item" active-class="active">📦 资源中心</RouterLink>
-            <RouterLink to="/articles" class="nav-item" active-class="active">📝 技术文章</RouterLink>
+            <RouterLink to="/resources" class="nav-item" active-class="active">
+              📦 资源中心
+            </RouterLink>
+            <RouterLink to="/articles" class="nav-item" active-class="active">
+              📝 技术文章
+            </RouterLink>
           </template>
-          
+
           <!-- 所有用户可见：历史记录 -->
           <div class="nav-divider"></div>
           <div class="nav-section-title">历史记录</div>
-          <RouterLink to="/login-history" class="nav-item" active-class="active">🔐 登录历史</RouterLink>
-          <RouterLink to="/operation-history" class="nav-item" active-class="active">📋 操作历史</RouterLink>
-          <RouterLink to="/profile-history" class="nav-item" active-class="active">📝 资料修改</RouterLink>
+          <RouterLink to="/login-history" class="nav-item" active-class="active">
+            🔐 登录历史
+          </RouterLink>
+          <RouterLink to="/operation-history" class="nav-item" active-class="active">
+            📋 操作历史
+          </RouterLink>
+          <RouterLink to="/profile-history" class="nav-item" active-class="active">
+            📝 资料修改
+          </RouterLink>
         </nav>
       </slot>
     </aside>
@@ -114,13 +144,13 @@
 import { ref, onMounted, computed, onBeforeUnmount, watch } from 'vue'
 import { useRouter, RouterLink, useRoute } from 'vue-router'
 
+import { pollingConfig } from '@/config'
+import { STORAGE_KEYS } from '@/config/storage-keys'
+import { globalChatService } from '@/services/globalChatService'
 import UserMenu from '@/shared/ui/UserMenu.vue'
 import type { User } from '@/types'
 import { logout, getUnreadMessageCount } from '@/utils/api'
 import { isAdmin } from '@/utils/auth'
-import { globalChatService } from '@/services/globalChatService'
-import { pollingConfig } from '@/config'
-import { STORAGE_KEYS } from '@/config/storage-keys'
 
 const router = useRouter()
 const route = useRoute()
@@ -133,7 +163,7 @@ const unreadCount = ref(0)
 // 需要缓存的页面组件
 const cachedViews = ref([
   'HomeView',
-  'ArticleListView', 
+  'ArticleListView',
   'ResourceListView',
   'ProfileView',
   'CumulativeStatsView',
@@ -147,11 +177,14 @@ const isUserAdmin = computed(() => isAdmin(user.value))
 let unreadTimer: number | null = null
 
 // 监听路由变化，进入私信相关页面时刷新未读数
-watch(() => route.path, (newPath) => {
-  if (newPath.startsWith('/messages')) {
-    loadUnreadCount()
+watch(
+  () => route.path,
+  newPath => {
+    if (newPath.startsWith('/messages')) {
+      loadUnreadCount()
+    }
   }
-})
+)
 
 // 加载未读消息数
 async function loadUnreadCount() {
@@ -182,26 +215,27 @@ function stopUnreadPolling() {
 
 onMounted(() => {
   try {
-    const raw = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+    const raw =
+      localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
     if (raw) {
       user.value = JSON.parse(raw)
     }
-    
+
     // 启动未读消息轮询
     startUnreadPolling()
   } catch (e) {
     if (import.meta.env.DEV) console.warn('读取用户信息失败', e)
   }
-  
+
   // 初始化全局聊天服务
   console.log('[AppLayout] Initializing global chat service')
   if (globalChatService.connectionStatus.value === 'disconnected') {
     globalChatService.connect()
   }
-  
+
   // 监听手动刷新未读数事件
   window.addEventListener('refresh-unread-count', loadUnreadCount)
-  
+
   // 监听用户更新事件（登录、更新资料、更新头像后触发）
   window.addEventListener('user:updated', userUpdateHandler as EventListener)
 })

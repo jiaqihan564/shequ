@@ -3,7 +3,8 @@
     <!-- 顶部导航栏 -->
     <header class="chatroom-header">
       <button class="back-btn" @click="goBack">
-        <span>←</span> 返回
+        <span>←</span>
+        返回
       </button>
       <div class="header-center">
         <h2 class="title">💬 弹幕聊天室</h2>
@@ -13,7 +14,13 @@
         <div class="connection-status" :class="connectionStatus">
           <span class="status-dot"></span>
           <span class="status-text">
-            {{ connectionStatus === 'connected' ? '已连接' : connectionStatus === 'connecting' ? '连接中' : '未连接' }}
+            {{
+              connectionStatus === 'connected'
+                ? '已连接'
+                : connectionStatus === 'connecting'
+                  ? '连接中'
+                  : '未连接'
+            }}
           </span>
         </div>
         <div class="online-info">
@@ -34,7 +41,7 @@
         :duration="danmaku.duration"
         @finished="onDanmakuFinished(danmaku.id)"
       />
-      
+
       <!-- 无消息提示 -->
       <div v-if="activeDanmakus.length === 0 && !loading" class="empty-hint">
         <div class="empty-icon">💭</div>
@@ -52,14 +59,16 @@
           class="message-input"
           :placeholder="`输入消息内容（最多${formLimitsConfig.chatMessage}字）...`"
           :maxlength="formLimitsConfig.chatMessage"
-          @keyup.enter="sendMessage"
           :disabled="sending"
+          @keyup.enter="sendMessage"
         />
         <div class="input-info">
-          <span class="char-count">{{ messageInput.length }}/{{ formLimitsConfig.chatMessage }}</span>
+          <span class="char-count">
+            {{ messageInput.length }}/{{ formLimitsConfig.chatMessage }}
+          </span>
         </div>
       </div>
-      <button 
+      <button
         class="send-btn"
         :class="{ disabled: !canSend }"
         :disabled="!canSend"
@@ -79,8 +88,9 @@ import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import DanmakuMessage from '@/components/chat/DanmakuMessage.vue'
-import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
+import { danmakuConfig, formLimitsConfig } from '@/config'
 import { globalChatService } from '@/services/globalChatService'
+import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import { getChatMessages } from '@/utils/api'
 import { toast } from '@/utils/toast'
 
@@ -118,7 +128,6 @@ const onlineCount = globalChatService.onlineCount
 const connectionStatus = globalChatService.connectionStatus
 
 // 配置 - 从配置文件导入
-import { danmakuConfig, formLimitsConfig } from '@/config'
 const trackCount = danmakuConfig.trackCount
 const trackHeight = danmakuConfig.trackHeight
 const baseDuration = danmakuConfig.baseDuration
@@ -129,27 +138,29 @@ const tracks = ref<{ occupied: boolean; lastEndTime: number }[]>(
 )
 
 const canSend = computed(() => {
-  return messageInput.value.trim().length > 0 && !sending.value && connectionStatus.value === 'connected'
+  return (
+    messageInput.value.trim().length > 0 && !sending.value && connectionStatus.value === 'connected'
+  )
 })
 
 // 查找可用轨道
 const findAvailableTrack = (): number => {
   const now = Date.now()
-  
+
   // 查找完全空闲的轨道
   for (let i = 0; i < tracks.value.length; i++) {
     if (!tracks.value[i].occupied) {
       return i
     }
   }
-  
+
   // 查找已结束的轨道
   for (let i = 0; i < tracks.value.length; i++) {
     if (tracks.value[i].lastEndTime < now) {
       return i
     }
   }
-  
+
   // 随机选择一个轨道（避免碰撞）
   return Math.floor(Math.random() * tracks.value.length)
 }
@@ -158,20 +169,20 @@ const findAvailableTrack = (): number => {
 const addDanmaku = (message: ChatMessage) => {
   const track = findAvailableTrack()
   const duration = baseDuration + Math.random() * 4 - 2 // 10-14秒随机
-  
+
   const danmaku: Danmaku = {
     id: message.id,
     message,
     track,
     duration
   }
-  
+
   activeDanmakus.value.push(danmaku)
-  
+
   // 标记轨道占用
   tracks.value[track].occupied = true
   tracks.value[track].lastEndTime = Date.now() + duration * 1000
-  
+
   // 限制同屏弹幕数量
   if (activeDanmakus.value.length > 50) {
     activeDanmakus.value.shift()
@@ -191,10 +202,10 @@ const onDanmakuFinished = (id: number) => {
 // 发送消息 (via WebSocket)
 const sendMessage = async () => {
   if (!canSend.value) return
-  
+
   const content = messageInput.value.trim()
   if (content.length === 0) return
-  
+
   sending.value = true
   try {
     await globalChatService.sendMessage(content)
@@ -235,16 +246,16 @@ const loadInitialMessages = async () => {
   try {
     const result = await getChatMessages(30)
     const messages = result.messages || []
-    
+
     // 标记历史消息已加载
     if (messages.length > 0) {
       globalChatService.markHistoryLoaded()
     }
-    
+
     // 初始化lastMessageId
     if (messages.length > 0) {
       lastMessageId.value = messages[messages.length - 1].id
-      
+
       // 逐个添加弹幕，间隔100ms
       for (let i = 0; i < messages.length; i++) {
         setTimeout(() => {
@@ -260,13 +271,16 @@ const loadInitialMessages = async () => {
 }
 
 // Watch for new WebSocket messages and display them as danmaku
-watch(() => wsMessages.value.length, (newLength, oldLength) => {
-  if (newLength > oldLength) {
-    // New message arrived
-    const newMessage = wsMessages.value[newLength - 1]
-    addDanmaku(newMessage)
+watch(
+  () => wsMessages.value.length,
+  (newLength, oldLength) => {
+    if (newLength > oldLength) {
+      // New message arrived
+      const newMessage = wsMessages.value[newLength - 1]
+      addDanmaku(newMessage)
+    }
   }
-})
+)
 
 // 返回
 const goBack = () => {
@@ -292,7 +306,7 @@ onBeforeUnmount(() => {
     track.occupied = false
     track.lastEndTime = 0
   })
-  
+
   // Note: 不需要清理 globalChatService 的订阅，因为组件直接使用响应式引用
   // 如果将来使用订阅方法，请在此处清理：
   // if (unsubscribe) {
@@ -320,7 +334,7 @@ onBeforeUnmount(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
     radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
@@ -329,7 +343,8 @@ onBeforeUnmount(() => {
 }
 
 @keyframes backgroundShift {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1) rotate(0deg);
   }
@@ -360,11 +375,13 @@ onBeforeUnmount(() => {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(99, 102, 241, 0.5) 25%, 
-    rgba(139, 92, 246, 0.5) 75%, 
-    transparent 100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(99, 102, 241, 0.5) 25%,
+    rgba(139, 92, 246, 0.5) 75%,
+    transparent 100%
+  );
 }
 
 .back-btn {
@@ -508,20 +525,27 @@ onBeforeUnmount(() => {
   height: 10px;
   border-radius: 50%;
   background: #10b981;
-  box-shadow: 0 0 10px #10b981, 0 0 20px rgba(16, 185, 129, 0.5);
+  box-shadow:
+    0 0 10px #10b981,
+    0 0 20px rgba(16, 185, 129, 0.5);
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
-    box-shadow: 0 0 10px #10b981, 0 0 20px rgba(16, 185, 129, 0.5);
+    box-shadow:
+      0 0 10px #10b981,
+      0 0 20px rgba(16, 185, 129, 0.5);
   }
   50% {
     opacity: 0.8;
     transform: scale(1.3);
-    box-shadow: 0 0 15px #10b981, 0 0 30px rgba(16, 185, 129, 0.7);
+    box-shadow:
+      0 0 15px #10b981,
+      0 0 30px rgba(16, 185, 129, 0.7);
   }
 }
 
@@ -567,7 +591,8 @@ onBeforeUnmount(() => {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -604,11 +629,13 @@ onBeforeUnmount(() => {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(99, 102, 241, 0.4) 25%, 
-    rgba(139, 92, 246, 0.4) 75%, 
-    transparent 100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(99, 102, 241, 0.4) 25%,
+    rgba(139, 92, 246, 0.4) 75%,
+    transparent 100%
+  );
 }
 
 .input-container {
@@ -626,7 +653,7 @@ onBeforeUnmount(() => {
   color: #1e293b;
   outline: none;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(0, 0, 0, 0.08),
     inset 0 1px 2px rgba(255, 255, 255, 0.8);
   font-weight: 500;
@@ -635,7 +662,7 @@ onBeforeUnmount(() => {
 .message-input:focus {
   border-color: rgba(99, 102, 241, 0.6);
   background: #ffffff;
-  box-shadow: 
+  box-shadow:
     0 8px 24px rgba(99, 102, 241, 0.15),
     0 0 0 4px rgba(99, 102, 241, 0.1),
     inset 0 1px 2px rgba(255, 255, 255, 0.8);
@@ -679,7 +706,7 @@ onBeforeUnmount(() => {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
+  box-shadow:
     0 4px 16px rgba(99, 102, 241, 0.4),
     0 2px 8px rgba(0, 0, 0, 0.2);
   white-space: nowrap;
@@ -707,7 +734,7 @@ onBeforeUnmount(() => {
 .send-btn:hover:not(.disabled) {
   background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
   transform: translateY(-3px) scale(1.02);
-  box-shadow: 
+  box-shadow:
     0 8px 24px rgba(99, 102, 241, 0.5),
     0 4px 12px rgba(0, 0, 0, 0.3),
     0 0 0 4px rgba(139, 92, 246, 0.2);
@@ -715,7 +742,7 @@ onBeforeUnmount(() => {
 
 .send-btn:active:not(.disabled) {
   transform: translateY(-1px) scale(0.98);
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(99, 102, 241, 0.4),
     0 2px 6px rgba(0, 0, 0, 0.2);
 }
@@ -727,4 +754,3 @@ onBeforeUnmount(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 </style>
-

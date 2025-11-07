@@ -13,18 +13,14 @@
           <p class="page-subtitle">系统实时性能与资源使用情况</p>
         </div>
         <div class="header-actions">
-          <el-text type="info" size="small" style="margin-right: 12px">
-            自动刷新
-          </el-text>
+          <el-text type="info" size="small" style="margin-right: 12px">自动刷新</el-text>
           <el-switch
             v-model="autoRefresh"
             active-text="开"
             inactive-text="关"
             @change="handleAutoRefreshChange"
           />
-          <el-button :icon="Refresh" @click="loadData(true)" :loading="loading">
-            刷新
-          </el-button>
+          <el-button :icon="Refresh" :loading="loading" @click="loadData(true)">刷新</el-button>
         </div>
       </div>
     </el-card>
@@ -43,7 +39,7 @@
           </el-tag>
         </div>
       </template>
-      
+
       <el-row :gutter="20">
         <el-col :xs="24" :sm="12" :md="6">
           <div class="metric-item">
@@ -115,7 +111,7 @@
     </el-card>
 
     <!-- 实时图表 -->
-    <el-card class="chart-card" shadow="hover" v-loading="loading">
+    <el-card v-loading="loading" class="chart-card" shadow="hover">
       <template #header>
         <div class="chart-header">
           <h3 class="chart-title">
@@ -131,15 +127,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
-import echarts from '@/utils/echarts'
 import {
-  Refresh, Monitor, Clock, UserFilled, Cpu, Odometer,
+  Refresh,
+  Monitor,
+  Clock,
+  UserFilled,
+  Cpu,
+  Odometer,
   TrendCharts
 } from '@element-plus/icons-vue'
-import { getRealtimeMetrics } from '@/utils/api'
-import toast from '@/utils/toast'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+
 import { pollingConfig } from '@/config'
+import { getRealtimeMetrics } from '@/utils/api'
+import echarts from '@/utils/echarts'
+import toast from '@/utils/toast'
 
 const loading = ref(false)
 const autoRefresh = ref(true)
@@ -155,7 +157,7 @@ const loadData = async (forceRefresh: boolean = false) => {
   try {
     const data = await getRealtimeMetrics(forceRefresh)
     metrics.value = data || {}
-    
+
     // 添加到历史数据（最多保留60条）
     historyData.value.push({
       timestamp: new Date(),
@@ -164,7 +166,7 @@ const loadData = async (forceRefresh: boolean = false) => {
     if (historyData.value.length > 60) {
       historyData.value.shift()
     }
-    
+
     renderChart()
   } catch (error: any) {
     toast.error(error?.message || '加载实时指标失败')
@@ -197,7 +199,7 @@ function stopAutoRefresh() {
 
 function renderChart() {
   if (!realtimeChart.value || historyData.value.length === 0) return
-  
+
   if (!chart) {
     chart = echarts.init(realtimeChart.value)
   }
@@ -301,7 +303,7 @@ onMounted(() => {
   if (autoRefresh.value) {
     startAutoRefresh()
   }
-  
+
   // 响应窗口大小变化
   window.addEventListener('resize', handleResize)
 })

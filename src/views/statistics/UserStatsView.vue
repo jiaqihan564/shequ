@@ -7,7 +7,10 @@
 
     <div class="stats-cards">
       <div class="stat-card">
-        <div class="card-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+        <div
+          class="card-icon"
+          style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+        >
           📊
         </div>
         <div class="card-content">
@@ -17,7 +20,10 @@
       </div>
 
       <div class="stat-card">
-        <div class="card-icon" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)">
+        <div
+          class="card-icon"
+          style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%)"
+        >
           ✨
         </div>
         <div class="card-content">
@@ -27,7 +33,10 @@
       </div>
 
       <div class="stat-card">
-        <div class="card-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)">
+        <div
+          class="card-icon"
+          style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
+        >
           👥
         </div>
         <div class="card-content">
@@ -37,7 +46,10 @@
       </div>
 
       <div class="stat-card">
-        <div class="card-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">
+        <div
+          class="card-icon"
+          style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
+        >
           🎉
         </div>
         <div class="card-content">
@@ -58,10 +70,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import echarts from '@/utils/echarts'
 
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import { getUserStatistics, getStatisticsOverview } from '@/utils/api'
+import echarts from '@/utils/echarts'
 import { toast } from '@/utils/toast'
 
 const chartRef = ref<HTMLElement>()
@@ -79,9 +91,9 @@ const loadData = async () => {
     // 获取最近7天数据
     const endDate = new Date().toISOString().split('T')[0]
     const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-    
+
     const data = await getUserStatistics(startDate, endDate)
-    
+
     totalLogin.value = data.total?.total_login || 0
     totalRegister.value = data.total?.total_register || 0
 
@@ -100,8 +112,8 @@ const renderChart = (stats: any[]) => {
   const chart = echarts.init(chartRef.value)
 
   // 数据处理：按日期排序
-  const sortedStats = [...stats].sort((a, b) => 
-    new Date(a.date).getTime() - new Date(b.date).getTime()
+  const sortedStats = [...stats].sort(
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
   )
 
   const dates = sortedStats.map(s => {
@@ -270,4 +282,3 @@ onMounted(() => {
   width: 100%;
 }
 </style>
-

@@ -1,6 +1,6 @@
-import type { App, ComponentPublicInstance } from 'vue'
 import { createHead } from '@vueuse/head'
 import { createPinia } from 'pinia'
+import type { App, ComponentPublicInstance } from 'vue'
 import { createApp } from 'vue'
 import 'highlight.js/styles/atom-one-dark.css'
 
@@ -10,8 +10,8 @@ import './style.css'
 import './styles/lazy-load.css'
 import { lazyLoad } from './directives/lazyLoad'
 import { globalChatService } from './services/globalChatService'
-import { getStoredToken } from './utils/tokenValidator'
 import { authManager } from './utils/auth/authManager'
+import { getStoredToken } from './utils/tokenValidator'
 import { logger } from './utils/ui/logger'
 
 const app: App = createApp(AppComponent)
@@ -27,7 +27,11 @@ app.use(head)
 app.use(router)
 
 // 全局错误处理 - 捕获Vue组件中的错误
-app.config.errorHandler = (err: unknown, instance: ComponentPublicInstance | null, info: string) => {
+app.config.errorHandler = (
+  err: unknown,
+  instance: ComponentPublicInstance | null,
+  info: string
+) => {
   logger.error('[Vue错误处理器] 捕获到错误:', {
     error: err,
     errorInfo: info,
@@ -38,12 +42,12 @@ app.config.errorHandler = (err: unknown, instance: ComponentPublicInstance | nul
   if (err && typeof err === 'object') {
     const error = err as { code?: string; name?: string; message?: string }
     const errorCode = error.code || error.name
-    const isAuthError = 
-      errorCode === 'AUTH_EXPIRED' || 
+    const isAuthError =
+      errorCode === 'AUTH_EXPIRED' ||
       errorCode === 'TOKEN_EXPIRED' ||
       errorCode === 'INVALID_TOKEN' ||
       (error.message && error.message.includes('认证'))
-    
+
     if (isAuthError) {
       logger.info('[Vue错误处理器] 检测到认证错误，确保 AuthManager 已处理')
       // AuthManager 已在 API 拦截器中调用，这里只是保险
@@ -62,35 +66,39 @@ app.config.errorHandler = (err: unknown, instance: ComponentPublicInstance | nul
 // 全局未处理的Promise拒绝 - 最后的保险机制
 window.addEventListener('unhandledrejection', (event: PromiseRejectionEvent) => {
   logger.error('[Promise拒绝处理器] 捕获到未处理的Promise拒绝:', event.reason)
-  
+
   // 检查是否是认证错误
   if (event.reason && typeof event.reason === 'object') {
     const reason = event.reason as { code?: string; name?: string; message?: string }
     const errorCode = reason.code || reason.name
     const errorMessage = reason.message || ''
-    
+
     // 认证相关错误码
-    const isAuthError = 
-      errorCode === 'AUTH_EXPIRED' || 
+    const isAuthError =
+      errorCode === 'AUTH_EXPIRED' ||
       errorCode === 'TOKEN_EXPIRED' ||
       errorCode === 'INVALID_TOKEN' ||
       errorCode === 'MISSING_TOKEN' ||
       errorMessage.includes('认证') ||
       errorMessage.includes('登录')
-    
+
     if (isAuthError) {
       logger.info('[Promise拒绝处理器] 检测到认证错误，由 API 拦截器已处理')
       event.preventDefault() // 防止控制台报错
       return
     }
   }
-  
+
   // 其他未处理的Promise拒绝
   logger.error('[Promise拒绝处理器] 其他错误:', event.reason)
 })
 
 // 全局警告处理
-app.config.warnHandler = (msg: string, _instance: ComponentPublicInstance | null, trace: string) => {
+app.config.warnHandler = (
+  msg: string,
+  _instance: ComponentPublicInstance | null,
+  trace: string
+) => {
   logger.warn('Vue 警告:', msg, trace)
 }
 
@@ -113,7 +121,7 @@ if (import.meta.env.DEV) {
 router.afterEach(() => {
   const token = getStoredToken()
   const isAuthenticated = !!token
-  
+
   // 如果用户未认证且 WebSocket 已连接，则断开
   if (!isAuthenticated && globalChatService.connectionStatus.value !== 'disconnected') {
     logger.info('[Main] User not authenticated, disconnecting WebSocket')
@@ -136,10 +144,10 @@ window.addEventListener('user:logout', (event: Event) => {
     automatic: detail.automatic,
     timestamp: detail.timestamp
   })
-  
+
   // 断开 WebSocket 连接
   globalChatService.disconnect()
-  
+
   // 如果是自动登出（token过期），记录额外信息
   if (detail.automatic) {
     logger.info('[Main] 自动登出（token过期）')
@@ -153,12 +161,12 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
       .register('/service-worker.js')
       .then((registration: ServiceWorkerRegistration) => {
         logger.info('[Service Worker] 注册成功:', registration.scope)
-        
+
         // 监听更新
         registration.addEventListener('updatefound', () => {
           const newWorker = registration.installing
           logger.info('[Service Worker] 发现新版本')
-          
+
           if (newWorker) {
             newWorker.addEventListener('statechange', () => {
               if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
@@ -174,4 +182,3 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
       })
   })
 }
-

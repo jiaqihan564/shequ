@@ -1,22 +1,32 @@
 <template>
   <div class="article-detail-container">
-    <div v-if="loading" v-loading="loading" class="loading-container" element-loading-text="加载中...">
+    <div
+      v-if="loading"
+      v-loading="loading"
+      class="loading-container"
+      element-loading-text="加载中..."
+    >
       <div style="height: 600px"></div>
     </div>
-    
+
     <div v-else-if="article" class="article-content">
       <!-- 文章头部 -->
       <el-card class="article-header-card" shadow="never">
         <h1 class="article-title">{{ article.title }}</h1>
-        
+
         <div class="article-meta">
           <div class="author-info">
             <el-avatar
               :size="48"
               :src="hasValidAvatar(article.author.avatar) ? article.author.avatar : undefined"
               :alt="article.author.nickname"
+              :style="{
+                backgroundColor: getAvatarColor(article.author.id),
+                cursor: 'pointer',
+                fontSize: '20px',
+                fontWeight: '600'
+              }"
               @click="goToUserDetail(article.author.id)"
-              :style="{ backgroundColor: getAvatarColor(article.author.id), cursor: 'pointer', fontSize: '20px', fontWeight: '600' }"
             >
               {{ getAvatarInitial(article.author.nickname) }}
             </el-avatar>
@@ -28,35 +38,28 @@
               </div>
             </div>
           </div>
-          
+
           <div class="article-stats">
             <el-tag type="info" effect="plain">
-              <el-icon><View /></el-icon> {{ article.view_count }}
+              <el-icon><View /></el-icon>
+              {{ article.view_count }}
             </el-tag>
             <el-tag type="success" effect="plain">
-              <el-icon><Star /></el-icon> {{ article.like_count }}
+              <el-icon><Star /></el-icon>
+              {{ article.like_count }}
             </el-tag>
             <el-tag type="warning" effect="plain">
-              <el-icon><ChatDotRound /></el-icon> {{ article.comment_count }}
+              <el-icon><ChatDotRound /></el-icon>
+              {{ article.comment_count }}
             </el-tag>
           </div>
         </div>
 
         <div class="article-tags">
-          <el-tag
-            v-for="cat in article.categories"
-            :key="cat.id"
-            type="primary"
-            effect="light"
-          >
+          <el-tag v-for="cat in article.categories" :key="cat.id" type="primary" effect="light">
             {{ cat.name }}
           </el-tag>
-          <el-tag
-            v-for="tag in article.tags"
-            :key="tag.id"
-            type="info"
-            effect="plain"
-          >
+          <el-tag v-for="tag in article.tags" :key="tag.id" type="info" effect="plain">
             #{{ tag.name }}
           </el-tag>
         </div>
@@ -64,15 +67,15 @@
 
       <!-- 文章正文 -->
       <el-card class="article-body-card" shadow="never">
-        <div v-html="renderedContent" class="markdown-body" @click="handleImageClick"></div>
-        
+        <div class="markdown-body" @click="handleImageClick" v-html="renderedContent"></div>
+
         <!-- 代码块 -->
         <div v-if="article.code_blocks && article.code_blocks.length > 0" class="code-blocks">
           <el-divider content-position="left">
             <el-icon><Document /></el-icon>
             <span style="margin-left: 8px">代码示例</span>
           </el-divider>
-          
+
           <el-card
             v-for="(block, index) in article.code_blocks"
             :key="index"
@@ -87,11 +90,7 @@
                     {{ block.description }}
                   </span>
                 </div>
-                <el-button
-                  size="small"
-                  :icon="DocumentCopy"
-                  @click="copyCode(block.code_content)"
-                >
+                <el-button size="small" :icon="DocumentCopy" @click="copyCode(block.code_content)">
                   复制代码
                 </el-button>
               </div>
@@ -110,27 +109,15 @@
             size="large"
             @click="handleLike"
           >
-          {{ article.is_liked ? '已点赞' : '点赞' }} ({{ article.like_count }})
+            {{ article.is_liked ? '已点赞' : '点赞' }} ({{ article.like_count }})
           </el-button>
-          
-          <el-button
-            type="default"
-            :icon="ChatDotRound"
-            size="large"
-            @click="scrollToComments"
-          >
-          评论 ({{ article.comment_count }})
+
+          <el-button type="default" :icon="ChatDotRound" size="large" @click="scrollToComments">
+            评论 ({{ article.comment_count }})
           </el-button>
-          
-          <el-button
-            type="default"
-            :icon="Share"
-            size="large"
-            @click="handleShare"
-          >
-            分享
-          </el-button>
-      </div>
+
+          <el-button type="default" :icon="Share" size="large" @click="handleShare">分享</el-button>
+        </div>
       </el-card>
 
       <!-- 评论区 -->
@@ -143,7 +130,7 @@
             </h3>
           </div>
         </template>
-        
+
         <!-- 评论输入 -->
         <div class="comment-input-section">
           <el-input
@@ -158,8 +145,8 @@
           <el-button
             type="primary"
             :disabled="!newComment.trim()"
-            @click="handlePostComment"
             style="margin-top: 12px"
+            @click="handlePostComment"
           >
             发表评论
           </el-button>
@@ -188,8 +175,8 @@
     <el-image-viewer
       v-if="showImageViewer"
       :url-list="[currentImageUrl]"
-      @close="closeImageViewer"
       :z-index="3000"
+      @close="closeImageViewer"
     />
 
     <!-- 分享对话框 -->
@@ -208,11 +195,7 @@
         />
 
         <div class="share-link-section">
-          <el-input
-            :model-value="shareLink"
-            readonly
-            size="large"
-          >
+          <el-input :model-value="shareLink" readonly size="large">
             <template #prepend>
               <el-icon><Link /></el-icon>
             </template>
@@ -221,34 +204,25 @@
             type="primary"
             size="large"
             :icon="CopyDocument"
-            @click="copyLink"
             style="margin-top: 12px; width: 100%"
+            @click="copyLink"
           >
             复制链接
           </el-button>
-              </div>
+        </div>
 
         <el-divider>或通过以下方式分享</el-divider>
 
         <div class="share-methods">
-          <el-button
-            class="share-btn"
-            @click="shareToWeChat"
-          >
+          <el-button class="share-btn" @click="shareToWeChat">
             <span class="share-icon">💬</span>
             微信
           </el-button>
-          <el-button
-            class="share-btn"
-            @click="shareToWeibo"
-          >
+          <el-button class="share-btn" @click="shareToWeibo">
             <span class="share-icon">📱</span>
             微博
           </el-button>
-          <el-button
-            class="share-btn"
-            @click="shareToQQ"
-          >
+          <el-button class="share-btn" @click="shareToQQ">
             <span class="share-icon">🐧</span>
             QQ
           </el-button>
@@ -261,12 +235,7 @@
     </el-dialog>
 
     <!-- 微信二维码对话框 -->
-    <el-dialog
-      v-model="wechatQrVisible"
-      title="微信扫码分享"
-      width="400px"
-      align-center
-    >
+    <el-dialog v-model="wechatQrVisible" title="微信扫码分享" width="400px" align-center>
       <div class="qrcode-container">
         <el-alert
           title="使用微信扫描二维码分享文章"
@@ -278,7 +247,7 @@
           <canvas ref="qrcodeCanvas" class="qrcode-canvas"></canvas>
         </div>
         <p class="qrcode-tip">扫描二维码即可在微信中打开文章</p>
-    </div>
+      </div>
       <template #footer>
         <el-button type="primary" @click="wechatQrVisible = false">关闭</el-button>
       </template>
@@ -287,24 +256,36 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
-import QRCode from 'qrcode'
 import {
-  Clock, View, Star, StarFilled, ChatDotRound, Share, Document,
-  Link, CopyDocument, DocumentCopy
+  Clock,
+  View,
+  Star,
+  StarFilled,
+  ChatDotRound,
+  Share,
+  Document,
+  Link,
+  CopyDocument,
+  DocumentCopy
 } from '@element-plus/icons-vue'
-import {
-  getArticleDetail,
-  toggleArticleLike,
-  postComment,
-  getArticleComments
-} from '@/utils/api'
-import type { ArticleDetail, ArticleComment } from '@/types'
-import toast from '@/utils/toast'
+import QRCode from 'qrcode'
+import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+
 import CommentItem from '@/components/article/CommentItem.vue'
+import { STORAGE_KEYS } from '@/config/storage-keys'
+import { globalChatService, type CommentNotification } from '@/services/globalChatService'
+import type { ArticleDetail, ArticleComment, CommentAuthor } from '@/types'
+import { getArticleDetail, toggleArticleLike, postComment, getArticleComments } from '@/utils/api'
 import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
+import {
+  countComments,
+  insertReplyIntoTree,
+  removeCommentById,
+  upsertRootComment
+} from '@/utils/commentTree'
 import { renderMarkdown } from '@/utils/markdown'
+import toast from '@/utils/toast'
 
 const route = useRoute()
 const router = useRouter()
@@ -317,6 +298,56 @@ const wechatQrVisible = ref(false)
 const qrcodeCanvas = ref<HTMLCanvasElement | null>(null)
 const showImageViewer = ref(false)
 const currentImageUrl = ref('')
+
+function normalizeCommentData(comment: ArticleComment): ArticleComment {
+  const replies = Array.isArray(comment.replies) ? comment.replies.map(normalizeCommentData) : []
+
+  const fallbackAuthor: CommentAuthor = {
+    id: comment.user_id,
+    username: '',
+    nickname: '',
+    avatar: ''
+  }
+
+  const author = comment.author ?? comment.user
+  const authorData = author ? { ...author } : { ...fallbackAuthor }
+  const userData = comment.user ?? comment.author
+  const userDataNormalized = userData ? { ...userData } : { ...authorData }
+
+  return {
+    ...comment,
+    author: authorData,
+    user: userDataNormalized,
+    replies,
+    reply_to_user: comment.reply_to_user ? { ...comment.reply_to_user } : undefined,
+    like_count: typeof comment.like_count === 'number' ? comment.like_count : 0,
+    reply_count: typeof comment.reply_count === 'number' ? comment.reply_count : replies.length,
+    status: typeof comment.status === 'number' ? comment.status : 1
+  }
+}
+
+function syncArticleCommentCount() {
+  if (!article.value) return
+  article.value.comment_count = countComments(comments.value)
+}
+
+// WebSocket 取消订阅函数
+let unsubscribeComment: (() => void) | null = null
+
+// 获取当前用户ID
+const currentUserId = computed(() => {
+  const userInfo =
+    localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+  if (userInfo) {
+    try {
+      const data = JSON.parse(userInfo)
+      return data.id
+    } catch {
+      return null
+    }
+  }
+  return null
+})
 
 // 分享链接
 const shareLink = computed(() => {
@@ -338,6 +369,9 @@ async function loadArticle() {
     const id = Number(route.params.id)
     article.value = await getArticleDetail(id)
     await loadComments(id)
+
+    // 订阅实时评论更新
+    subscribeToComments(id)
   } catch (error: any) {
     toast.error(error.message || '加载失败')
   } finally {
@@ -348,19 +382,22 @@ async function loadArticle() {
 async function loadComments(articleId: number) {
   try {
     const response = await getArticleComments(articleId)
-    comments.value = response.comments || []
-    
+    const list = response.comments || []
+    comments.value = list.map(normalizeCommentData)
+    syncArticleCommentCount()
+
     // 调试日志：检查评论数据结构
-    console.log('加载文章评论成功:', {
+    console.log('[评论] 加载评论成功:', {
+      articleId,
       total: response.total,
       commentsCount: comments.value.length,
-      firstComment: comments.value[0],
-      hasReplies: comments.value.some(c => c.replies && c.replies.length > 0)
+      timestamp: new Date().toLocaleTimeString()
     })
   } catch (error) {
-    console.error('加载评论失败:', error)
+    console.error('[评论] 加载评论失败:', error)
     // 确保即使加载失败也能显示空的评论区
     comments.value = []
+    syncArticleCommentCount()
   }
 }
 
@@ -383,28 +420,158 @@ function handleCommentKeydown(event: KeyboardEvent) {
   }
 }
 
+// 订阅实时评论更新
+function subscribeToComments(articleId: number) {
+  // 先取消之前的订阅
+  if (unsubscribeComment) {
+    unsubscribeComment()
+  }
+
+  // 订阅评论通知
+  unsubscribeComment = globalChatService.onComment((notification: CommentNotification) => {
+    console.log('[评论] 收到 WebSocket 通知:', {
+      type: notification.type,
+      entity: notification.entity,
+      article_id: notification.article_id,
+      current_article: articleId,
+      user_id: notification.user_id,
+      current_user: currentUserId.value,
+      is_self: notification.user_id === currentUserId.value
+    })
+
+    // 只处理文章评论，且是当前文章
+    if (notification.entity !== 'article' || notification.article_id !== articleId) {
+      console.log('[评论] 忽略其他实体或文章的通知')
+      return
+    }
+
+    switch (notification.type) {
+      case 'new_comment':
+        handleNewComment(notification)
+        break
+
+      case 'new_reply':
+        handleNewReply(notification)
+        break
+
+      case 'comment_deleted':
+        handleCommentDeleted(notification)
+        break
+    }
+  })
+
+  console.log(
+    '[评论] 已订阅文章评论实时更新:',
+    articleId,
+    'WebSocket 状态:',
+    globalChatService.connectionStatus.value
+  )
+}
+
+// 处理新评论
+function handleNewComment(notification: CommentNotification) {
+  if (!article.value) return
+
+  console.log(
+    '[评论] 处理新评论通知:',
+    notification.user_id === currentUserId.value ? '自己' : '别人'
+  )
+
+  if (notification.comment) {
+    const normalized = normalizeCommentData(notification.comment as ArticleComment)
+    const [nextComments] = upsertRootComment(comments.value, normalized)
+    comments.value = nextComments
+    syncArticleCommentCount()
+
+    if (notification.user_id !== currentUserId.value) {
+      toast.info(`${notification.nickname || notification.username} 发表了新评论`)
+    }
+    return
+  }
+
+  console.warn('[评论] 通知缺少 comment 数据，回退到重新加载')
+  loadComments(article.value.id)
+}
+
+// 处理新回复
+function handleNewReply(notification: CommentNotification) {
+  if (!article.value) return
+
+  console.log(
+    '[评论] 处理新回复通知:',
+    notification.user_id === currentUserId.value ? '自己' : '别人'
+  )
+
+  if (notification.comment) {
+    const normalized = normalizeCommentData(notification.comment as ArticleComment)
+    const [nextComments, inserted] = insertReplyIntoTree(comments.value, normalized)
+    if (!inserted) {
+      console.warn('[评论] 找不到回复所属的父评论，回退到重新加载')
+      loadComments(article.value.id)
+    } else {
+      comments.value = nextComments
+      syncArticleCommentCount()
+      if (notification.user_id !== currentUserId.value) {
+        toast.info(`${notification.nickname || notification.username} 发表了回复`)
+      }
+    }
+    return
+  }
+
+  console.warn('[评论] 回复通知缺少 comment 数据，回退到重新加载')
+  loadComments(article.value.id)
+}
+
+// 处理评论删除
+function handleCommentDeleted(notification: CommentNotification) {
+  if (!article.value) return
+
+  if (notification.comment_id) {
+    const [nextComments, removed] = removeCommentById(comments.value, notification.comment_id)
+    if (removed) {
+      comments.value = nextComments
+      syncArticleCommentCount()
+    } else {
+      console.warn('[评论] 未能本地删除评论，回退到重新加载')
+      loadComments(article.value.id)
+    }
+  } else {
+    console.warn('[评论] 未能本地删除评论，回退到重新加载')
+    loadComments(article.value.id)
+  }
+
+  toast.info('评论已被删除')
+}
+
 async function handlePostComment() {
   if (!article.value || !newComment.value.trim()) {
     toast.warning('请输入评论内容')
     return
   }
-  
+
   try {
+    console.log('[评论] 发表评论开始')
     await postComment(article.value.id, { content: newComment.value })
     newComment.value = ''
     toast.success('评论成功')
-    await loadComments(article.value.id)
-    if (article.value) article.value.comment_count++
+    console.log('[评论] 评论发表成功，等待 WebSocket 推送')
+
+    if (globalChatService.connectionStatus.value !== 'connected') {
+      console.warn('[评论] WebSocket 未连接，回退到手动刷新评论列表')
+      await loadComments(article.value.id)
+    }
   } catch (error: any) {
+    console.error('[评论] 评论发表失败:', error)
     toast.error(error.message || '评论失败')
   }
 }
 
 async function handleCommentPosted() {
-  // 重新加载评论列表
-  if (article.value) {
+  if (!article.value) return
+
+  if (globalChatService.connectionStatus.value !== 'connected') {
+    console.warn('[评论] WebSocket 未连接，子组件请求刷新评论列表')
     await loadComments(article.value.id)
-    if (article.value) article.value.comment_count++
   }
 }
 
@@ -488,10 +655,10 @@ async function copyLink() {
 async function shareToWeChat() {
   wechatQrVisible.value = true
   shareDialogVisible.value = false
-  
+
   // 等待DOM更新
   await nextTick()
-  
+
   // 生成二维码
   if (qrcodeCanvas.value) {
     try {
@@ -519,7 +686,10 @@ function shareToWeibo() {
 function shareToQQ() {
   const url = encodeURIComponent(shareLink.value)
   const title = encodeURIComponent(article.value?.title || '')
-  window.open(`https://connect.qq.com/widget/shareqq/index.html?url=${url}&title=${title}`, '_blank')
+  window.open(
+    `https://connect.qq.com/widget/shareqq/index.html?url=${url}&title=${title}`,
+    '_blank'
+  )
 }
 
 function formatDate(dateString: string): string {
@@ -547,6 +717,20 @@ function formatDate(dateString: string): string {
 
 onMounted(() => {
   loadArticle()
+
+  // 确保 WebSocket 已连接
+  if (globalChatService.connectionStatus.value !== 'connected') {
+    console.log('WebSocket 未连接，正在连接...')
+    globalChatService.connect()
+  }
+})
+
+// 组件卸载时取消订阅
+onUnmounted(() => {
+  if (unsubscribeComment) {
+    unsubscribeComment()
+    console.log('已取消评论订阅')
+  }
 })
 </script>
 
@@ -789,7 +973,9 @@ onMounted(() => {
   border-radius: 8px;
   margin: 16px 0;
   cursor: zoom-in;
-  transition: transform 0.3s, box-shadow 0.3s;
+  transition:
+    transform 0.3s,
+    box-shadow 0.3s;
 }
 
 .markdown-body :deep(img:hover) {

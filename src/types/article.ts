@@ -184,4 +184,3 @@ export const SUPPORTED_LANGUAGES = [
   { label: 'Docker', value: 'dockerfile' },
   { label: 'PlainText', value: 'plaintext' }
 ] as const
-

@@ -15,12 +15,10 @@
             start-placeholder="开始日期"
             end-placeholder="结束日期"
             :shortcuts="dateShortcuts"
-            @change="handleDateChange"
             size="default"
+            @change="handleDateChange"
           />
-          <el-button :icon="Refresh" @click="loadData(true)" :loading="loading">
-            刷新
-          </el-button>
+          <el-button :icon="Refresh" :loading="loading" @click="loadData(true)">刷新</el-button>
         </div>
       </div>
     </el-card>
@@ -36,7 +34,7 @@
           <el-tag type="success" effect="light">实时更新</el-tag>
         </div>
       </template>
-      
+
       <el-row :gutter="20">
         <el-col :xs="24" :sm="12" :md="6">
           <el-statistic :value="today.active_users || 0" title="今日活跃">
@@ -46,12 +44,7 @@
           </el-statistic>
         </el-col>
         <el-col :xs="24" :sm="12" :md="6">
-          <el-statistic
-            :value="today.success_rate || 0"
-            :precision="1"
-            suffix="%"
-            title="成功率"
-          >
+          <el-statistic :value="today.success_rate || 0" :precision="1" suffix="%" title="成功率">
             <template #prefix>
               <el-icon color="#67c23a"><SuccessFilled /></el-icon>
             </template>
@@ -82,7 +75,7 @@
     <!-- 趋势图表 -->
     <el-row :gutter="20">
       <el-col :xs="24" :lg="12">
-        <el-card class="chart-card" shadow="hover" v-loading="loading">
+        <el-card v-loading="loading" class="chart-card" shadow="hover">
           <template #header>
             <div class="chart-header">
               <h3 class="chart-title">
@@ -96,7 +89,7 @@
       </el-col>
 
       <el-col :xs="24" :lg="12">
-        <el-card class="chart-card" shadow="hover" v-loading="loading">
+        <el-card v-loading="loading" class="chart-card" shadow="hover">
           <template #header>
             <div class="chart-header">
               <h3 class="chart-title">
@@ -112,7 +105,7 @@
 
     <el-row :gutter="20" style="margin-top: 20px">
       <el-col :xs="24" :lg="12">
-        <el-card class="chart-card" shadow="hover" v-loading="loading">
+        <el-card v-loading="loading" class="chart-card" shadow="hover">
           <template #header>
             <div class="chart-header">
               <h3 class="chart-title">
@@ -126,7 +119,7 @@
       </el-col>
 
       <el-col :xs="24" :lg="12">
-        <el-card class="chart-card" shadow="hover" v-loading="loading">
+        <el-card v-loading="loading" class="chart-card" shadow="hover">
           <template #header>
             <div class="chart-header">
               <h3 class="chart-title">
@@ -143,12 +136,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
-import echarts from '@/utils/echarts'
 import {
-  Refresh, TrendCharts, UserFilled, SuccessFilled, Timer, User, Connection
+  Refresh,
+  TrendCharts,
+  UserFilled,
+  SuccessFilled,
+  Timer,
+  User,
+  Connection
 } from '@element-plus/icons-vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
+
 import { getDailyMetrics } from '@/utils/api'
+import echarts from '@/utils/echarts'
 import toast from '@/utils/toast'
 
 const loading = ref(false)
@@ -214,10 +214,10 @@ const loadData = async (forceRefresh: boolean = false) => {
       endDate = new Date().toISOString().split('T')[0]
       startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
     }
-    
+
     const data = await getDailyMetrics(startDate, endDate, forceRefresh)
     today.value = data.today || {}
-    
+
     // 处理趋势数据
     let trendData = data.trend || []
     if (trendData.length === 0 && data.today) {
@@ -235,8 +235,14 @@ const loadData = async (forceRefresh: boolean = false) => {
 }
 
 const renderCharts = () => {
-  if (!activeUsersChart.value || !successRateChart.value || !responseTimeChart.value || !apiCallsChart.value) return
-  
+  if (
+    !activeUsersChart.value ||
+    !successRateChart.value ||
+    !responseTimeChart.value ||
+    !apiCallsChart.value
+  )
+    return
+
   // 没有数据，显示空状态
   if (trend.value.length === 0) {
     return
@@ -276,20 +282,22 @@ const renderCharts = () => {
   chart1.setOption({
     ...commonOption,
     yAxis: { type: 'value', name: '人数' },
-    series: [{
-      name: '活跃用户',
-      type: 'line',
-      smooth: true,
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(64, 158, 255, 0.3)' },
-          { offset: 1, color: 'rgba(64, 158, 255, 0.05)' }
-        ])
-      },
-      lineStyle: { color: '#409eff', width: 3 },
-      itemStyle: { color: '#409eff' },
-      data: activeUsers
-    }]
+    series: [
+      {
+        name: '活跃用户',
+        type: 'line',
+        smooth: true,
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(64, 158, 255, 0.3)' },
+            { offset: 1, color: 'rgba(64, 158, 255, 0.05)' }
+          ])
+        },
+        lineStyle: { color: '#409eff', width: 3 },
+        itemStyle: { color: '#409eff' },
+        data: activeUsers
+      }
+    ]
   })
 
   // 成功率趋势
@@ -297,20 +305,22 @@ const renderCharts = () => {
   chart2.setOption({
     ...commonOption,
     yAxis: { type: 'value', name: '百分比(%)', max: 100 },
-    series: [{
-      name: '成功率',
-      type: 'line',
-      smooth: true,
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(103, 194, 58, 0.3)' },
-          { offset: 1, color: 'rgba(103, 194, 58, 0.05)' }
-        ])
-      },
-      lineStyle: { color: '#67c23a', width: 3 },
-      itemStyle: { color: '#67c23a' },
-      data: successRates
-    }]
+    series: [
+      {
+        name: '成功率',
+        type: 'line',
+        smooth: true,
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(103, 194, 58, 0.3)' },
+            { offset: 1, color: 'rgba(103, 194, 58, 0.05)' }
+          ])
+        },
+        lineStyle: { color: '#67c23a', width: 3 },
+        itemStyle: { color: '#67c23a' },
+        data: successRates
+      }
+    ]
   })
 
   // 响应时间趋势
@@ -318,20 +328,22 @@ const renderCharts = () => {
   chart3.setOption({
     ...commonOption,
     yAxis: { type: 'value', name: '毫秒(ms)' },
-    series: [{
-      name: '平均响应时间',
-      type: 'line',
-      smooth: true,
-      areaStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: 'rgba(230, 162, 60, 0.3)' },
-          { offset: 1, color: 'rgba(230, 162, 60, 0.05)' }
-        ])
-      },
-      lineStyle: { color: '#e6a23c', width: 3 },
-      itemStyle: { color: '#e6a23c' },
-      data: responseTimes
-    }]
+    series: [
+      {
+        name: '平均响应时间',
+        type: 'line',
+        smooth: true,
+        areaStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: 'rgba(230, 162, 60, 0.3)' },
+            { offset: 1, color: 'rgba(230, 162, 60, 0.05)' }
+          ])
+        },
+        lineStyle: { color: '#e6a23c', width: 3 },
+        itemStyle: { color: '#e6a23c' },
+        data: responseTimes
+      }
+    ]
   })
 
   // API调用趋势
@@ -339,18 +351,20 @@ const renderCharts = () => {
   chart4.setOption({
     ...commonOption,
     yAxis: { type: 'value', name: '调用次数' },
-    series: [{
-      name: 'API调用',
-      type: 'bar',
-      barWidth: '60%',
-      itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: '#409eff' },
-          { offset: 1, color: '#a0cfff' }
-        ])
-      },
-      data: apiCalls
-    }]
+    series: [
+      {
+        name: 'API调用',
+        type: 'bar',
+        barWidth: '60%',
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#409eff' },
+            { offset: 1, color: '#a0cfff' }
+          ])
+        },
+        data: apiCalls
+      }
+    ]
   })
 }
 
@@ -360,9 +374,9 @@ onMounted(() => {
   const start = new Date()
   start.setTime(start.getTime() - 30 * 24 * 3600 * 1000)
   dateRange.value = [start, end]
-  
+
   loadData()
-  
+
   // 响应窗口大小变化
   window.addEventListener('resize', handleResize)
 })

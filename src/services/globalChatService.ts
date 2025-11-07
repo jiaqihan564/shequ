@@ -1,7 +1,9 @@
 import { ref, type Ref } from 'vue'
+
+import { websocketConfig } from '@/config'
+import type { ArticleComment } from '@/types'
 import { toast } from '@/utils/toast'
 import { getStoredToken, isTokenExpired } from '@/utils/tokenValidator'
-import { websocketConfig } from '@/config'
 import { logger } from '@/utils/ui/logger'
 
 interface ChatMessage {
@@ -15,8 +17,40 @@ interface ChatMessage {
   message_type: number
 }
 
+interface CommentNotification {
+  type: 'new_comment' | 'new_reply' | 'comment_deleted'
+  entity?: 'article' | 'resource'
+  article_id?: number
+  resource_id?: number
+  comment_id: number
+  parent_id?: number
+  user_id: number
+  username: string
+  nickname?: string
+  avatar?: string
+  content: string
+  created_at: string
+  reply_to_user?: {
+    id: number
+    nickname: string
+  }
+  comment?: ArticleComment | any
+}
+
 interface WSMessage {
-  type: 'message' | 'online_count' | 'heartbeat' | 'system' | 'notification' | 'private_message' | 'message_read'
+  type:
+    | 'message'
+    | 'online_count'
+    | 'heartbeat'
+    | 'system'
+    | 'notification'
+    | 'private_message'
+    | 'message_read'
+    | 'article_comment'
+    | 'article_reply'
+    | 'resource_comment'
+    | 'resource_reply'
+    | 'comment_deleted'
   data: unknown
 }
 
@@ -25,6 +59,7 @@ type OnlineCountCallback = (count: number) => void
 type SystemMessageCallback = (data: unknown) => void
 type PrivateMessageCallback = (data: any) => void
 type MessageReadCallback = (data: any) => void
+type CommentCallback = (data: CommentNotification) => void
 
 class GlobalChatService {
   private static instance: GlobalChatService
@@ -49,6 +84,7 @@ class GlobalChatService {
   private systemMessageCallbacks: Set<SystemMessageCallback> = new Set()
   private privateMessageCallbacks: Set<PrivateMessageCallback> = new Set()
   private messageReadCallbacks: Set<MessageReadCallback> = new Set()
+  private commentCallbacks: Set<CommentCallback> = new Set()
 
   private constructor() {
     logger.info('[GlobalChat] Service initialized')
@@ -70,11 +106,11 @@ class GlobalChatService {
 
     // Determine WebSocket protocol
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-    
+
     // In development with Vite proxy, use relative path to leverage proxy
     // This avoids CORS issues and automatically handles WebSocket upgrade
     const isDevelopment = import.meta.env.DEV
-    
+
     let wsUrl: string
     if (isDevelopment) {
       // Use relative path - Vite proxy will forward to backend
@@ -86,9 +122,7 @@ class GlobalChatService {
       let host = window.location.host // Default to current host
       if (import.meta.env.VITE_API_BASE_URL) {
         // Remove protocol and /api suffix from base URL
-        host = import.meta.env.VITE_API_BASE_URL
-          .replace(/^https?:\/\//, '')
-          .replace(/\/api$/, '')
+        host = import.meta.env.VITE_API_BASE_URL.replace(/^https?:\/\//, '').replace(/\/api$/, '')
       }
       wsUrl = `${protocol}//${host}/api/chat/ws?token=${encodeURIComponent(token)}`
     }
@@ -115,23 +149,23 @@ class GlobalChatService {
 
     // Reset manual close flag to allow auto-reconnection
     this.isManualClose = false
-    
+
     // Check existing connection state
     if (this.ws) {
       const state = this.ws.readyState
-      
+
       // Already connected or connecting - skip
       if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) {
         logger.info('[GlobalChat] Already connected or connecting')
         return
       }
-      
+
       // Connection is closing - wait for it to finish
       if (state === WebSocket.CLOSING) {
         logger.info('[GlobalChat] Connection is closing, please wait...')
         return
       }
-      
+
       // Connection is closed - clean up
       if (state === WebSocket.CLOSED) {
         logger.info('[GlobalChat] Cleaning up old closed connection')
@@ -167,92 +201,18 @@ class GlobalChatService {
         this.startHeartbeat()
       }
 
-      this.ws.onmessage = (event) => {
-        try {
-          const wsMsg: WSMessage = JSON.parse(event.data)
-
-          switch (wsMsg.type) {
-            case 'message':
-              // New chat message
-              const message = wsMsg.data as ChatMessage
-              this.messages.value.push(message)
-
-              // Limit message list length
-              if (this.messages.value.length > websocketConfig.maxMessages) {
-                this.messages.value = this.messages.value.slice(-websocketConfig.maxMessages)
-              }
-
-              // Notify subscribers
-              this.messageCallbacks.forEach(callback => callback(message))
-              break
-
-            case 'online_count':
-              // Online count update
-              if (wsMsg.data && typeof wsMsg.data === 'object' && 'count' in wsMsg.data) {
-                const countData = wsMsg.data as { count: number }
-                this.onlineCount.value = countData.count
-
-                // Notify subscribers
-                this.onlineCountCallbacks.forEach(callback => callback(countData.count))
-              }
-              break
-
-            case 'system':
-              // System message
-              logger.info('[GlobalChat] System message:', wsMsg.data)
-              this.systemMessageCallbacks.forEach(callback => callback(wsMsg.data))
-              break
-
-            case 'notification':
-              // Global notification
-              logger.info('[GlobalChat] Notification:', wsMsg.data)
-              if (wsMsg.data && typeof wsMsg.data === 'object' && 'message' in wsMsg.data) {
-                const notifData = wsMsg.data as { message: string }
-                toast.info(notifData.message)
-              }
-              break
-
-            case 'private_message':
-              // Private message notification
-              logger.info('[GlobalChat] Private message received')
-              // Trigger unread count refresh
-              window.dispatchEvent(new Event('refresh-unread-count'))
-              // Notify subscribers
-              this.privateMessageCallbacks.forEach(callback => {
-                try {
-                  callback(wsMsg.data)
-                } catch (error) {
-                  logger.error('[GlobalChat] Error in private message callback:', error)
-                }
-              })
-              break
-
-            case 'message_read':
-              // Message read notification
-              logger.info('[GlobalChat] Message read notification')
-              // Notify subscribers
-              this.messageReadCallbacks.forEach(callback => {
-                try {
-                  callback(wsMsg.data)
-                } catch (error) {
-                  logger.error('[GlobalChat] Error in message read callback:', error)
-                }
-              })
-              break
-          }
-        } catch (error) {
-          logger.error('[GlobalChat] Failed to parse WebSocket message:', error)
-        }
+      this.ws.onmessage = event => {
+        this.processWebSocketPayload(event.data)
       }
 
-      this.ws.onerror = (error) => {
+      this.ws.onerror = error => {
         logger.error('[GlobalChat] ❌ WebSocket error:', error)
         logger.error('[GlobalChat] WebSocket readyState:', this.ws?.readyState)
         this.connectionStatus.value = 'disconnected'
         this.isConnecting = false // Release connection lock on error
       }
 
-      this.ws.onclose = (event) => {
+      this.ws.onclose = event => {
         logger.info('[GlobalChat] 🔌 WebSocket closed:', {
           code: event.code,
           reason: event.reason || 'No reason provided',
@@ -265,8 +225,11 @@ class GlobalChatService {
         // Check if connection closed due to authentication failure
         // Code 1008: Policy Violation (used for auth failures)
         // Code 1002: Protocol Error
-        if (event.code === 1008 || event.code === 1002 || 
-            (event.reason && (event.reason.includes('Unauthorized') || event.reason.includes('401')))) {
+        if (
+          event.code === 1008 ||
+          event.code === 1002 ||
+          (event.reason && (event.reason.includes('Unauthorized') || event.reason.includes('401')))
+        ) {
           logger.error('[GlobalChat] ❌ Authentication failed - token may be expired')
           toast.error('登录已过期，请重新登录')
           // Clear reconnection attempts to prevent auto-reconnect with invalid token
@@ -284,8 +247,13 @@ class GlobalChatService {
 
         // Attempt reconnection if not manually closed
         if (!this.isManualClose && this.reconnectAttempts < websocketConfig.maxReconnectAttempts) {
-          const delay = websocketConfig.reconnectDelays[Math.min(this.reconnectAttempts, websocketConfig.reconnectDelays.length - 1)]
-          logger.info(`[GlobalChat] 🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${websocketConfig.maxReconnectAttempts})`)
+          const delay =
+            websocketConfig.reconnectDelays[
+              Math.min(this.reconnectAttempts, websocketConfig.reconnectDelays.length - 1)
+            ]
+          logger.info(
+            `[GlobalChat] 🔄 Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${websocketConfig.maxReconnectAttempts})`
+          )
 
           this.reconnectTimeout = window.setTimeout(() => {
             this.reconnectAttempts++
@@ -361,6 +329,155 @@ class GlobalChatService {
     }
   }
 
+  private processWebSocketPayload(data: string | ArrayBuffer | Blob): void {
+    if (typeof data === 'string') {
+      this.processWebSocketTextMessage(data)
+      return
+    }
+
+    if (data instanceof Blob) {
+      data
+        .text()
+        .then(text => this.processWebSocketTextMessage(text))
+        .catch(error => {
+          logger.error('[GlobalChat] Failed to read Blob message from WebSocket:', error)
+        })
+      return
+    }
+
+    if (data instanceof ArrayBuffer) {
+      const text = new TextDecoder('utf-8').decode(data)
+      this.processWebSocketTextMessage(text)
+      return
+    }
+
+    logger.warn('[GlobalChat] Received unsupported WebSocket message type', data)
+  }
+
+  private processWebSocketTextMessage(rawText: string): void {
+    const fragments = rawText
+      .split('\n')
+      .map(fragment => fragment.trim())
+      .filter(fragment => fragment.length > 0)
+
+    for (const fragment of fragments) {
+      try {
+        const wsMsg: WSMessage = JSON.parse(fragment)
+        this.dispatchWebSocketMessage(wsMsg)
+      } catch (error) {
+        logger.error('[GlobalChat] Failed to parse WebSocket message:', error, fragment)
+      }
+    }
+  }
+
+  private dispatchWebSocketMessage(wsMsg: WSMessage): void {
+    switch (wsMsg.type) {
+      case 'message': {
+        // New chat message
+        const message = wsMsg.data as ChatMessage
+        this.messages.value.push(message)
+
+        // Limit message list length
+        if (this.messages.value.length > websocketConfig.maxMessages) {
+          this.messages.value = this.messages.value.slice(-websocketConfig.maxMessages)
+        }
+
+        // Notify subscribers
+        this.messageCallbacks.forEach(callback => callback(message))
+        break
+      }
+
+      case 'online_count':
+        // Online count update
+        if (wsMsg.data && typeof wsMsg.data === 'object' && 'count' in wsMsg.data) {
+          const countData = wsMsg.data as { count: number }
+          this.onlineCount.value = countData.count
+
+          // Notify subscribers
+          this.onlineCountCallbacks.forEach(callback => callback(countData.count))
+        }
+        break
+
+      case 'system':
+        // System message
+        logger.info('[GlobalChat] System message:', wsMsg.data)
+        this.systemMessageCallbacks.forEach(callback => callback(wsMsg.data))
+        break
+
+      case 'notification':
+        // Global notification
+        logger.info('[GlobalChat] Notification:', wsMsg.data)
+        if (wsMsg.data && typeof wsMsg.data === 'object' && 'message' in wsMsg.data) {
+          const notifData = wsMsg.data as { message: string }
+          toast.info(notifData.message)
+        }
+        break
+
+      case 'private_message':
+        // Private message notification
+        logger.info('[GlobalChat] Private message received')
+        // Trigger unread count refresh
+        window.dispatchEvent(new Event('refresh-unread-count'))
+        // Notify subscribers
+        this.privateMessageCallbacks.forEach(callback => {
+          try {
+            callback(wsMsg.data)
+          } catch (error) {
+            logger.error('[GlobalChat] Error in private message callback:', error)
+          }
+        })
+        break
+
+      case 'message_read':
+        // Message read notification
+        logger.info('[GlobalChat] Message read notification')
+        // Notify subscribers
+        this.messageReadCallbacks.forEach(callback => {
+          try {
+            callback(wsMsg.data)
+          } catch (error) {
+            logger.error('[GlobalChat] Error in message read callback:', error)
+          }
+        })
+        break
+
+      case 'article_comment':
+      case 'article_reply':
+      case 'resource_comment':
+      case 'resource_reply':
+      case 'comment_deleted': {
+        // Comment notifications (article and resource)
+        logger.info('[GlobalChat] Comment notification received:', wsMsg.type)
+
+        if (!wsMsg.data || typeof wsMsg.data !== 'object') {
+          logger.warn('[GlobalChat] Invalid comment notification payload', wsMsg.data)
+          break
+        }
+
+        const notification = wsMsg.data as CommentNotification
+
+        // 确保 comment.replies 至少是空数组，避免前端判空
+        if (notification.comment && !Array.isArray(notification.comment.replies)) {
+          notification.comment.replies = notification.comment.replies
+            ? [...notification.comment.replies]
+            : []
+        }
+
+        this.commentCallbacks.forEach(callback => {
+          try {
+            callback(notification)
+          } catch (error) {
+            logger.error('[GlobalChat] Error in comment callback:', error)
+          }
+        })
+        break
+      }
+
+      default:
+        logger.warn('[GlobalChat] Received unknown message type:', wsMsg.type)
+    }
+  }
+
   public async sendMessage(content: string): Promise<void> {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       throw new Error('WebSocket is not connected')
@@ -412,6 +529,11 @@ class GlobalChatService {
     return () => this.messageReadCallbacks.delete(callback)
   }
 
+  public onComment(callback: CommentCallback): () => void {
+    this.commentCallbacks.add(callback)
+    return () => this.commentCallbacks.delete(callback)
+  }
+
   // History management
   public markHistoryLoaded(): void {
     this.hasLoadedHistory = true
@@ -423,6 +545,8 @@ class GlobalChatService {
   }
 }
 
+// Export types for use in components
+export type { CommentNotification }
+
 // Export singleton instance
 export const globalChatService = GlobalChatService.getInstance()
-

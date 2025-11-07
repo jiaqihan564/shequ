@@ -61,13 +61,7 @@ withDefaults(defineProps<Props>(), {
 
 .shimmer {
   animation: shimmer 2s infinite linear;
-  background: linear-gradient(
-    to right,
-    #f0f0f0 0%,
-    #e0e0e0 20%,
-    #f0f0f0 40%,
-    #f0f0f0 100%
-  );
+  background: linear-gradient(to right, #f0f0f0 0%, #e0e0e0 20%, #f0f0f0 40%, #f0f0f0 100%);
   background-size: 1000px 100%;
 }
 
@@ -139,12 +133,12 @@ withDefaults(defineProps<Props>(), {
   .stats-grid {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   }
-  
+
   .stat-card {
     flex-direction: column;
     text-align: center;
   }
-  
+
   .stat-content {
     align-items: center;
   }
@@ -156,4 +150,3 @@ withDefaults(defineProps<Props>(), {
   }
 }
 </style>
-

@@ -2,10 +2,7 @@
   <div class="output-panel">
     <div class="output-header">
       <div class="output-tabs">
-        <button
-          :class="['tab', { active: activeTab === 'output' }]"
-          @click="activeTab = 'output'"
-        >
+        <button :class="['tab', { active: activeTab === 'output' }]" @click="activeTab = 'output'">
           输出
         </button>
         <button :class="['tab', { active: activeTab === 'error' }]" @click="activeTab = 'error'">
@@ -194,5 +191,3 @@ const statusText = computed(() => {
   padding: 24px;
 }
 </style>
-
-

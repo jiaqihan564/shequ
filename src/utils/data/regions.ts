@@ -1,7 +1,7 @@
 import { reactive, computed } from 'vue'
 
-import { get } from '@/utils/api'
 import { cacheConfig } from '@/config'
+import { get } from '@/utils/api'
 
 export interface Province {
   name: string

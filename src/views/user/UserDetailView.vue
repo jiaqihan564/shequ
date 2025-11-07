@@ -1,6 +1,11 @@
 <template>
   <div class="user-detail-container">
-    <div v-if="loading" v-loading="loading" class="loading-container" element-loading-text="加载中...">
+    <div
+      v-if="loading"
+      v-loading="loading"
+      class="loading-container"
+      element-loading-text="加载中..."
+    >
       <div style="height: 400px"></div>
     </div>
 
@@ -11,7 +16,11 @@
           <el-avatar
             :size="100"
             :src="getUserAvatar(user)"
-            :style="!getUserAvatar(user) ? { backgroundColor: getAvatarColor(user.id), fontSize: '40px', fontWeight: '600' } : {}"
+            :style="
+              !getUserAvatar(user)
+                ? { backgroundColor: getAvatarColor(user.id), fontSize: '40px', fontWeight: '600' }
+                : {}
+            "
           >
             {{ getAvatarInitial(user.profile?.nickname || user.username) }}
           </el-avatar>
@@ -25,9 +34,7 @@
             <p v-if="user.profile?.bio" class="bio">{{ user.profile.bio }}</p>
           </div>
           <div v-if="!isSelf" class="user-actions">
-            <el-button type="primary" :icon="ChatDotRound" @click="startChat">
-              发私信
-            </el-button>
+            <el-button type="primary" :icon="ChatDotRound" @click="startChat">发私信</el-button>
           </div>
         </div>
 
@@ -68,16 +75,23 @@
         </template>
 
         <div v-if="articles.length > 0" class="articles-list">
-          <div v-for="article in articles" :key="article.id" class="article-item" @click="goToArticle(article.id)">
+          <div
+            v-for="article in articles"
+            :key="article.id"
+            class="article-item"
+            @click="goToArticle(article.id)"
+          >
             <div class="article-main">
               <h4 class="article-title">{{ article.title }}</h4>
               <p class="article-desc">{{ article.description }}</p>
               <div class="article-stats">
                 <el-tag type="info" size="small" effect="plain">
-                  <el-icon><View /></el-icon> {{ article.view_count }}
+                  <el-icon><View /></el-icon>
+                  {{ article.view_count }}
                 </el-tag>
                 <el-tag type="success" size="small" effect="plain">
-                  <el-icon><Star /></el-icon> {{ article.like_count }}
+                  <el-icon><Star /></el-icon>
+                  {{ article.like_count }}
                 </el-tag>
                 <span class="article-time">{{ formatDate(article.created_at) }}</span>
               </div>
@@ -93,8 +107,8 @@
           :page-size="pageSize"
           :total="total"
           layout="prev, pager, next"
-          @current-change="handlePageChange"
           style="margin-top: 20px; text-align: center"
+          @current-change="handlePageChange"
         />
       </el-card>
     </div>
@@ -104,18 +118,17 @@
 </template>
 
 <script setup lang="ts">
+import { Calendar, ChatDotRound, Document, Star, View } from '@element-plus/icons-vue'
 import { ref, onMounted, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  Calendar, ChatDotRound, Document, Star, View
-} from '@element-plus/icons-vue'
-import { get } from '@/utils/api'
-import { getArticles, startConversation } from '@/utils/api'
+
+import { STORAGE_KEYS } from '@/config/storage-keys'
 import type { User } from '@/types'
 import type { ArticleListItem } from '@/types/article'
-import toast from '@/utils/toast'
+import { get } from '@/utils/api'
+import { getArticles, startConversation } from '@/utils/api'
 import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
-import { STORAGE_KEYS } from '@/config/storage-keys'
+import toast from '@/utils/toast'
 
 const route = useRoute()
 const router = useRouter()
@@ -129,7 +142,8 @@ const pageSize = ref(10)
 const total = ref(0)
 
 const currentUserId = computed(() => {
-  const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+  const userInfo =
+    localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
   if (userInfo) {
     try {
       const data = JSON.parse(userInfo)
@@ -148,14 +162,14 @@ const isSelf = computed(() => {
 // 获取用户头像（兼容多种字段名）
 function getUserAvatar(user: User | null): string | undefined {
   if (!user) return undefined
-  
+
   // 尝试多个可能的字段
   const avatarUrl = user.avatar || user.avatar_url || user.profile?.avatar_url
-  
+
   if (!avatarUrl || avatarUrl.trim() === '' || avatarUrl === '/default-avatar.png') {
     return undefined
   }
-  
+
   return avatarUrl
 }
 
@@ -166,7 +180,7 @@ async function loadUser() {
   loading.value = true
   try {
     user.value = await get<User>(`/user/${userId}`)
-    
+
     // 调试：查看后端返回的实际数据
     console.log('用户详情数据:', user.value)
     console.log('头像字段:', {
@@ -175,7 +189,7 @@ async function loadUser() {
       profile_avatar: user.value.profile?.avatar_url
     })
     console.log('hasValidAvatar结果:', hasValidAvatar(user.value.avatar))
-    
+
     // 加载用户文章
     await loadArticles()
   } catch (error: any) {
@@ -187,17 +201,17 @@ async function loadUser() {
 
 async function loadArticles() {
   const userId = Number(route.params.id)
-  
+
   try {
     const response = await getArticles({
       user_id: userId,
       page: page.value,
       page_size: pageSize.value
     })
-    
+
     articles.value = response.articles || []
     total.value = response.total || 0
-    
+
     // 计算统计数据
     userStats.value = {
       article_count: response.total || 0,
@@ -217,7 +231,7 @@ function handlePageChange() {
 
 async function startChat() {
   if (!user.value) return
-  
+
   try {
     await startConversation(user.value.id)
     router.push(`/messages/${user.value.id}`)
@@ -232,12 +246,12 @@ function goToArticle(articleId: number) {
 
 function formatDate(dateString: string | undefined): string {
   if (!dateString) return '未知'
-  
+
   const date = new Date(dateString)
   if (isNaN(date.getTime())) {
     return '未知'
   }
-  
+
   return date.toLocaleDateString('zh-CN', {
     year: 'numeric',
     month: 'long',

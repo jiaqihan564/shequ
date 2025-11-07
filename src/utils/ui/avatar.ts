@@ -9,15 +9,15 @@
  */
 export function getAvatarInitial(name: string | undefined): string {
   if (!name || name.trim() === '') return '?'
-  
+
   // 获取第一个字符
   const firstChar = name.trim().charAt(0)
-  
+
   // 如果是中文，直接返回
   if (/[\u4e00-\u9fa5]/.test(firstChar)) {
     return firstChar
   }
-  
+
   // 如果是英文，返回大写
   return firstChar.toUpperCase()
 }
@@ -29,7 +29,7 @@ export function getAvatarInitial(name: string | undefined): string {
  */
 export function getAvatarColor(id: number | undefined): string {
   if (!id) return '#909399'
-  
+
   const colors = [
     '#409eff', // 蓝色
     '#67c23a', // 绿色
@@ -40,9 +40,9 @@ export function getAvatarColor(id: number | undefined): string {
     '#1abc9c', // 青色
     '#e74c3c', // 深红
     '#2ecc71', // 翠绿
-    '#f39c12', // 金黄
+    '#f39c12' // 金黄
   ]
-  
+
   return colors[id % colors.length]
 }
 
@@ -57,4 +57,3 @@ export function hasValidAvatar(avatar: string | undefined | null): boolean {
   if (avatar === '/default-avatar.png') return false
   return true
 }
-

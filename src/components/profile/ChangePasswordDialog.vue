@@ -123,9 +123,7 @@
               <EyeOffIcon v-else />
             </button>
           </div>
-          <span v-if="errors.confirmPassword" class="error-text">{{
-            errors.confirmPassword
-          }}</span>
+          <span v-if="errors.confirmPassword" class="error-text">{{ errors.confirmPassword }}</span>
         </div>
 
         <!-- 操作按钮 -->
@@ -148,8 +146,12 @@ import { reactive, ref, computed } from 'vue'
 import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
 import { changePassword } from '@/utils/api'
-import { checkPasswordStrength, debounce, validatePassword as validatePasswordUtil } from '@/utils/validation'
 import { logger } from '@/utils/ui/logger'
+import {
+  checkPasswordStrength,
+  debounce,
+  validatePassword as validatePasswordUtil
+} from '@/utils/validation'
 
 defineProps<{
   show: boolean
@@ -539,4 +541,3 @@ const handleSubmit = async () => {
   box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }
 </style>
-

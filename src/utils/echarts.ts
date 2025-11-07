@@ -3,8 +3,6 @@
  * Only imports the required chart types and components to reduce bundle size
  */
 
-import * as echarts from 'echarts/core'
-
 // Import required chart types
 import { BarChart, LineChart, PieChart, MapChart } from 'echarts/charts'
 
@@ -18,6 +16,7 @@ import {
   DataZoomComponent,
   GeoComponent
 } from 'echarts/components'
+import * as echarts from 'echarts/core'
 
 // Import features
 import { LabelLayout, UniversalTransition } from 'echarts/features'
@@ -32,7 +31,7 @@ echarts.use([
   LineChart,
   PieChart,
   MapChart,
-  
+
   // Components
   TitleComponent,
   TooltipComponent,
@@ -41,11 +40,11 @@ echarts.use([
   VisualMapComponent,
   DataZoomComponent,
   GeoComponent,
-  
+
   // Features
   LabelLayout,
   UniversalTransition,
-  
+
   // Renderer
   CanvasRenderer
 ])
@@ -58,4 +57,3 @@ export { echarts }
 
 // Export graphic for LinearGradient usage
 export const graphic = echarts.graphic
-

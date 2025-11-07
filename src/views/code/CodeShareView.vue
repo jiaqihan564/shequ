@@ -3,9 +3,7 @@
     <div v-if="loading" class="loading">加载中...</div>
     <div v-else-if="error" class="error">
       <p>{{ error }}</p>
-      <button class="btn btn-primary" @click="$router.push('/code-editor')">
-        返回代码编辑器
-      </button>
+      <button class="btn btn-primary" @click="$router.push('/code-editor')">返回代码编辑器</button>
     </div>
     <div v-else-if="snippet" class="share-content">
       <div class="share-header">
@@ -36,12 +34,8 @@
         <button v-if="isLoggedIn" class="btn btn-primary" @click="forkCode">
           复制到我的编辑器
         </button>
-        <button v-else class="btn btn-primary" @click="goToLogin">
-          登录后复制
-        </button>
-        <button class="btn btn-secondary" @click="$router.push('/code-editor')">
-          新建代码
-        </button>
+        <button v-else class="btn btn-primary" @click="goToLogin">登录后复制</button>
+        <button class="btn btn-secondary" @click="$router.push('/code-editor')">新建代码</button>
       </div>
     </div>
   </div>
@@ -50,10 +44,11 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+
 import MonacoEditor from '@/components/code/MonacoEditor.vue'
-import { getSharedSnippet } from '@/utils/code-api'
-import type { CodeSnippet } from '@/types/code'
 import { STORAGE_KEYS } from '@/config/storage-keys'
+import type { CodeSnippet } from '@/types/code'
+import { getSharedSnippet } from '@/utils/code-api'
 
 const route = useRoute()
 const router = useRouter()
@@ -63,7 +58,9 @@ const loading = ref(true)
 const error = ref('')
 
 const isLoggedIn = computed(() => {
-  return !!(localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN))
+  return !!(
+    localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) || sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)
+  )
 })
 
 const monacoLanguage = computed(() => {
@@ -286,5 +283,3 @@ function formatDate(dateStr: string): string {
   }
 }
 </style>
-
-

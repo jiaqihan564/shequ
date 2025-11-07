@@ -31,18 +31,12 @@
             <span class="language-badge">{{ snippet.language }}</span>
           </div>
           <div class="card-meta">
-            <span class="meta-item">
-              创建: {{ formatDate(snippet.created_at) }}
-            </span>
+            <span class="meta-item">创建: {{ formatDate(snippet.created_at) }}</span>
             <span v-if="snippet.is_public" class="public-badge">公开</span>
           </div>
           <div class="card-actions">
-            <button class="btn-sm btn-primary" @click="loadSnippet(snippet.id)">
-              打开
-            </button>
-            <button class="btn-sm btn-secondary" @click="shareSnippet(snippet.id)">
-              分享
-            </button>
+            <button class="btn-sm btn-primary" @click="loadSnippet(snippet.id)">打开</button>
+            <button class="btn-sm btn-secondary" @click="shareSnippet(snippet.id)">分享</button>
             <button class="btn-sm btn-danger" @click="deleteSnippetConfirm(snippet.id)">
               删除
             </button>
@@ -128,30 +122,24 @@
       <div class="modal-content share-link-modal" @click.stop>
         <h3>🎉 分享链接已生成</h3>
         <p class="share-tip">通过以下链接分享您的代码片段：</p>
-        
+
         <div class="share-link-container">
-          <input 
-            :value="shareUrl" 
-            readonly 
-            class="share-input" 
+          <input
             ref="shareInput"
+            :value="shareUrl"
+            readonly
+            class="share-input"
             @click="selectShareInput"
           />
-          <button class="btn btn-primary copy-btn" @click="copyShareLink">
-            📋 复制链接
-          </button>
+          <button class="btn btn-primary copy-btn" @click="copyShareLink">📋 复制链接</button>
         </div>
 
         <div class="share-actions">
-          <button class="btn btn-secondary" @click="openShareLink">
-            🔗 在新标签页中打开
-          </button>
+          <button class="btn btn-secondary" @click="openShareLink">🔗 在新标签页中打开</button>
         </div>
 
         <div class="modal-footer">
-          <button class="btn btn-primary" @click="shareDialogVisible = false">
-            完成
-          </button>
+          <button class="btn btn-primary" @click="shareDialogVisible = false">完成</button>
         </div>
       </div>
     </div>
@@ -161,6 +149,8 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+
+import type { CodeSnippetListItem, CodeExecution } from '@/types/code'
 import {
   getSnippets,
   getExecutionHistory,
@@ -169,7 +159,6 @@ import {
   generateShareLink
 } from '@/utils/code-api'
 import { toast } from '@/utils/toast'
-import type { CodeSnippetListItem, CodeExecution } from '@/types/code'
 
 const router = useRouter()
 const route = useRoute()
@@ -203,7 +192,7 @@ onMounted(() => {
 })
 
 // 监听 tab 切换，自动加载对应数据
-watch(activeTab, (newTab) => {
+watch(activeTab, newTab => {
   if (newTab === 'executions') {
     if (executions.value.length === 0) {
       loadExecutions()
@@ -353,7 +342,6 @@ function formatDate(dateStr: string): string {
     minute: '2-digit'
   })
 }
-
 </script>
 
 <style scoped>
@@ -766,5 +754,3 @@ function formatDate(dateStr: string): string {
   }
 }
 </style>
-
-

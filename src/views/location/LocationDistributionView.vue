@@ -8,7 +8,10 @@
     <!-- 统计卡片 -->
     <div class="stats-cards">
       <div class="stat-card">
-        <div class="card-icon" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)">
+        <div
+          class="card-icon"
+          style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+        >
           🗺️
         </div>
         <div class="card-content">
@@ -18,7 +21,10 @@
       </div>
 
       <div class="stat-card">
-        <div class="card-icon" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)">
+        <div
+          class="card-icon"
+          style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)"
+        >
           🏙️
         </div>
         <div class="card-content">
@@ -28,7 +34,10 @@
       </div>
 
       <div class="stat-card">
-        <div class="card-icon" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)">
+        <div
+          class="card-icon"
+          style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)"
+        >
           👑
         </div>
         <div class="card-content">
@@ -62,10 +71,10 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, nextTick } from 'vue'
-import echarts from '@/utils/echarts'
 
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import { getLocationDistribution } from '@/utils/api'
+import echarts from '@/utils/echarts'
 import { toast } from '@/utils/toast'
 
 const loading = ref(false)
@@ -92,12 +101,12 @@ const loadData = async () => {
   try {
     const result = await getLocationDistribution()
     data.value = result || {}
-    
+
     console.log('地区分布数据:', {
       省份数量: data.value.province_stats?.length,
       省份数据: data.value.province_stats
     })
-    
+
     renderCharts()
   } catch (error: any) {
     toast.error(error?.message || '加载地区分布失败')
@@ -109,9 +118,9 @@ const loadData = async () => {
 const renderCharts = async () => {
   // 等待DOM更新完成
   await nextTick()
-  
+
   const provinceStats = data.value.province_stats || []
-  
+
   console.log('开始渲染图表，数据量:', {
     省份: provinceStats.length,
     完整数据: data.value
@@ -136,57 +145,59 @@ const renderCharts = async () => {
       const provinceValues = topProvinces.map((p: any) => p.user_count)
 
       const chart1 = echarts.init(provinceChart.value)
-  chart1.setOption({
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: { type: 'shadow' },
-      formatter: (params: any) => {
-        const index = params[0].dataIndex
-        const p = topProvinces[topProvinces.length - 1 - index]
-        return `${p.province}<br/>用户数: ${p.user_count}人<br/>登录次数: ${p.login_count}次`
-      }
-    },
-    grid: {
-      left: '10%',
-      right: '10%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'value',
-      name: '用户数'
-    },
-    yAxis: {
-      type: 'category',
-      data: provinceNames.reverse(),
-      axisLabel: {
-        fontSize: 13,
-        fontWeight: 600
-      }
-    },
-    series: [{
-      name: '用户数',
-      type: 'bar',
-      data: provinceValues.reverse(),
-      itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-          { offset: 0, color: '#667eea' },
-          { offset: 1, color: '#764ba2' }
-        ]),
-        borderRadius: [0, 8, 8, 0]
-      },
-      label: {
-        show: true,
-        position: 'right',
-        formatter: (params: any) => {
-          const index = params.dataIndex
-          const p = topProvinces[topProvinces.length - 1 - index]
-          return `${p.user_count}人(${p.login_count}次)`
+      chart1.setOption({
+        tooltip: {
+          trigger: 'axis',
+          axisPointer: { type: 'shadow' },
+          formatter: (params: any) => {
+            const index = params[0].dataIndex
+            const p = topProvinces[topProvinces.length - 1 - index]
+            return `${p.province}<br/>用户数: ${p.user_count}人<br/>登录次数: ${p.login_count}次`
+          }
         },
-        fontWeight: 600
-      }
-    }]
-  })
+        grid: {
+          left: '10%',
+          right: '10%',
+          bottom: '3%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'value',
+          name: '用户数'
+        },
+        yAxis: {
+          type: 'category',
+          data: provinceNames.reverse(),
+          axisLabel: {
+            fontSize: 13,
+            fontWeight: 600
+          }
+        },
+        series: [
+          {
+            name: '用户数',
+            type: 'bar',
+            data: provinceValues.reverse(),
+            itemStyle: {
+              color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+                { offset: 0, color: '#667eea' },
+                { offset: 1, color: '#764ba2' }
+              ]),
+              borderRadius: [0, 8, 8, 0]
+            },
+            label: {
+              show: true,
+              position: 'right',
+              formatter: (params: any) => {
+                const index = params.dataIndex
+                const p = topProvinces[topProvinces.length - 1 - index]
+                return `${p.user_count}人(${p.login_count}次)`
+              },
+              fontWeight: 600
+            }
+          }
+        ]
+      })
       console.log('省份柱状图渲染成功')
     } catch (error) {
       console.error('省份柱状图渲染失败:', error)
@@ -203,49 +214,51 @@ const renderCharts = async () => {
     try {
       console.log('渲染省份分布饼图')
       const provincePieData = provinceStats.map((p: any) => ({
-    name: p.province,
-    value: p.user_count
-  }))
+        name: p.province,
+        value: p.user_count
+      }))
 
-  const chart3 = echarts.init(provincePieChart.value)
-  chart3.setOption({
-    tooltip: {
-      trigger: 'item',
-      formatter: '{b}: {c}人 ({d}%)'
-    },
-    legend: {
-      orient: 'vertical',
-      right: '10%',
-      top: 'center',
-      formatter: (name: string) => {
-        const item = provinceStats.find((p: any) => p.province === name)
-        return `${name} - ${item?.user_count || 0}人`
-      }
-    },
-    series: [{
-      name: '用户分布',
-      type: 'pie',
-      radius: ['40%', '70%'],
-      center: ['40%', '50%'],
-      data: provincePieData,
-      emphasis: {
-        itemStyle: {
-          shadowBlur: 10,
-          shadowOffsetX: 0,
-          shadowColor: 'rgba(0, 0, 0, 0.5)'
-        }
-      },
-      label: {
-        formatter: '{b}\n{d}%',
-        fontWeight: 600
-      },
-      itemStyle: {
-        borderRadius: 8,
-        borderColor: '#fff',
-        borderWidth: 2
-      }
-    }]
-  })
+      const chart3 = echarts.init(provincePieChart.value)
+      chart3.setOption({
+        tooltip: {
+          trigger: 'item',
+          formatter: '{b}: {c}人 ({d}%)'
+        },
+        legend: {
+          orient: 'vertical',
+          right: '10%',
+          top: 'center',
+          formatter: (name: string) => {
+            const item = provinceStats.find((p: any) => p.province === name)
+            return `${name} - ${item?.user_count || 0}人`
+          }
+        },
+        series: [
+          {
+            name: '用户分布',
+            type: 'pie',
+            radius: ['40%', '70%'],
+            center: ['40%', '50%'],
+            data: provincePieData,
+            emphasis: {
+              itemStyle: {
+                shadowBlur: 10,
+                shadowOffsetX: 0,
+                shadowColor: 'rgba(0, 0, 0, 0.5)'
+              }
+            },
+            label: {
+              formatter: '{b}\n{d}%',
+              fontWeight: 600
+            },
+            itemStyle: {
+              borderRadius: 8,
+              borderColor: '#fff',
+              borderWidth: 2
+            }
+          }
+        ]
+      })
       console.log('省份分布饼图渲染成功')
     } catch (error) {
       console.error('省份分布饼图渲染失败:', error)
@@ -261,69 +274,69 @@ const renderCharts = async () => {
 // 渲染中国地图
 const renderWorldMap = async () => {
   if (!worldMapChart.value) return
-  
+
   const provinceStats = data.value.province_stats || []
-  
+
   console.log('地图 - 原始省份数据:', provinceStats)
-  
+
   // 省份名称映射（数据库名称 -> 地图名称）
   const provinceNameMap: any = {
-    '北京': '北京',
-    '上海': '上海',
-    '天津': '天津',
-    '重庆': '重庆',
-    '广东': '广东省',
-    '山东': '山东省',
-    '江苏': '江苏省',
-    '浙江': '浙江省',
-    '四川': '四川省',
-    '湖北': '湖北省',
-    '湖南': '湖南省',
-    '河南': '河南省',
-    '河北': '河北省',
-    '陕西': '陕西省',
-    '福建': '福建省',
-    '安徽': '安徽省',
-    '江西': '江西省',
-    '云南': '云南省',
-    '贵州': '贵州省',
-    '广西': '广西壮族自治区',
-    '新疆': '新疆维吾尔自治区',
-    '内蒙古': '内蒙古自治区',
-    '西藏': '西藏自治区',
-    '宁夏': '宁夏回族自治区',
-    '海南': '海南省',
-    '辽宁': '辽宁省',
-    '吉林': '吉林省',
-    '黑龙江': '黑龙江省',
-    '山西': '山西省',
-    '甘肃': '甘肃省',
-    '青海': '青海省',
-    '台湾': '台湾省',
-    '香港': '香港特别行政区',
-    '澳门': '澳门特别行政区'
+    北京: '北京',
+    上海: '上海',
+    天津: '天津',
+    重庆: '重庆',
+    广东: '广东省',
+    山东: '山东省',
+    江苏: '江苏省',
+    浙江: '浙江省',
+    四川: '四川省',
+    湖北: '湖北省',
+    湖南: '湖南省',
+    河南: '河南省',
+    河北: '河北省',
+    陕西: '陕西省',
+    福建: '福建省',
+    安徽: '安徽省',
+    江西: '江西省',
+    云南: '云南省',
+    贵州: '贵州省',
+    广西: '广西壮族自治区',
+    新疆: '新疆维吾尔自治区',
+    内蒙古: '内蒙古自治区',
+    西藏: '西藏自治区',
+    宁夏: '宁夏回族自治区',
+    海南: '海南省',
+    辽宁: '辽宁省',
+    吉林: '吉林省',
+    黑龙江: '黑龙江省',
+    山西: '山西省',
+    甘肃: '甘肃省',
+    青海: '青海省',
+    台湾: '台湾省',
+    香港: '香港特别行政区',
+    澳门: '澳门特别行政区'
   }
-  
+
   // 转换为地图数据格式，使用完整的省份名称
   const mapData = provinceStats.map((p: any) => ({
     name: provinceNameMap[p.province] || p.province,
     value: p.user_count
   }))
-  
+
   console.log('地图 - 转换后的地图数据:', mapData)
 
   const chart = echarts.init(worldMapChart.value)
-  
+
   try {
     // 使用阿里云DataV提供的中国地图JSON
     const chinaMapUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json'
     const response = await fetch(chinaMapUrl)
     const chinaJson = await response.json()
-    
+
     // 注册中国地图
     echarts.registerMap('china', chinaJson)
     console.log('地图注册成功')
-    
+
     chart.setOption({
       backgroundColor: '#f3f4f6',
       tooltip: {
@@ -353,38 +366,40 @@ const renderWorldMap = async () => {
           color: '#333'
         }
       },
-      series: [{
-        name: '用户分布',
-        type: 'map',
-        map: 'china',
-        roam: true,
-        data: mapData,
-        label: {
-          show: true,
-          color: '#333',
-          fontSize: 10
-        },
-        itemStyle: {
-          areaColor: '#e0e7ff',
-          borderColor: '#a5b4fc',
-          borderWidth: 1
-        },
-        emphasis: {
+      series: [
+        {
+          name: '用户分布',
+          type: 'map',
+          map: 'china',
+          roam: true,
+          data: mapData,
           label: {
             show: true,
-            color: '#fff',
-            fontSize: 12,
-            fontWeight: 'bold'
+            color: '#333',
+            fontSize: 10
           },
           itemStyle: {
-            areaColor: '#818cf8',
-            borderColor: '#667eea',
-            borderWidth: 2,
-            shadowBlur: 10,
-            shadowColor: 'rgba(102, 126, 234, 0.5)'
+            areaColor: '#e0e7ff',
+            borderColor: '#a5b4fc',
+            borderWidth: 1
+          },
+          emphasis: {
+            label: {
+              show: true,
+              color: '#fff',
+              fontSize: 12,
+              fontWeight: 'bold'
+            },
+            itemStyle: {
+              areaColor: '#818cf8',
+              borderColor: '#667eea',
+              borderWidth: 2,
+              shadowBlur: 10,
+              shadowColor: 'rgba(102, 126, 234, 0.5)'
+            }
           }
         }
-      }]
+      ]
     })
     console.log('地图配置完成')
   } catch (error) {
@@ -507,4 +522,3 @@ onMounted(() => {
   width: 100%;
 }
 </style>
-

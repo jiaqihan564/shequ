@@ -1,4 +1,12 @@
 import axios from 'axios'
+
+import {
+  addAuthTokenInterceptor,
+  addRequestIdInterceptor,
+  handleResponseError
+} from './axios-helpers'
+
+import { apiConfig, codeExecutionConfig } from '@/config'
 import type {
   ExecuteCodeRequest,
   ExecuteCodeResponse,
@@ -11,8 +19,6 @@ import type {
   LanguageInfo,
   PublicSnippetsResponse
 } from '@/types/code'
-import { apiConfig, codeExecutionConfig } from '@/config'
-import { addAuthTokenInterceptor, addRequestIdInterceptor, handleResponseError } from './axios-helpers'
 
 // 创建 axios 实例（代码执行专用，使用更长的超时时间）
 const request = axios.create({
@@ -25,19 +31,19 @@ const request = axios.create({
 
 // 请求拦截器 - 使用公共辅助函数
 request.interceptors.request.use(
-  (config) => {
+  config => {
     config = addAuthTokenInterceptor(config)
     config = addRequestIdInterceptor(config)
     return config
   },
-  (error) => {
+  error => {
     return Promise.reject(error)
   }
 )
 
 // 响应拦截器 - 统一处理响应
 request.interceptors.response.use(
-  (response) => {
+  response => {
     // 如果响应包含 data 字段，直接返回 data
     if (response.data && response.data.data !== undefined) {
       return { ...response, data: response.data.data }
@@ -150,5 +156,3 @@ export async function getPublicSnippets(
   })
   return response.data
 }
-
-

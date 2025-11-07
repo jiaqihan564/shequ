@@ -214,18 +214,18 @@ import { ref, reactive, computed, watch } from 'vue'
 import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
 import UserIcon from '@/components/icons/UserIcon.vue'
+import { authConfig } from '@/config'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import type { RegisterForm } from '@/types'
 import { register } from '@/utils/api'
+import { detectCurrentRegion } from '@/utils/geo'
+import { logger } from '@/utils/ui/logger'
 import {
   validateField as validateSingleField,
   checkPasswordStrength,
   validateConfirmPassword,
   VALIDATION_RULES
 } from '@/utils/validation'
-import { detectCurrentRegion } from '@/utils/geo'
-import { authConfig } from '@/config'
-import { logger } from '@/utils/ui/logger'
 
 const emit = defineEmits<{
   success: [data: any]
@@ -344,17 +344,17 @@ const handleSubmit = async (event: Event) => {
     // 获取地理位置，失败时使用默认值
     let province = authConfig.defaultProvince
     let city = authConfig.defaultCity
-    
+
     try {
       const region = await detectCurrentRegion(false, { timeoutMs: authConfig.registerGeoTimeout })
       if (region && region.province) {
         province = region.province
-        city = region.city || city  // 如果城市为空，使用默认值
+        city = region.city || city // 如果城市为空，使用默认值
       }
     } catch (geoError) {
       void geoError // 获取地理位置失败，使用默认地区
     }
-    
+
     // 调用注册API，传递地区信息
     const result = await register({
       ...formData,

@@ -10,10 +10,10 @@ export interface User {
   role?: UserRole
   status?: UserStatus
   profile?: UserProfile
-  created_at?: string  // 后端返回的字段名（下划线）
-  updated_at?: string  // 后端返回的字段名（下划线）
-  createdAt?: string   // 兼容驼峰命名
-  updatedAt?: string   // 兼容驼峰命名
+  created_at?: string // 后端返回的字段名（下划线）
+  updated_at?: string // 后端返回的字段名（下划线）
+  createdAt?: string // 兼容驼峰命名
+  updatedAt?: string // 兼容驼峰命名
 }
 
 export type UserRole = 'user' | 'admin' | 'moderator'
@@ -48,8 +48,8 @@ export interface RegisterForm {
   confirmPassword: string
   agreeToTerms: boolean
   captcha?: string
-  province?: string    // 用户注册时的省份
-  city?: string        // 用户注册时的城市
+  province?: string // 用户注册时的省份
+  city?: string // 用户注册时的城市
 }
 
 export interface RegisterResponse {

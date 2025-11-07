@@ -1,7 +1,7 @@
 <template>
   <div class="language-selector">
     <label class="selector-label">编程语言:</label>
-    <select :value="modelValue" @change="handleChange" class="language-select">
+    <select :value="modelValue" class="language-select" @change="handleChange">
       <option v-for="lang in languages" :key="lang.id" :value="lang.id">
         {{ lang.name }} ({{ lang.version }})
       </option>
@@ -11,8 +11,9 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getSupportedLanguages } from '@/utils/code-api'
+
 import type { LanguageInfo } from '@/types/code'
+import { getSupportedLanguages } from '@/utils/code-api'
 
 interface Props {
   modelValue: string
@@ -72,7 +73,7 @@ function handleChange(event: Event) {
   const langId = target.value
   emit('update:modelValue', langId)
 
-  const selectedLang = languages.value.find((l) => l.id === langId)
+  const selectedLang = languages.value.find(l => l.id === langId)
   if (selectedLang) {
     emit('change', langId, selectedLang)
   }
@@ -129,5 +130,3 @@ defineExpose({
   }
 }
 </style>
-
-

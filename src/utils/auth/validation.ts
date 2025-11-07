@@ -1,13 +1,19 @@
-import type { ValidationRule, ValidationRules } from '@/types'
 import { VALIDATION_CONSTANTS } from '@/config/validation-constants'
+import type { ValidationRule, ValidationRules } from '@/types'
 
 // 常用正则表达式（使用配置常量动态生成）
 export const REGEX_PATTERNS = {
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-  username: new RegExp(`^[a-zA-Z0-9_]{${VALIDATION_CONSTANTS.USERNAME.MIN_LENGTH},${VALIDATION_CONSTANTS.USERNAME.MAX_LENGTH}}$`),
+  username: new RegExp(
+    `^[a-zA-Z0-9_]{${VALIDATION_CONSTANTS.USERNAME.MIN_LENGTH},${VALIDATION_CONSTANTS.USERNAME.MAX_LENGTH}}$`
+  ),
   // 密码需为 6-50 位，且至少包含一个字母与一个数字；不强制特殊字符与大小写
-  password: new RegExp(`^(?=.*[A-Za-z])(?=.*\\d).{${VALIDATION_CONSTANTS.PASSWORD.MIN_LENGTH},${VALIDATION_CONSTANTS.PASSWORD.MAX_LENGTH}}$`),
-  phone: new RegExp(`^${VALIDATION_CONSTANTS.PHONE.FIRST_DIGIT}[${VALIDATION_CONSTANTS.PHONE.SECOND_DIGIT_MIN}-${VALIDATION_CONSTANTS.PHONE.SECOND_DIGIT_MAX}]\\d{${VALIDATION_CONSTANTS.PHONE.LENGTH - 2}}$`),
+  password: new RegExp(
+    `^(?=.*[A-Za-z])(?=.*\\d).{${VALIDATION_CONSTANTS.PASSWORD.MIN_LENGTH},${VALIDATION_CONSTANTS.PASSWORD.MAX_LENGTH}}$`
+  ),
+  phone: new RegExp(
+    `^${VALIDATION_CONSTANTS.PHONE.FIRST_DIGIT}[${VALIDATION_CONSTANTS.PHONE.SECOND_DIGIT_MIN}-${VALIDATION_CONSTANTS.PHONE.SECOND_DIGIT_MAX}]\\d{${VALIDATION_CONSTANTS.PHONE.LENGTH - 2}}$`
+  ),
   url: /^https?:\/\/.+/,
   chinese: /^[\u4e00-\u9fa5]+$/,
   alphanumeric: /^[a-zA-Z0-9]+$/
@@ -17,8 +23,14 @@ export const REGEX_PATTERNS = {
 export const VALIDATION_RULES: ValidationRules = {
   username: [
     { required: true, message: '请输入用户名' },
-    { minLength: VALIDATION_CONSTANTS.USERNAME.MIN_LENGTH, message: `用户名至少${VALIDATION_CONSTANTS.USERNAME.MIN_LENGTH}个字符` },
-    { maxLength: VALIDATION_CONSTANTS.USERNAME.MAX_LENGTH, message: `用户名不能超过${VALIDATION_CONSTANTS.USERNAME.MAX_LENGTH}个字符` },
+    {
+      minLength: VALIDATION_CONSTANTS.USERNAME.MIN_LENGTH,
+      message: `用户名至少${VALIDATION_CONSTANTS.USERNAME.MIN_LENGTH}个字符`
+    },
+    {
+      maxLength: VALIDATION_CONSTANTS.USERNAME.MAX_LENGTH,
+      message: `用户名不能超过${VALIDATION_CONSTANTS.USERNAME.MAX_LENGTH}个字符`
+    },
     { pattern: REGEX_PATTERNS.username, message: '用户名只能包含字母、数字和下划线' }
   ],
   email: [
@@ -27,9 +39,18 @@ export const VALIDATION_RULES: ValidationRules = {
   ],
   password: [
     { required: true, message: '请输入密码' },
-    { minLength: VALIDATION_CONSTANTS.PASSWORD.MIN_LENGTH, message: `密码至少${VALIDATION_CONSTANTS.PASSWORD.MIN_LENGTH}个字符` },
-    { maxLength: VALIDATION_CONSTANTS.PASSWORD.MAX_LENGTH, message: `密码不能超过${VALIDATION_CONSTANTS.PASSWORD.MAX_LENGTH}个字符` },
-    { pattern: REGEX_PATTERNS.password, message: `密码需为${VALIDATION_CONSTANTS.PASSWORD.MIN_LENGTH}-${VALIDATION_CONSTANTS.PASSWORD.MAX_LENGTH}个字符，且至少包含字母和数字` }
+    {
+      minLength: VALIDATION_CONSTANTS.PASSWORD.MIN_LENGTH,
+      message: `密码至少${VALIDATION_CONSTANTS.PASSWORD.MIN_LENGTH}个字符`
+    },
+    {
+      maxLength: VALIDATION_CONSTANTS.PASSWORD.MAX_LENGTH,
+      message: `密码不能超过${VALIDATION_CONSTANTS.PASSWORD.MAX_LENGTH}个字符`
+    },
+    {
+      pattern: REGEX_PATTERNS.password,
+      message: `密码需为${VALIDATION_CONSTANTS.PASSWORD.MIN_LENGTH}-${VALIDATION_CONSTANTS.PASSWORD.MAX_LENGTH}个字符，且至少包含字母和数字`
+    }
   ],
   confirmPassword: [{ required: true, message: '请确认密码' }],
   phone: [
@@ -248,4 +269,3 @@ export function debounce<T extends (...args: any[]) => any>(
     timeoutId = setTimeout(() => func(...args), delay)
   }
 }
-

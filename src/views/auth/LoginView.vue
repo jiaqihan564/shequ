@@ -18,11 +18,11 @@ const router = useRouter()
 
 async function onSuccess() {
   toast.success('登录成功！')
-  
+
   // 后台并发，不阻塞跳转；定位采用 IP 兜底优先（更快），并强制简体
   ensureRegionsLoaded().catch(() => {})
   detectCurrentRegion(true, { timeoutMs: 3500, method: 'auto', provider: 'auto' }).catch(() => {})
-  
+
   // 优先从 sessionStorage 获取保存的重定向路径
   const savedRedirect = sessionStorage.getItem('redirect_after_login')
   if (savedRedirect) {
@@ -30,7 +30,7 @@ async function onSuccess() {
     router.push(savedRedirect)
     return
   }
-  
+
   // 其次从 query 参数获取
   const queryRedirect = router.currentRoute.value.query.redirect as string
   const redirect = queryRedirect || '/home'

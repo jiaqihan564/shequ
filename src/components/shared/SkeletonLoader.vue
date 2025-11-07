@@ -68,13 +68,7 @@ withDefaults(defineProps<Props>(), {
 
 .shimmer {
   animation: shimmer 2s infinite linear;
-  background: linear-gradient(
-    to right,
-    #f0f0f0 0%,
-    #e0e0e0 20%,
-    #f0f0f0 40%,
-    #f0f0f0 100%
-  );
+  background: linear-gradient(to right, #f0f0f0 0%, #e0e0e0 20%, #f0f0f0 40%, #f0f0f0 100%);
   background-size: 1000px 100%;
 }
 
@@ -200,4 +194,3 @@ withDefaults(defineProps<Props>(), {
   }
 }
 </style>
-

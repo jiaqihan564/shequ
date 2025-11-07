@@ -3,7 +3,8 @@
     <!-- 顶部导航栏 -->
     <header class="chatroom-header">
       <button class="back-btn" @click="goBack">
-        <span>←</span> 返回
+        <span>←</span>
+        返回
       </button>
       <div class="header-center">
         <h2 class="title">💬 全局聊天室</h2>
@@ -13,7 +14,13 @@
         <div class="connection-status" :class="connectionStatus">
           <span class="status-dot"></span>
           <span class="status-text">
-            {{ connectionStatus === 'connected' ? '已连接' : connectionStatus === 'connecting' ? '连接中' : '未连接' }}
+            {{
+              connectionStatus === 'connected'
+                ? '已连接'
+                : connectionStatus === 'connecting'
+                  ? '连接中'
+                  : '未连接'
+            }}
           </span>
         </div>
         <div class="online-info">
@@ -41,10 +48,10 @@
           @mouseenter="handleMessageHover(message, $event)"
           @mouseleave="handleMessageLeave"
         >
-          <img 
-            :src="getAvatarUrl(message)" 
-            :alt="message.nickname || message.username" 
-            class="message-avatar" 
+          <img
+            :src="getAvatarUrl(message)"
+            :alt="message.nickname || message.username"
+            class="message-avatar"
             @click="goToUserDetail(message.user_id)"
           />
           <div class="message-content-wrapper">
@@ -68,14 +75,16 @@
         @mouseleave="handleCardLeave"
       >
         <div class="card-header">
-          <img 
-            :src="getAvatarUrl(hoveredMessage)" 
-            :alt="hoveredMessage.nickname || hoveredMessage.username" 
-            class="card-avatar" 
+          <img
+            :src="getAvatarUrl(hoveredMessage)"
+            :alt="hoveredMessage.nickname || hoveredMessage.username"
+            class="card-avatar"
             @click="goToUserDetail(hoveredMessage.user_id)"
           />
           <div class="card-user-info">
-            <div class="card-nickname">{{ hoveredMessage.nickname || hoveredMessage.username }}</div>
+            <div class="card-nickname">
+              {{ hoveredMessage.nickname || hoveredMessage.username }}
+            </div>
             <div class="card-username">@{{ hoveredMessage.username }}</div>
           </div>
         </div>
@@ -99,14 +108,14 @@
           class="message-input"
           placeholder="输入消息内容（最多500字）..."
           maxlength="500"
-          @keyup.enter="sendMessage"
           :disabled="sending"
+          @keyup.enter="sendMessage"
         />
         <div class="input-info">
           <span class="char-count">{{ messageInput.length }}/500</span>
         </div>
       </div>
-      <button 
+      <button
         class="send-btn"
         :class="{ disabled: !canSend }"
         :disabled="!canSend"
@@ -131,11 +140,11 @@ export default {
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
-import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
+import { STORAGE_KEYS } from '@/config/storage-keys'
 import { globalChatService } from '@/services/globalChatService'
+import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import { getChatMessages } from '@/utils/api'
 import { toast } from '@/utils/toast'
-import { STORAGE_KEYS } from '@/config/storage-keys'
 import { logger } from '@/utils/ui/logger'
 
 const router = useRouter()
@@ -181,7 +190,9 @@ const isCardHovered = ref(false)
 let hoverTimeout: number | null = null
 
 const canSend = computed(() => {
-  return messageInput.value.trim().length > 0 && !sending.value && connectionStatus.value === 'connected'
+  return (
+    messageInput.value.trim().length > 0 && !sending.value && connectionStatus.value === 'connected'
+  )
 })
 
 // 判断是否是自己的消息
@@ -192,8 +203,8 @@ const isOwnMessage = (message: ChatMessage): boolean => {
 // 获取头像URL
 const getAvatarUrl = (message: ChatMessage): string => {
   if (message.avatar) {
-    return message.avatar.startsWith('http') 
-      ? message.avatar 
+    return message.avatar.startsWith('http')
+      ? message.avatar
       : `http://localhost:8080${message.avatar}`
   }
   return `https://ui-avatars.com/api/?name=${encodeURIComponent(message.nickname || message.username)}&background=6366f1&color=fff&size=128`
@@ -204,12 +215,15 @@ const formatTime = (timeStr: string): string => {
   const date = new Date(timeStr)
   const now = new Date()
   const diff = now.getTime() - date.getTime()
-  
-  if (diff < 60000) { // 1分钟内
+
+  if (diff < 60000) {
+    // 1分钟内
     return '刚刚'
-  } else if (diff < 3600000) { // 1小时内
+  } else if (diff < 3600000) {
+    // 1小时内
     return `${Math.floor(diff / 60000)}分钟前`
-  } else if (diff < 86400000) { // 24小时内
+  } else if (diff < 86400000) {
+    // 24小时内
     return `${Math.floor(diff / 3600000)}小时前`
   } else {
     return date.toLocaleString('zh-CN', {
@@ -239,10 +253,10 @@ const handleMessageHover = (message: ChatMessage, event: MouseEvent) => {
   if (hoverTimeout) {
     clearTimeout(hoverTimeout)
   }
-  
+
   hoverTimeout = window.setTimeout(() => {
     hoveredMessage.value = message
-    
+
     // 调试：打印消息信息
     logger.debug('悬停消息信息:', {
       id: message.id,
@@ -251,13 +265,13 @@ const handleMessageHover = (message: ChatMessage, event: MouseEvent) => {
       nickname: message.nickname,
       content: message.content
     })
-    
+
     const target = event.currentTarget as HTMLElement
     const rect = target.getBoundingClientRect()
-    
+
     // 判断是否是自己的消息，自己的消息卡片显示在左侧
     const isOwn = isOwnMessage(message)
-    
+
     if (isOwn) {
       // 自己的消息，卡片显示在左侧
       cardPosition.value = {
@@ -280,7 +294,7 @@ const handleMessageLeave = () => {
     clearTimeout(hoverTimeout)
     hoverTimeout = null
   }
-  
+
   setTimeout(() => {
     if (!isCardHovered.value) {
       hoveredMessage.value = null
@@ -306,10 +320,10 @@ const scrollToBottom = () => {
 // 发送消息 (via WebSocket)
 const sendMessage = async () => {
   if (!canSend.value) return
-  
+
   const content = messageInput.value.trim()
   if (content.length === 0) return
-  
+
   sending.value = true
   try {
     await globalChatService.sendMessage(content)
@@ -341,18 +355,18 @@ const loadInitialMessages = async () => {
   try {
     const result = await getChatMessages(100)
     const msgs = result.messages || []
-    
+
     // 填充到 WebSocket 消息列表
     messages.value.push(...msgs)
-    
+
     // 标记历史消息已加载
     globalChatService.markHistoryLoaded()
-    
+
     // 更新 lastMessageId
     if (msgs.length > 0) {
       lastMessageId.value = msgs[msgs.length - 1].id
     }
-    
+
     // 滚动到底部
     scrollToBottom()
   } catch (error: any) {
@@ -363,11 +377,14 @@ const loadInitialMessages = async () => {
 }
 
 // Auto-scroll when new messages arrive
-watch(() => messages.value.length, () => {
-  nextTick(() => {
-    scrollToBottom()
-  })
-})
+watch(
+  () => messages.value.length,
+  () => {
+    nextTick(() => {
+      scrollToBottom()
+    })
+  }
+)
 
 // 返回
 const goBack = () => {
@@ -377,14 +394,15 @@ const goBack = () => {
 // 跳转到用户详情
 const goToUserDetail = (userId: number) => {
   if (!userId) return
-  
+
   router.push(`/users/${userId}`)
 }
 
 onMounted(() => {
   // 加载当前用户信息
   try {
-    const userInfo = localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
+    const userInfo =
+      localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
     if (userInfo) {
       currentUser.value = JSON.parse(userInfo)
     }
@@ -409,7 +427,7 @@ onBeforeUnmount(() => {
     clearTimeout(hoverTimeout)
     hoverTimeout = null
   }
-  
+
   // Note: 不需要清理 globalChatService 的订阅，因为组件直接使用响应式引用
   // 如果将来使用订阅方法，请在此处清理：
   // if (unsubscribe) {
@@ -437,7 +455,7 @@ onBeforeUnmount(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  background: 
+  background:
     radial-gradient(circle at 20% 30%, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
     radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.12) 0%, transparent 50%),
     radial-gradient(circle at 50% 50%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
@@ -446,7 +464,8 @@ onBeforeUnmount(() => {
 }
 
 @keyframes backgroundShift {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1) rotate(0deg);
   }
@@ -477,11 +496,13 @@ onBeforeUnmount(() => {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(99, 102, 241, 0.5) 25%, 
-    rgba(139, 92, 246, 0.5) 75%, 
-    transparent 100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(99, 102, 241, 0.5) 25%,
+    rgba(139, 92, 246, 0.5) 75%,
+    transparent 100%
+  );
 }
 
 .back-btn {
@@ -625,20 +646,27 @@ onBeforeUnmount(() => {
   height: 10px;
   border-radius: 50%;
   background: #10b981;
-  box-shadow: 0 0 10px #10b981, 0 0 20px rgba(16, 185, 129, 0.5);
+  box-shadow:
+    0 0 10px #10b981,
+    0 0 20px rgba(16, 185, 129, 0.5);
   animation: pulse 2s infinite;
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 1;
     transform: scale(1);
-    box-shadow: 0 0 10px #10b981, 0 0 20px rgba(16, 185, 129, 0.5);
+    box-shadow:
+      0 0 10px #10b981,
+      0 0 20px rgba(16, 185, 129, 0.5);
   }
   50% {
     opacity: 0.8;
     transform: scale(1.3);
-    box-shadow: 0 0 15px #10b981, 0 0 30px rgba(16, 185, 129, 0.7);
+    box-shadow:
+      0 0 15px #10b981,
+      0 0 30px rgba(16, 185, 129, 0.7);
   }
 }
 
@@ -701,7 +729,8 @@ onBeforeUnmount(() => {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -733,7 +762,7 @@ onBeforeUnmount(() => {
   background: rgba(255, 255, 255, 0.08);
   border-color: rgba(99, 102, 241, 0.3);
   transform: translateX(4px);
-  box-shadow: 
+  box-shadow:
     0 4px 16px rgba(99, 102, 241, 0.15),
     0 2px 8px rgba(0, 0, 0, 0.1);
 }
@@ -749,7 +778,7 @@ onBeforeUnmount(() => {
   background: linear-gradient(135deg, rgba(99, 102, 241, 0.2) 0%, rgba(139, 92, 246, 0.2) 100%);
   border-color: rgba(99, 102, 241, 0.4);
   transform: translateX(-4px);
-  box-shadow: 
+  box-shadow:
     0 4px 16px rgba(99, 102, 241, 0.25),
     0 2px 8px rgba(139, 92, 246, 0.15);
 }
@@ -780,16 +809,17 @@ onBeforeUnmount(() => {
 /* 自己的消息头像边框 */
 .message-item.own-message .message-avatar {
   border: 3px solid transparent;
-  background: linear-gradient(white, white) padding-box,
-              linear-gradient(135deg, #6366f1, #8b5cf6) border-box;
-  box-shadow: 
+  background:
+    linear-gradient(white, white) padding-box,
+    linear-gradient(135deg, #6366f1, #8b5cf6) border-box;
+  box-shadow:
     0 4px 12px rgba(99, 102, 241, 0.3),
     0 2px 6px rgba(0, 0, 0, 0.2);
 }
 
 .message-item.own-message:hover .message-avatar {
   transform: scale(1.08);
-  box-shadow: 
+  box-shadow:
     0 6px 18px rgba(99, 102, 241, 0.4),
     0 3px 9px rgba(139, 92, 246, 0.3);
 }
@@ -856,7 +886,7 @@ onBeforeUnmount(() => {
   width: 320px;
   background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
   border-radius: 16px;
-  box-shadow: 
+  box-shadow:
     0 12px 40px rgba(0, 0, 0, 0.25),
     0 6px 20px rgba(0, 0, 0, 0.15),
     0 0 0 1px rgba(99, 102, 241, 0.15);
@@ -913,10 +943,11 @@ onBeforeUnmount(() => {
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid transparent;
-  background: linear-gradient(white, white) padding-box,
-              linear-gradient(135deg, #6366f1, #8b5cf6) border-box;
+  background:
+    linear-gradient(white, white) padding-box,
+    linear-gradient(135deg, #6366f1, #8b5cf6) border-box;
   flex-shrink: 0;
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(99, 102, 241, 0.2),
     0 2px 6px rgba(0, 0, 0, 0.1);
   cursor: pointer;
@@ -925,7 +956,7 @@ onBeforeUnmount(() => {
 
 .card-avatar:hover {
   transform: scale(1.1);
-  box-shadow: 
+  box-shadow:
     0 6px 18px rgba(99, 102, 241, 0.4),
     0 3px 9px rgba(0, 0, 0, 0.2);
 }
@@ -960,11 +991,13 @@ onBeforeUnmount(() => {
 
 .card-divider {
   height: 1px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(99, 102, 241, 0.15) 25%, 
-    rgba(139, 92, 246, 0.15) 75%, 
-    transparent 100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(99, 102, 241, 0.15) 25%,
+    rgba(139, 92, 246, 0.15) 75%,
+    transparent 100%
+  );
 }
 
 .card-content {
@@ -1032,11 +1065,13 @@ onBeforeUnmount(() => {
   left: 0;
   right: 0;
   height: 2px;
-  background: linear-gradient(90deg, 
-    transparent 0%, 
-    rgba(99, 102, 241, 0.4) 25%, 
-    rgba(139, 92, 246, 0.4) 75%, 
-    transparent 100%);
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(99, 102, 241, 0.4) 25%,
+    rgba(139, 92, 246, 0.4) 75%,
+    transparent 100%
+  );
 }
 
 .input-container {
@@ -1054,7 +1089,7 @@ onBeforeUnmount(() => {
   color: #1e293b;
   outline: none;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(0, 0, 0, 0.08),
     inset 0 1px 2px rgba(255, 255, 255, 0.8);
   font-weight: 500;
@@ -1063,7 +1098,7 @@ onBeforeUnmount(() => {
 .message-input:focus {
   border-color: rgba(99, 102, 241, 0.6);
   background: #ffffff;
-  box-shadow: 
+  box-shadow:
     0 8px 24px rgba(99, 102, 241, 0.15),
     0 0 0 4px rgba(99, 102, 241, 0.1),
     inset 0 1px 2px rgba(255, 255, 255, 0.8);
@@ -1107,7 +1142,7 @@ onBeforeUnmount(() => {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 
+  box-shadow:
     0 4px 16px rgba(99, 102, 241, 0.4),
     0 2px 8px rgba(0, 0, 0, 0.2);
   white-space: nowrap;
@@ -1135,7 +1170,7 @@ onBeforeUnmount(() => {
 .send-btn:hover:not(.disabled) {
   background: linear-gradient(135deg, #7c3aed 0%, #a855f7 100%);
   transform: translateY(-3px) scale(1.02);
-  box-shadow: 
+  box-shadow:
     0 8px 24px rgba(99, 102, 241, 0.5),
     0 4px 12px rgba(0, 0, 0, 0.3),
     0 0 0 4px rgba(139, 92, 246, 0.2);
@@ -1143,7 +1178,7 @@ onBeforeUnmount(() => {
 
 .send-btn:active:not(.disabled) {
   transform: translateY(-1px) scale(0.98);
-  box-shadow: 
+  box-shadow:
     0 4px 12px rgba(99, 102, 241, 0.4),
     0 2px 6px rgba(0, 0, 0, 0.2);
 }
@@ -1155,4 +1190,3 @@ onBeforeUnmount(() => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 </style>
-

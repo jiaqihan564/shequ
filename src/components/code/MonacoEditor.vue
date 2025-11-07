@@ -5,20 +5,25 @@
       <div class="loading-spinner"></div>
       <p class="loading-text">编辑器加载中...</p>
     </div>
-    
+
     <!-- 加载错误状态 -->
     <div v-else-if="loadError" class="monaco-error">
       <p class="error-text">{{ loadError }}</p>
     </div>
-    
+
     <!-- 编辑器容器 -->
-    <div ref="editorContainer" class="monaco-editor-container" :class="{ 'is-loading': isLoading }"></div>
+    <div
+      ref="editorContainer"
+      class="monaco-editor-container"
+      :class="{ 'is-loading': isLoading }"
+    ></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch } from 'vue'
 import type * as Monaco from 'monaco-editor'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
+
 import { getLoadedMonaco, markCodeEditorUsed } from '@/utils/monaco-preloader'
 import { logger } from '@/utils/ui/logger'
 
@@ -57,11 +62,11 @@ let monacoModule: typeof Monaco | null = null
 async function loadMonacoEditor(): Promise<typeof Monaco> {
   isLoading.value = true
   loadError.value = null
-  
+
   try {
     // 1. 优先使用预加载的实例
     let monaco = getLoadedMonaco()
-    
+
     if (monaco) {
       logger.info('[MonacoEditor] 使用预加载的 Monaco Editor 实例')
     } else {
@@ -69,10 +74,10 @@ async function loadMonacoEditor(): Promise<typeof Monaco> {
       logger.info('[MonacoEditor] 预加载未完成，动态导入 Monaco Editor...')
       monaco = await import('monaco-editor')
     }
-    
+
     // 3. 记录用户使用过代码编辑器（用于智能预加载）
     markCodeEditorUsed()
-    
+
     return monaco
   } catch (error) {
     logger.error('[MonacoEditor] 加载失败:', error)
@@ -89,7 +94,7 @@ onMounted(async () => {
   try {
     // 异步加载 Monaco Editor
     monacoModule = await loadMonacoEditor()
-    
+
     // 创建编辑器实例
     editor = monacoModule.editor.create(editorContainer.value, {
       value: props.modelValue,
@@ -123,7 +128,7 @@ onUnmounted(() => {
 // 监听语言变化
 watch(
   () => props.language,
-  (newLang) => {
+  newLang => {
     if (editor && monacoModule) {
       const model = editor.getModel()
       if (model) {
@@ -136,7 +141,7 @@ watch(
 // 监听主题变化
 watch(
   () => props.theme,
-  (newTheme) => {
+  newTheme => {
     if (monacoModule) {
       monacoModule.editor.setTheme(newTheme)
     }
@@ -146,7 +151,7 @@ watch(
 // 监听外部值变化
 watch(
   () => props.modelValue,
-  (newValue) => {
+  newValue => {
     if (editor && editor.getValue() !== newValue) {
       editor.setValue(newValue)
     }
@@ -156,7 +161,7 @@ watch(
 // 监听只读状态变化
 watch(
   () => props.readonly,
-  (newReadonly) => {
+  newReadonly => {
     editor?.updateOptions({ readOnly: newReadonly })
   }
 )
@@ -244,6 +249,3 @@ defineExpose({
   font-size: 14px;
 }
 </style>
-
-
-

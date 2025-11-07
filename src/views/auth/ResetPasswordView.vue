@@ -97,9 +97,9 @@
               <EyeOffIcon v-else />
             </button>
           </div>
-          <span v-if="errors.confirmPassword" class="error-message">{{
-            errors.confirmPassword
-          }}</span>
+          <span v-if="errors.confirmPassword" class="error-message">
+            {{ errors.confirmPassword }}
+          </span>
         </div>
 
         <button type="submit" class="reset-button" :disabled="!canSubmit">
@@ -516,4 +516,3 @@ onMounted(() => {
   }
 }
 </style>
-

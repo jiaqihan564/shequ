@@ -7,9 +7,7 @@
           <h1 class="page-title">全站累计统计</h1>
           <p class="page-subtitle">系统运行以来的累计统计数据</p>
         </div>
-        <el-button :icon="Refresh" @click="loadData(true)" :loading="loading">
-          刷新数据
-        </el-button>
+        <el-button :icon="Refresh" :loading="loading" @click="loadData(true)">刷新数据</el-button>
       </div>
       <div v-if="lastUpdateTime" class="update-time">
         <el-text type="info" size="small">
@@ -35,18 +33,8 @@
           </div>
         </template>
         <el-row :gutter="20">
-          <el-col
-            v-for="item in data.user"
-            :key="item.stat_key"
-            :xs="24"
-            :sm="12"
-            :md="8"
-            :lg="6"
-          >
-            <el-statistic
-              :value="item.stat_value"
-              :title="item.stat_desc"
-            >
+          <el-col v-for="item in data.user" :key="item.stat_key" :xs="24" :sm="12" :md="8" :lg="6">
+            <el-statistic :value="item.stat_value" :title="item.stat_desc">
               <template #prefix>
                 <el-icon :style="{ color: getUserColor(item.stat_key) }">
                   <component :is="getUserIcon(item.stat_key)" />
@@ -68,18 +56,8 @@
           </div>
         </template>
         <el-row :gutter="20">
-          <el-col
-            v-for="item in data.api"
-            :key="item.stat_key"
-            :xs="24"
-            :sm="12"
-            :md="8"
-            :lg="6"
-          >
-            <el-statistic
-              :value="item.stat_value"
-              :title="item.stat_desc"
-            >
+          <el-col v-for="item in data.api" :key="item.stat_key" :xs="24" :sm="12" :md="8" :lg="6">
+            <el-statistic :value="item.stat_value" :title="item.stat_desc">
               <template #prefix>
                 <el-icon :style="{ color: getApiColor(item.stat_key) }">
                   <component :is="getApiIcon(item.stat_key)" />
@@ -109,10 +87,7 @@
             :md="8"
             :lg="6"
           >
-            <el-statistic
-              :value="item.stat_value"
-              :title="item.stat_desc"
-            >
+            <el-statistic :value="item.stat_value" :title="item.stat_desc">
               <template #prefix>
                 <el-icon :style="{ color: getSecurityColor(item.stat_key) }">
                   <component :is="getSecurityIcon(item.stat_key)" />
@@ -124,7 +99,11 @@
       </el-card>
 
       <!-- 内容数据 -->
-      <el-card v-if="data.content && data.content.length > 0" class="stats-section-card" shadow="hover">
+      <el-card
+        v-if="data.content && data.content.length > 0"
+        class="stats-section-card"
+        shadow="hover"
+      >
         <template #header>
           <div class="section-header">
             <h3 class="section-title">
@@ -142,10 +121,7 @@
             :md="8"
             :lg="6"
           >
-            <el-statistic
-              :value="item.stat_value"
-              :title="item.stat_desc"
-            >
+            <el-statistic :value="item.stat_value" :title="item.stat_desc">
               <template #prefix>
                 <el-icon :style="{ color: getContentColor(item.stat_key) }">
                   <component :is="getContentIcon(item.stat_key)" />
@@ -166,11 +142,22 @@ export default {
 </script>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
 import {
-  Refresh, Clock, User, DataAnalysis, Lock, Document,
-  UserFilled, Key, Connection, Upload, EditPen, Warning
+  Refresh,
+  Clock,
+  User,
+  DataAnalysis,
+  Lock,
+  Document,
+  UserFilled,
+  Key,
+  Connection,
+  Upload,
+  EditPen,
+  Warning
 } from '@element-plus/icons-vue'
+import { ref, onMounted } from 'vue'
+
 import { getCumulativeStats } from '@/utils/api'
 import toast from '@/utils/toast'
 

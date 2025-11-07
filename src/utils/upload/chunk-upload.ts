@@ -3,8 +3,10 @@
  */
 
 import SparkMD5 from 'spark-md5'
+
 import { initChunkUpload, uploadChunk as apiUploadChunk, mergeChunks } from '../api/api'
 import { logger } from '../ui/logger'
+
 import { uploadConfig } from '@/config'
 
 const CHUNK_SIZE = uploadConfig.chunkSize
@@ -21,7 +23,7 @@ export async function calculateFileMD5(file: File): Promise<string> {
     const spark = new SparkMD5.ArrayBuffer()
     const fileReader = new FileReader()
 
-    fileReader.onload = (e) => {
+    fileReader.onload = e => {
       spark.append(e.target?.result as ArrayBuffer)
       currentChunk++
 
@@ -56,11 +58,11 @@ export async function uploadFileWithChunks(
 ): Promise<string> {
   // 1. 计算文件MD5（作为upload_id）
   const uploadId = await calculateFileMD5(file)
-  
+
   // 2. 文件切片
   const chunks: Blob[] = []
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
-  
+
   for (let i = 0; i < totalChunks; i++) {
     const start = i * CHUNK_SIZE
     const end = Math.min(start + CHUNK_SIZE, file.size)
@@ -76,7 +78,7 @@ export async function uploadFileWithChunks(
   })
 
   const uploadedChunks = new Set(initResponse.uploaded_chunks || [])
-  
+
   // 4. 上传未上传的分片（串行上传，避免并发问题）
   let completed = uploadedChunks.size
 
@@ -102,7 +104,6 @@ export async function uploadFileWithChunks(
 
   // 5. 合并分片
   const mergeResponse = await mergeChunks(uploadId)
-  
+
   return mergeResponse.storage_path
 }
-

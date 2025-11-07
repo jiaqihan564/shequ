@@ -241,7 +241,7 @@ print(f"\\n年龄: {age}, 薪资: {salary}")
 # setdefault 方法
 person.setdefault('country', 'China')
 print("\\n添加默认值后:", person)`,
-      expectedOutput: '原始字典: {\'name\': \'Alice\', \'age\': 25, \'city\': \'Beijing\'}\n...'
+      expectedOutput: "原始字典: {'name': 'Alice', 'age': 25, 'city': 'Beijing'}\n..."
     },
     {
       id: 'python-exception-handling',
@@ -833,7 +833,7 @@ async function getUsersSequentially() {
   await getUsersSequentially();
   console.log("\\n所有任务完成");
 })();`,
-      expectedOutput: '开始获取用户...\n用户信息: { id: 1, name: \'User1\', age: 21 }\n...'
+      expectedOutput: "开始获取用户...\n用户信息: { id: 1, name: 'User1', age: 21 }\n..."
     },
     {
       id: 'js-set-map',
@@ -1345,7 +1345,8 @@ public class Main {
         System.out.println("奇数组: " + partitioned.get(false));
     }
 }`,
-      expectedOutput: '=== Stream 基础 ===\n偶数: [2, 4, 6, 8, 10]\n平方: [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]\n...'
+      expectedOutput:
+        '=== Stream 基础 ===\n偶数: [2, 4, 6, 8, 10]\n平方: [1, 4, 9, 16, 25, 36, 49, 64, 81, 100]\n...'
     }
   ],
 
@@ -3678,6 +3679,3 @@ print "\\nSorted: @sorted\\n";`,
 }
 
 export default codeExamples
-
-
-

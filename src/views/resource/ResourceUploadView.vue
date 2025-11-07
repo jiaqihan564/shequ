@@ -8,11 +8,23 @@
       <el-form :model="form" label-position="top" size="large">
         <!-- 基本信息 -->
         <el-form-item label="资源标题" required>
-          <el-input v-model="form.title" placeholder="请输入资源标题" :maxlength="formLimitsConfig.resourceTitle" show-word-limit />
+          <el-input
+            v-model="form.title"
+            placeholder="请输入资源标题"
+            :maxlength="formLimitsConfig.resourceTitle"
+            show-word-limit
+          />
         </el-form-item>
 
         <el-form-item label="资源描述">
-          <el-input v-model="form.description" type="textarea" :rows="3" placeholder="简单介绍这个资源..." :maxlength="formLimitsConfig.resourceDescription" show-word-limit />
+          <el-input
+            v-model="form.description"
+            type="textarea"
+            :rows="3"
+            placeholder="简单介绍这个资源..."
+            :maxlength="formLimitsConfig.resourceDescription"
+            show-word-limit
+          />
         </el-form-item>
 
         <el-form-item label="资源分类">
@@ -33,17 +45,18 @@
           >
             <el-icon class="el-icon--upload"><upload-filled /></el-icon>
             <div class="el-upload__text">
-              拖拽文件到此处或 <em>点击选择</em>
+              拖拽文件到此处或
+              <em>点击选择</em>
             </div>
             <template #tip>
-              <div class="el-upload__tip">
-                支持任意文件类型，单个文件最大5GB
-              </div>
+              <div class="el-upload__tip">支持任意文件类型，单个文件最大5GB</div>
             </template>
           </el-upload>
-          
+
           <div v-if="selectedFile" class="file-preview">
-            <el-tag type="success">{{ selectedFile.name }} ({{ formatFileSize(selectedFile.size) }})</el-tag>
+            <el-tag type="success">
+              {{ selectedFile.name }} ({{ formatFileSize(selectedFile.size) }})
+            </el-tag>
           </div>
 
           <el-progress v-if="uploading" :percentage="uploadProgress" :status="uploadStatus" />
@@ -75,9 +88,7 @@
             style="display: none"
             @change="handleDocMdFileImport"
           />
-          <el-button :icon="FolderOpened" @click="selectDocMdFile">
-            导入Markdown文件
-          </el-button>
+          <el-button :icon="FolderOpened" @click="selectDocMdFile">导入Markdown文件</el-button>
           <el-text type="info" size="small" style="margin-left: 12px">
             导入.md文件作为详细文档
           </el-text>
@@ -93,18 +104,13 @@
                 <el-button
                   :icon="Picture"
                   size="small"
-                  @click="selectDocImage"
                   :loading="uploadingDocImage"
                   text
+                  @click="selectDocImage"
                 >
                   {{ uploadingDocImage ? '上传中...' : '插入图片' }}
                 </el-button>
-                <el-button
-                  :icon="View"
-                  size="small"
-                  @click="toggleDocPreview"
-                  text
-                >
+                <el-button :icon="View" size="small" text @click="toggleDocPreview">
                   {{ showDocPreview ? '编辑' : '预览' }}
                 </el-button>
               </el-button-group>
@@ -146,16 +152,22 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, nextTick } from 'vue'
-import { useRouter } from 'vue-router'
 import { Plus, UploadFilled, FolderOpened, Picture, View } from '@element-plus/icons-vue'
 import type { UploadFile, UploadFiles } from 'element-plus'
-import { uploadFileWithChunks } from '@/utils/chunk-upload'
-import { createResource, uploadResourceImage, uploadImage, getResourceCategories } from '@/utils/api'
-import type { ResourceCategory } from '@/types/resource'
-import toast from '@/utils/toast'
-import { renderMarkdown } from '@/utils/markdown'
+import { ref, reactive, onMounted, computed, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+
 import { uploadConfig, formLimitsConfig, uiDelayConfig } from '@/config'
+import type { ResourceCategory } from '@/types/resource'
+import {
+  createResource,
+  uploadResourceImage,
+  uploadImage,
+  getResourceCategories
+} from '@/utils/api'
+import { uploadFileWithChunks } from '@/utils/chunk-upload'
+import { renderMarkdown } from '@/utils/markdown'
+import toast from '@/utils/toast'
 
 const router = useRouter()
 
@@ -194,7 +206,7 @@ async function loadCategories() {
 
 function handleFileChange(file: UploadFile) {
   selectedFile.value = file.raw as File
-  
+
   // 如果标题为空，自动设置为文件名（去掉扩展名）
   if (!form.title.trim()) {
     const fileName = file.name
@@ -234,7 +246,7 @@ function selectDocImage() {
   if (textarea) {
     savedDocCursorPosition = textarea.selectionStart || 0
   }
-  
+
   const input = document.createElement('input')
   input.type = 'file'
   input.accept = 'image/*'
@@ -273,29 +285,29 @@ async function handleDocImageUpload(event: Event) {
 function insertDocImageMarkdown(url: string, alt: string = '图片') {
   const markdown = `![${alt}](${url})`
   const textarea = documentEditor.value?.$el?.querySelector('textarea')
-  
+
   if (textarea) {
     // 使用保存的光标位置
     const pos = savedDocCursorPosition
     console.log('插入文档图片 - 保存的光标位置:', pos)
     console.log('插入文档图片 - 当前内容长度:', form.document.length)
-    
+
     const before = form.document.substring(0, pos)
     const after = form.document.substring(pos)
-    
+
     // 插入时确保前后有换行
     const needsNewlineBefore = pos > 0 && before[before.length - 1] !== '\n'
     // 确保图片后面总是有换行，这样光标可以定位到新行
     const suffix = '\n'
-    
+
     const prefix = needsNewlineBefore ? '\n' : ''
     const fullMarkdown = prefix + markdown + suffix
-    
+
     // 计算新的光标位置（在图片markdown之后）
     const newPos = pos + prefix.length + markdown.length
-    
+
     form.document = before + fullMarkdown + after
-    
+
     // 将光标定位到插入的图片markdown之后
     nextTick(() => {
       // 等待 DOM 更新后再设置光标
@@ -303,15 +315,18 @@ function insertDocImageMarkdown(url: string, alt: string = '图片') {
         textarea.focus()
         // 使用 setSelectionRange 方法设置光标位置
         textarea.setSelectionRange(newPos, newPos)
-        
+
         // 改进滚动：确保光标位置可见
         // 计算光标所在行的大致位置
         const lineHeight = parseInt(window.getComputedStyle(textarea).lineHeight) || 20
         const lines = form.document.substring(0, newPos).split('\n').length
         const cursorTop = lines * lineHeight
-        
+
         // 如果光标不在可视区域内，滚动到合适位置
-        if (cursorTop < textarea.scrollTop || cursorTop > textarea.scrollTop + textarea.clientHeight) {
+        if (
+          cursorTop < textarea.scrollTop ||
+          cursorTop > textarea.scrollTop + textarea.clientHeight
+        ) {
           textarea.scrollTop = Math.max(0, cursorTop - textarea.clientHeight / 2)
         }
       })
@@ -329,26 +344,26 @@ function selectDocMdFile() {
 function handleDocMdFileImport(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
-  
+
   if (!file) return
-  
+
   // 验证文件类型
   if (!file.name.endsWith('.md') && !file.name.endsWith('.markdown')) {
     toast.error('请选择 .md 或 .markdown 文件')
     input.value = ''
     return
   }
-  
+
   // 验证文件大小
   if (file.size > uploadConfig.markdownMaxSize) {
     toast.error(`文件大小不能超过 ${Math.round(uploadConfig.markdownMaxSize / 1024 / 1024)}MB`)
     input.value = ''
     return
   }
-  
+
   // 读取文件内容
   const reader = new FileReader()
-  reader.onload = (e) => {
+  reader.onload = e => {
     try {
       const content = e.target?.result as string
       form.document = content.trim()
@@ -358,12 +373,12 @@ function handleDocMdFileImport(event: Event) {
     }
     input.value = ''
   }
-  
+
   reader.onerror = () => {
     toast.error('文件读取失败')
     input.value = ''
   }
-  
+
   reader.readAsText(file, 'UTF-8')
 }
 
@@ -386,23 +401,20 @@ async function handleSubmit() {
   try {
     // 1. 上传文件（使用分片上传）
     toast.info('正在上传文件，请稍候...')
-    const storagePath = await uploadFileWithChunks(
-      selectedFile.value,
-      (progress) => {
-        uploadProgress.value = progress
-      }
-    )
+    const storagePath = await uploadFileWithChunks(selectedFile.value, progress => {
+      uploadProgress.value = progress
+    })
     uploadedStoragePath.value = storagePath
 
     // 2. 上传预览图到资源专用桶
     const imageUrls: string[] = []
-    
+
     for (let i = 0; i < imageFileList.value.length; i++) {
       const imgFile = imageFileList.value[i]
       if (imgFile.raw) {
         try {
           toast.info(`正在上传第 ${i + 1} 张预览图...`)
-          
+
           const url = await uploadResourceImage(imgFile.raw)
           imageUrls.push(url)
         } catch (e: any) {
@@ -414,7 +426,7 @@ async function handleSubmit() {
 
     // 3. 创建资源记录
     toast.info('正在保存资源信息...')
-    
+
     const result = await createResource({
       title: form.title,
       description: form.description,
@@ -428,11 +440,14 @@ async function handleSubmit() {
       tags: form.tags
     })
 
-    uploadStatus.value = 'success'    
+    uploadStatus.value = 'success'
     uploadProgress.value = 100
     toast.success('资源发布成功！')
-    
-    setTimeout(() => router.push(`/resources/${result.resource_id}`), uiDelayConfig.uploadSuccessRedirect)
+
+    setTimeout(
+      () => router.push(`/resources/${result.resource_id}`),
+      uiDelayConfig.uploadSuccessRedirect
+    )
   } catch (error: any) {
     uploadStatus.value = 'exception'
     console.error('上传失败:', error)
@@ -446,7 +461,7 @@ function formatFileSize(bytes: number): string {
   const k = 1024
   const sizes = ['B', 'KB', 'MB', 'GB']
   const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
 }
 
 onMounted(() => {
@@ -751,4 +766,3 @@ onMounted(() => {
   }
 }
 </style>
-

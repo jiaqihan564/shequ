@@ -50,4 +50,3 @@ export interface SendMessageResponse {
 export interface StartConversationResponse {
   conversation_id: number
 }
-
