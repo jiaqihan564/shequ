@@ -295,3 +295,147 @@ export function getImageDimensions(file: File): Promise<{ width: number; height:
   })
 }
 
+/**
+ * 压缩并转换图片（极致压缩版）
+ * 支持所有浏览器可识别的图片格式（jpg, jpeg, png, gif, webp, bmp等）
+ * @param file 原始图片文件
+ * @param maxSizeKB 最大文件大小（KB），默认200KB
+ * @param targetQuality 目标压缩质量（0-1），默认0.6（极致压缩）
+ * @returns 转换后的文件
+ */
+export async function compressAndConvertToPNG(
+  file: File,
+  maxSizeKB: number = 200,
+  targetQuality: number = 0.6
+): Promise<File> {
+  console.log(`🖼️ 开始极致压缩: ${file.name} (${formatFileSize(file.size)}) -> 目标 ${maxSizeKB}KB`)
+
+  // 加载图片
+  const img = await loadImage(file)
+  const originalWidth = img.width
+  const originalHeight = img.height
+
+  // 创建canvas
+  const canvas = document.createElement('canvas')
+  let width = originalWidth
+  let height = originalHeight
+
+  // 极致压缩：初始尺寸就很小
+  const maxDimension = 1200 // 最大边长1200px
+  if (width > maxDimension || height > maxDimension) {
+    const ratio = Math.min(maxDimension / width, maxDimension / height)
+    width = Math.round(width * ratio)
+    height = Math.round(height * ratio)
+    console.log(`📏 缩小尺寸: ${originalWidth}x${originalHeight} -> ${width}x${height}`)
+  }
+
+  // 超大图片直接缩到800px
+  if (originalWidth > 3000 || originalHeight > 3000) {
+    const ratio = Math.min(800 / originalWidth, 800 / originalHeight)
+    width = Math.round(originalWidth * ratio)
+    height = Math.round(originalHeight * ratio)
+    console.log(`📏 超大图片压缩到: ${width}x${height}`)
+  }
+
+  canvas.width = width
+  canvas.height = height
+  const ctx = canvas.getContext('2d')!
+
+  // 绘制图片（使用白色背景，处理透明图片）
+  ctx.fillStyle = '#FFFFFF'
+  ctx.fillRect(0, 0, width, height)
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
+  ctx.drawImage(img, 0, 0, width, height)
+
+  // 使用JPEG格式（压缩率最高）
+  let quality = targetQuality
+  const format: 'image/jpeg' = 'image/jpeg'
+  let blob = await canvasToBlob(canvas, format, quality)
+  const maxSize = maxSizeKB * 1024 // 转换为字节
+
+  console.log(`🔄 初始压缩 (JPEG): ${formatFileSize(blob.size)}, 质量: ${quality.toFixed(2)}`)
+
+  let attempts = 0
+  const maxAttempts = 50 // 增加尝试次数
+
+  // 极致压缩循环
+  while (blob.size > maxSize && attempts < maxAttempts) {
+    attempts++
+
+    // 策略1: 质量高于0.3，快速降低质量
+    if (quality > 0.3) {
+      quality = Math.max(0.3, quality - 0.1)
+    }
+    // 策略2: 尺寸还不够小，继续缩小
+    else if (width > 500 || height > 500) {
+      width = Math.round(width * 0.8) // 每次缩小20%
+      height = Math.round(height * 0.8)
+      canvas.width = width
+      canvas.height = height
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(0, 0, width, height)
+      ctx.imageSmoothingEnabled = true
+      ctx.imageSmoothingQuality = 'high'
+      ctx.drawImage(img, 0, 0, width, height)
+      quality = 0.5 // 重置质量
+      console.log(`📐 缩小到: ${width}x${height}`)
+    }
+    // 策略3: 已经很小了，继续降质量
+    else if (quality > 0.15) {
+      quality = Math.max(0.15, quality - 0.05)
+    }
+    // 策略4: 最后手段，进一步缩小尺寸
+    else if (width > 300 || height > 300) {
+      width = Math.round(width * 0.75)
+      height = Math.round(height * 0.75)
+      canvas.width = width
+      canvas.height = height
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(0, 0, width, height)
+      ctx.drawImage(img, 0, 0, width, height)
+      quality = 0.4
+      console.log(`📐 进一步缩小: ${width}x${height}`)
+    }
+    // 策略5: 极限压缩
+    else {
+      quality = Math.max(0.05, quality - 0.02)
+    }
+
+    blob = await canvasToBlob(canvas, format, quality)
+    
+    if (attempts % 5 === 0 || blob.size <= maxSize) {
+      console.log(`🔄 尝试 ${attempts}: ${formatFileSize(blob.size)}, ${width}x${height}, Q:${quality.toFixed(2)}`)
+    }
+  }
+
+  // 最终强制压缩
+  if (blob.size > maxSize) {
+    console.warn(`⚠️ 进入极限压缩模式...`)
+    while (blob.size > maxSize && (width > 200 || height > 200)) {
+      width = Math.max(200, Math.round(width * 0.7))
+      height = Math.max(200, Math.round(height * 0.7))
+      canvas.width = width
+      canvas.height = height
+      ctx.fillStyle = '#FFFFFF'
+      ctx.fillRect(0, 0, width, height)
+      ctx.drawImage(img, 0, 0, width, height)
+      blob = await canvasToBlob(canvas, format, 0.3)
+      console.log(`💪 极限: ${width}x${height}, ${formatFileSize(blob.size)}`)
+    }
+  }
+
+  const compressionRatio = ((file.size - blob.size) / file.size * 100).toFixed(1)
+  console.log(`✅ 压缩完成: ${formatFileSize(file.size)} -> ${formatFileSize(blob.size)} (节省${compressionRatio}%)`)
+
+  // 生成新的文件名（根据实际格式）
+  const originalName = file.name.replace(/\.[^/.]+$/, '')
+  const extension = format === 'image/jpeg' ? 'jpg' : 'png'
+  const newFileName = `${originalName}.${extension}`
+
+  return new File([blob], newFileName, {
+    type: format,
+    lastModified: Date.now()
+  })
+}
+

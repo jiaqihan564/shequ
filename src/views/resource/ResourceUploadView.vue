@@ -74,7 +74,7 @@
           >
             <el-icon><Plus /></el-icon>
             <template #tip>
-              <div class="el-upload__tip">支持 JPG、PNG、GIF、WebP 格式，单张最大5MB</div>
+              <div class="el-upload__tip">支持多种格式，提交时自动极致压缩（~150KB/张）</div>
             </template>
           </el-upload>
         </el-form-item>
@@ -114,6 +114,9 @@
                   {{ showDocPreview ? '编辑' : '预览' }}
                 </el-button>
               </el-button-group>
+            <el-text v-if="!uploadingDocImage" type="info" size="small" style="margin-left: 12px">
+              支持多种格式，提交时极致压缩（~150KB）
+            </el-text>
               <el-text v-if="uploadingDocImage" type="primary" size="small">
                 正在上传图片，请稍候...
               </el-text>
@@ -162,12 +165,13 @@ import type { ResourceCategory } from '@/types/resource'
 import {
   createResource,
   uploadResourceImage,
-  uploadImage,
+  uploadDocumentImage,
   getResourceCategories
 } from '@/utils/api'
 import { uploadFileWithChunks } from '@/utils/chunk-upload'
 import { renderMarkdown } from '@/utils/markdown'
 import toast from '@/utils/toast'
+import { compressAndConvertToPNG } from '@/utils/image-compress'
 
 const router = useRouter()
 
@@ -183,6 +187,9 @@ const docMdFileInput = ref<HTMLInputElement | null>(null)
 const documentEditor = ref<any>(null)
 const uploadingDocImage = ref(false)
 const showDocPreview = ref(false)
+
+// 本地文档图片存储：blob URL -> File 对象
+const localDocImages = new Map<string, File>()
 
 const documentPreview = computed(() => {
   return renderMarkdown(form.document)
@@ -218,17 +225,17 @@ function handleFileChange(file: UploadFile) {
 
 function beforeImageUpload(file: File) {
   const isImage = file.type.startsWith('image/')
-  const maxSize = uploadConfig.imageMaxSize
-  const isUnderLimit = file.size < maxSize
+  const maxSize = 20 * 1024 * 1024 // 原图最大20MB
 
   if (!isImage) {
     toast.error('只能上传图片文件')
     return false
   }
-  if (!isUnderLimit) {
-    toast.error(`图片大小不能超过${Math.round(maxSize / 1024 / 1024)}MB`)
+  if (file.size > maxSize) {
+    toast.error('图片文件过大，请选择小于20MB的图片')
     return false
   }
+  // 预览图将在提交时自动压缩，这里只做基本验证
   return true
 }
 
@@ -264,21 +271,29 @@ async function handleDocImageUpload(event: Event) {
     return
   }
 
-  if (file.size > uploadConfig.imageMaxSize) {
-    toast.error(`图片大小不能超过${Math.round(uploadConfig.imageMaxSize / 1024 / 1024)}MB`)
+  // 验证文件大小（避免选择过大的图片）
+  const maxSize = 20 * 1024 * 1024 // 原图最大20MB
+  if (file.size > maxSize) {
+    toast.error('图片文件过大，请选择小于20MB的图片')
     return
   }
 
-  uploadingDocImage.value = true
   try {
-    // 使用与文章相同的图片上传接口
-    const url = await uploadImage(file)
-    insertDocImageMarkdown(url, file.name.replace(/\.[^/.]+$/, ''))
-    toast.success('图片上传成功')
+    // 创建本地预览URL
+    const blobUrl = URL.createObjectURL(file)
+    
+    // 保存到本地图片映射
+    localDocImages.set(blobUrl, file)
+    
+    // 插入到编辑器（使用本地URL）
+    insertDocImageMarkdown(blobUrl, file.name.replace(/\.[^/.]+$/, ''))
+    
+    toast.success('图片已插入，提交时将自动压缩上传')
+    
+    console.log(`📷 本地文档图片已添加: ${file.name}, URL: ${blobUrl}`)
   } catch (error: any) {
-    toast.error(error.message || '图片上传失败')
-  } finally {
-    uploadingDocImage.value = false
+    console.error('插入图片失败:', error)
+    toast.error(error.message || '插入图片失败')
   }
 }
 
@@ -406,23 +421,34 @@ async function handleSubmit() {
     })
     uploadedStoragePath.value = storagePath
 
-    // 2. 上传预览图到资源专用桶
+    // 2. 压缩并上传预览图到资源专用桶
     const imageUrls: string[] = []
 
     for (let i = 0; i < imageFileList.value.length; i++) {
       const imgFile = imageFileList.value[i]
       if (imgFile.raw) {
         try {
-          toast.info(`正在上传第 ${i + 1} 张预览图...`)
+          toast.info(`正在处理第 ${i + 1} 张预览图...`)
 
-          const url = await uploadResourceImage(imgFile.raw)
+          // 极致压缩预览图到150KB以内
+          const maxSizeKB = Math.round(uploadConfig.resourcePreviewImageSize / 1024)
+          console.log(`📷 压缩预览图 ${i + 1}: ${imgFile.raw.name}`)
+          const compressedFile = await compressAndConvertToPNG(imgFile.raw, maxSizeKB, 0.5)
+          console.log(`✅ 预览图压缩完成: ${formatFileSize(imgFile.raw.size)} -> ${formatFileSize(compressedFile.size)}`)
+
+          const url = await uploadResourceImage(compressedFile)
           imageUrls.push(url)
+          
+          toast.info(`预览图 ${i + 1}/${imageFileList.value.length} 已上传`)
         } catch (e: any) {
           console.error('上传预览图失败:', e)
           toast.warning(`第 ${i + 1} 张图片上传失败，已跳过`)
         }
       }
     }
+
+    // 2.5 处理文档中的本地图片：压缩、转PNG并上传
+    await processLocalDocImages()
 
     // 3. 创建资源记录
     toast.info('正在保存资源信息...')
@@ -455,6 +481,65 @@ async function handleSubmit() {
   } finally {
     submitting.value = false
   }
+}
+
+/**
+ * 处理所有本地文档图片：压缩、转PNG、上传并替换URL
+ */
+async function processLocalDocImages() {
+  if (localDocImages.size === 0) {
+    console.log('📷 没有本地文档图片需要处理')
+    return
+  }
+
+  console.log(`📷 开始处理 ${localDocImages.size} 张本地文档图片...`)
+  toast.info(`正在处理 ${localDocImages.size} 张文档图片...`)
+
+  const urlMap = new Map<string, string>() // blob URL -> server URL
+  let processedCount = 0
+
+  for (const [blobUrl, file] of localDocImages.entries()) {
+    try {
+      console.log(`📷 [${processedCount + 1}/${localDocImages.size}] 处理图片: ${file.name}`)
+      
+      // 1. 压缩并转换（极致压缩到150KB以内）
+      const maxSizeKB = Math.round(uploadConfig.documentImageTargetSize / 1024)
+      const compressedFile = await compressAndConvertToPNG(file, maxSizeKB, 0.5)
+      
+      console.log(`  ✓ 转换成功: ${file.name} -> ${compressedFile.name}`)
+      
+      // 2. 上传到服务器
+      const serverUrl = await uploadDocumentImage(compressedFile)
+      console.log(`  ✓ 上传成功: ${serverUrl}`)
+      
+      // 3. 保存映射关系
+      urlMap.set(blobUrl, serverUrl)
+      
+      // 4. 释放blob URL
+      URL.revokeObjectURL(blobUrl)
+      
+      processedCount++
+      toast.info(`正在上传文档图片 ${processedCount}/${localDocImages.size}...`)
+    } catch (error: any) {
+      console.error(`❌ 处理图片失败: ${file.name}`, error)
+      throw new Error(`图片 ${file.name} 处理失败: ${error.message}`)
+    }
+  }
+
+  // 5. 替换markdown中的所有blob URL
+  let updatedDocument = form.document
+  for (const [blobUrl, serverUrl] of urlMap.entries()) {
+    // 使用正则全局替换（兼容性更好）
+    const regex = new RegExp(blobUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
+    updatedDocument = updatedDocument.replace(regex, serverUrl)
+  }
+  form.document = updatedDocument
+
+  // 6. 清空本地图片映射
+  localDocImages.clear()
+
+  console.log(`✅ 所有文档图片处理完成`)
+  toast.success(`${processedCount} 张文档图片已压缩上传`)
 }
 
 function formatFileSize(bytes: number): string {

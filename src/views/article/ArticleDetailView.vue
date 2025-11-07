@@ -965,11 +965,16 @@ onUnmounted(() => {
   margin: 24px 0;
 }
 
-/* Markdown 图片 */
+/* Markdown 图片 - 增强显示压缩图片 */
 .markdown-body :deep(img) {
   display: block;
   max-width: 100%;
   height: auto;
+  
+  /* 高质量缩放和锐化 */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  filter: contrast(1.05) saturate(1.1);
   border-radius: 8px;
   margin: 16px 0;
   cursor: zoom-in;
@@ -981,6 +986,7 @@ onUnmounted(() => {
 .markdown-body :deep(img:hover) {
   transform: scale(1.02);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  filter: contrast(1.08) saturate(1.15);
 }
 
 .code-blocks {

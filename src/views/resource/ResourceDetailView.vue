@@ -59,15 +59,24 @@
         <template #header>
           <h3>预览图 ({{ resource.images.length }}张)</h3>
         </template>
-        <el-carousel height="400px" indicator-position="outside" arrow="always">
+        <el-carousel height="500px" indicator-position="outside" arrow="always">
           <el-carousel-item v-for="(img, index) in resource.images" :key="img.id">
-            <el-image
-              :src="img.image_url"
-              fit="contain"
-              style="width: 100%; height: 100%"
-              :preview-src-list="imageUrls"
-              :initial-index="index"
-            />
+            <div class="image-container">
+              <el-image
+                :src="img.image_url"
+                fit="cover"
+                class="preview-image"
+                :preview-src-list="imageUrls"
+                :initial-index="index"
+              >
+                <template #error>
+                  <div class="image-error">
+                    <el-icon><Picture /></el-icon>
+                    <span>加载失败</span>
+                  </div>
+                </template>
+              </el-image>
+            </div>
           </el-carousel-item>
         </el-carousel>
       </el-card>
@@ -243,7 +252,8 @@ import {
   ChatDotRound,
   Share,
   CopyDocument,
-  Link
+  Link,
+  Picture
 } from '@element-plus/icons-vue'
 import QRCode from 'qrcode'
 import { ref, onMounted, computed, nextTick, onUnmounted } from 'vue'
@@ -707,6 +717,60 @@ onUnmounted(() => {
   border-radius: 12px;
 }
 
+/* 预览图容器 - 优化显示效果 */
+.image-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.preview-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  
+  /* 图片增强 - 补偿压缩损失 */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  filter: contrast(1.05) saturate(1.1) brightness(1.02);
+  
+  transition: all 0.3s ease;
+}
+
+.preview-image:hover {
+  filter: contrast(1.08) saturate(1.15) brightness(1.05);
+  transform: scale(1.02);
+}
+
+/* 深度选择器 - 确保图片填充 */
+.preview-image :deep(img) {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.image-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #909399;
+  font-size: 14px;
+  height: 100%;
+}
+
+.image-error .el-icon {
+  font-size: 48px;
+}
+
 .resource-header {
   display: flex;
   justify-content: space-between;
@@ -868,11 +932,16 @@ onUnmounted(() => {
   margin: 24px 0;
 }
 
-/* Markdown 图片 */
+/* Markdown 图片 - 增强显示压缩图片 */
 .markdown-body :deep(img) {
   display: block;
   max-width: 100%;
   height: auto;
+  
+  /* 高质量缩放和锐化 */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  filter: contrast(1.05) saturate(1.1);
   border-radius: 8px;
   margin: 16px 0;
   cursor: zoom-in;
@@ -884,6 +953,7 @@ onUnmounted(() => {
 .markdown-body :deep(img:hover) {
   transform: scale(1.02);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  filter: contrast(1.08) saturate(1.15);
 }
 
 /* 操作按钮 */

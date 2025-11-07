@@ -134,14 +134,20 @@ export const uploadConfig = {
   /** 图片最大大小（字节） */
   imageMaxSize: getEnvNumber('VITE_IMAGE_MAX_SIZE_MB', 5) * 1024 * 1024,
 
-  /** 文章图片最大大小（字节） */
-  articleImageMaxSize: getEnvNumber('VITE_ARTICLE_IMAGE_MAX_SIZE_MB', 5) * 1024 * 1024,
+  /** 文章图片最大大小（字节） - 极致压缩 */
+  articleImageMaxSize: getEnvNumber('VITE_ARTICLE_IMAGE_MAX_SIZE_KB', 200) * 1024, // 改为200KB
 
   /** Markdown 文件最大大小（字节） */
   markdownMaxSize: getEnvNumber('VITE_MARKDOWN_MAX_SIZE_MB', 5) * 1024 * 1024,
 
   /** 文章 Markdown 文件最大大小（字节） */
-  articleMarkdownMaxSize: getEnvNumber('VITE_ARTICLE_MD_MAX_SIZE_MB', 5) * 1024 * 1024
+  articleMarkdownMaxSize: getEnvNumber('VITE_ARTICLE_MD_MAX_SIZE_MB', 5) * 1024 * 1024,
+
+  /** 文档图片目标大小（字节） - 极致压缩 */
+  documentImageTargetSize: getEnvNumber('VITE_DOCUMENT_IMAGE_TARGET_KB', 150) * 1024, // 目标150KB
+
+  /** 资源预览图目标大小（字节） - 极致压缩 */
+  resourcePreviewImageSize: getEnvNumber('VITE_RESOURCE_PREVIEW_IMAGE_KB', 150) * 1024 // 目标150KB
 }
 
 // ==================== 图片懒加载配置 ====================

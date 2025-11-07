@@ -93,8 +93,8 @@
                   {{ showPreview ? '编辑' : '预览' }}
                 </el-button>
               </el-button-group>
-              <el-text v-if="uploading" type="primary" size="small">
-                正在上传图片，请稍候...
+              <el-text type="info" size="small" style="margin-left: 12px">
+                支持多种格式，发布时极致压缩（~200KB）
               </el-text>
             </div>
 
@@ -209,10 +209,11 @@ import {
   getArticleDetail,
   getArticleCategories,
   getArticleTags,
-  uploadImage
+  uploadDocumentImage
 } from '@/utils/api'
 import { renderMarkdown } from '@/utils/markdown'
 import toast from '@/utils/toast'
+import { compressAndConvertToPNG } from '@/utils/image-compress'
 
 const route = useRoute()
 const router = useRouter()
@@ -226,6 +227,9 @@ const tags = ref<ArticleTag[]>([])
 const languages = SUPPORTED_LANGUAGES
 const mdFileInput = ref<HTMLInputElement | null>(null)
 const contentEditor = ref<any>(null)
+
+// 本地图片存储：blob URL -> File 对象
+const localImages = new Map<string, File>()
 
 const form = reactive({
   title: '',
@@ -322,22 +326,29 @@ async function handleImageUpload(event: Event) {
     return
   }
 
-  // 验证文件大小
-  const maxSize = uploadConfig.articleImageMaxSize
+  // 验证文件大小（避免选择过大的图片）
+  const maxSize = 20 * 1024 * 1024 // 原图最大20MB
   if (file.size > maxSize) {
-    toast.error(`图片大小不能超过${Math.round(maxSize / 1024 / 1024)}MB`)
+    toast.error('图片文件过大，请选择小于20MB的图片')
     return
   }
 
-  uploading.value = true
   try {
-    const url = await uploadImage(file)
-    insertImageMarkdown(url, file.name.replace(/\.[^/.]+$/, ''))
-    toast.success('图片上传成功')
+    // 创建本地预览URL
+    const blobUrl = URL.createObjectURL(file)
+    
+    // 保存到本地图片映射
+    localImages.set(blobUrl, file)
+    
+    // 插入到编辑器（使用本地URL）
+    insertImageMarkdown(blobUrl, file.name.replace(/\.[^/.]+$/, ''))
+    
+    toast.success('图片已插入，发布时将自动压缩上传')
+    
+    console.log(`📷 本地图片已添加: ${file.name}, URL: ${blobUrl}`)
   } catch (error: any) {
-    toast.error(error.message || '图片上传失败')
-  } finally {
-    uploading.value = false
+    console.error('插入图片失败:', error)
+    toast.error(error.message || '插入图片失败')
   }
 }
 
@@ -541,6 +552,9 @@ async function handleSubmit() {
 
   submitting.value = true
   try {
+    // 处理本地图片：压缩、转PNG并上传
+    await processLocalImages()
+    
     form.status = 1 // 发布状态
 
     if (isEditMode.value) {
@@ -558,6 +572,65 @@ async function handleSubmit() {
   } finally {
     submitting.value = false
   }
+}
+
+/**
+ * 处理所有本地图片：压缩、转PNG、上传并替换URL
+ */
+async function processLocalImages() {
+  if (localImages.size === 0) {
+    console.log('📷 没有本地图片需要处理')
+    return
+  }
+
+  console.log(`📷 开始处理 ${localImages.size} 张本地图片...`)
+  toast.info(`正在处理 ${localImages.size} 张图片...`)
+
+  const urlMap = new Map<string, string>() // blob URL -> server URL
+  let processedCount = 0
+
+  for (const [blobUrl, file] of localImages.entries()) {
+    try {
+      console.log(`📷 [${processedCount + 1}/${localImages.size}] 处理图片: ${file.name}`)
+      
+      // 1. 压缩并转换（极致压缩到200KB以内）
+      const maxSizeKB = Math.round(uploadConfig.articleImageMaxSize / 1024)
+      const compressedFile = await compressAndConvertToPNG(file, maxSizeKB, 0.5)
+      
+      console.log(`  ✓ 转换成功: ${file.name} -> ${compressedFile.name}`)
+      
+      // 2. 上传到服务器
+      const serverUrl = await uploadDocumentImage(compressedFile)
+      console.log(`  ✓ 上传成功: ${serverUrl}`)
+      
+      // 3. 保存映射关系
+      urlMap.set(blobUrl, serverUrl)
+      
+      // 4. 释放blob URL
+      URL.revokeObjectURL(blobUrl)
+      
+      processedCount++
+      toast.info(`正在上传图片 ${processedCount}/${localImages.size}...`)
+    } catch (error: any) {
+      console.error(`❌ 处理图片失败: ${file.name}`, error)
+      throw new Error(`图片 ${file.name} 处理失败: ${error.message}`)
+    }
+  }
+
+  // 5. 替换markdown中的所有blob URL
+  let updatedContent = form.content
+  for (const [blobUrl, serverUrl] of urlMap.entries()) {
+    // 使用正则全局替换（兼容性更好）
+    const regex = new RegExp(blobUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g')
+    updatedContent = updatedContent.replace(regex, serverUrl)
+  }
+  form.content = updatedContent
+
+  // 6. 清空本地图片映射
+  localImages.clear()
+
+  console.log(`✅ 所有图片处理完成`)
+  toast.success(`${processedCount} 张图片已压缩上传`)
 }
 
 onMounted(() => {
@@ -774,6 +847,34 @@ onMounted(() => {
 
 .markdown-preview :deep(p) {
   margin-bottom: 16px;
+}
+
+/* 图片增强显示 - 提升压缩图片的视觉效果 */
+.markdown-preview :deep(img) {
+  /* 高质量缩放算法 */
+  image-rendering: -webkit-optimize-contrast;
+  image-rendering: crisp-edges;
+  
+  /* 锐化滤镜 */
+  filter: contrast(1.05) saturate(1.1);
+  
+  /* 平滑过渡 */
+  transition: all 0.3s ease;
+  
+  /* 最大宽度限制 */
+  max-width: 100%;
+  height: auto;
+  
+  /* 圆角和阴影 */
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.markdown-preview :deep(img:hover) {
+  /* 悬停时轻微增强 */
+  filter: contrast(1.08) saturate(1.15);
+  transform: scale(1.02);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .markdown-preview :deep(code) {
