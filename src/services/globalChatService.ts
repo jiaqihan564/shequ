@@ -30,10 +30,8 @@ interface CommentNotification {
   comment?: ArticleComment | any
 }
 
-type ContentUpdateAction = 'created' | 'updated' | 'deleted'
-
 interface ContentBroadcastPayload<T> {
-  action: ContentUpdateAction
+  action: 'created'
   data: Partial<T> | null
   raw: unknown
 }
@@ -279,7 +277,7 @@ class GlobalChatService {
 
   private emitContentBroadcast<T>(
     callbacks: Set<ContentBroadcastCallback<T>>,
-    action: ContentUpdateAction,
+    action: 'created',
     rawPayload: unknown,
     candidateKeys: string[]
   ): void {
@@ -778,7 +776,7 @@ class GlobalChatService {
 }
 
 // Export types for use in components
-export type { CommentNotification, ContentBroadcastPayload, ContentUpdateAction }
+export type { CommentNotification, ContentBroadcastPayload }
 
 // Export singleton instance
 export const globalChatService = GlobalChatService.getInstance()
