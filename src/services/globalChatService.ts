@@ -3,6 +3,8 @@ import { ref, watch, type Ref } from 'vue'
 import { websocketConfig } from '@/config'
 import { messageCache } from '@/services/messageCache'
 import type { ArticleComment, ChatMessage } from '@/types'
+import type { ArticleListItem } from '@/types/article'
+import type { ResourceListItem } from '@/types/resource'
 import { getChatMessages } from '@/utils/api'
 import { toast } from '@/utils/ui/toast'
 import { getStoredToken, isTokenExpired } from '@/utils/tokenValidator'
@@ -28,6 +30,16 @@ interface CommentNotification {
   comment?: ArticleComment | any
 }
 
+type ContentUpdateAction = 'created' | 'updated' | 'deleted'
+
+interface ContentBroadcastPayload<T> {
+  action: ContentUpdateAction
+  data: Partial<T> | null
+  raw: unknown
+}
+
+type ContentBroadcastCallback<T> = (payload: ContentBroadcastPayload<T>) => void
+
 interface WSMessage {
   type:
     | 'message'
@@ -42,6 +54,14 @@ interface WSMessage {
     | 'resource_comment'
     | 'resource_reply'
     | 'comment_deleted'
+    | 'new_article'
+    | 'new_resource'
+    | 'article_created'
+    | 'article_updated'
+    | 'article_deleted'
+    | 'resource_created'
+    | 'resource_updated'
+    | 'resource_deleted'
   data: unknown
 }
 
@@ -77,6 +97,8 @@ class GlobalChatService {
   private privateMessageCallbacks: Set<PrivateMessageCallback> = new Set()
   private messageReadCallbacks: Set<MessageReadCallback> = new Set()
   private commentCallbacks: Set<CommentCallback> = new Set()
+  private articleBroadcastCallbacks: Set<ContentBroadcastCallback<ArticleListItem>> = new Set()
+  private resourceBroadcastCallbacks: Set<ContentBroadcastCallback<ResourceListItem>> = new Set()
 
   private constructor() {
     logger.info('[GlobalChat] Service initialized')
@@ -229,6 +251,60 @@ class GlobalChatService {
       { deep: true }
     )
     logger.debug('[GlobalChat] Auto-caching enabled')
+  }
+
+  private extractContentPayload<T>(payload: unknown, candidateKeys: string[]): Partial<T> | null {
+    if (!payload || typeof payload !== 'object') {
+      return null
+    }
+
+    const record = payload as Record<string, unknown>
+
+    if ('id' in record) {
+      return record as Partial<T>
+    }
+
+    for (const key of candidateKeys) {
+      if (record[key]) {
+        const candidate = this.extractContentPayload<T>(record[key], candidateKeys)
+        if (candidate && 'id' in candidate) {
+          return candidate
+        }
+      }
+    }
+
+    if ('data' in record && record.data) {
+      const candidate = this.extractContentPayload<T>(record.data, candidateKeys)
+      if (candidate && 'id' in candidate) {
+        return candidate
+      }
+    }
+
+    return null
+  }
+
+  private emitContentBroadcast<T>(
+    callbacks: Set<ContentBroadcastCallback<T>>,
+    action: ContentUpdateAction,
+    rawPayload: unknown,
+    candidateKeys: string[]
+  ): void {
+    if (callbacks.size === 0) return
+
+    const content = this.extractContentPayload<T>(rawPayload, candidateKeys)
+    const payload: ContentBroadcastPayload<T> = {
+      action,
+      data: content ? { ...content } : null,
+      raw: rawPayload
+    }
+
+    callbacks.forEach(callback => {
+      try {
+        callback(payload)
+      } catch (error) {
+        logger.error('[GlobalChat] Error in content broadcast callback:', error)
+      }
+    })
   }
 
   private getWebSocketUrl(): string {
@@ -608,6 +684,46 @@ class GlobalChatService {
         break
       }
 
+      case 'article_created':
+      case 'article_updated':
+      case 'article_deleted':
+      case 'new_article': {
+        const actionMap: Record<string, ContentUpdateAction> = {
+          article_created: 'created',
+          article_updated: 'updated',
+          article_deleted: 'deleted',
+          new_article: 'created'
+        }
+
+        this.emitContentBroadcast<ArticleListItem>(
+          this.articleBroadcastCallbacks,
+          actionMap[wsMsg.type],
+          wsMsg.data,
+          ['article', 'data']
+        )
+        break
+      }
+
+      case 'resource_created':
+      case 'resource_updated':
+      case 'resource_deleted':
+      case 'new_resource': {
+        const actionMap: Record<string, ContentUpdateAction> = {
+          resource_created: 'created',
+          resource_updated: 'updated',
+          resource_deleted: 'deleted',
+          new_resource: 'created'
+        }
+
+        this.emitContentBroadcast<ResourceListItem>(
+          this.resourceBroadcastCallbacks,
+          actionMap[wsMsg.type],
+          wsMsg.data,
+          ['resource', 'data']
+        )
+        break
+      }
+
       default:
         logger.warn('[GlobalChat] Received unknown message type:', wsMsg.type)
     }
@@ -669,6 +785,16 @@ class GlobalChatService {
     return () => this.commentCallbacks.delete(callback)
   }
 
+  public onArticleBroadcast(callback: ContentBroadcastCallback<ArticleListItem>): () => void {
+    this.articleBroadcastCallbacks.add(callback)
+    return () => this.articleBroadcastCallbacks.delete(callback)
+  }
+
+  public onResourceBroadcast(callback: ContentBroadcastCallback<ResourceListItem>): () => void {
+    this.resourceBroadcastCallbacks.add(callback)
+    return () => this.resourceBroadcastCallbacks.delete(callback)
+  }
+
   /**
    * Get cache information
    */
@@ -678,7 +804,7 @@ class GlobalChatService {
 }
 
 // Export types for use in components
-export type { CommentNotification }
+export type { CommentNotification, ContentBroadcastPayload, ContentUpdateAction }
 
 // Export singleton instance
 export const globalChatService = GlobalChatService.getInstance()

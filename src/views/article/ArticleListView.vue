@@ -241,7 +241,7 @@ import {
   Message,
   DataAnalysis
 } from '@element-plus/icons-vue'
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import SkeletonLoader from '@/components/shared/SkeletonLoader.vue'
@@ -254,6 +254,7 @@ import type {
 import { getArticles, getArticleCategories, getArticleTags } from '@/utils/api'
 import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/ui/avatar'
 import toast from '@/utils/ui/toast'
+import { globalChatService, type ContentBroadcastPayload } from '@/services/globalChatService'
 
 const router = useRouter()
 const loading = ref(false)
@@ -269,8 +270,98 @@ const searchKeyword = ref('')
 const query = reactive<ArticleListQuery>({
   page: 1,
   page_size: 12,
-  sort_by: 'latest'
+  sort_by: 'latest',
+  category_id: undefined,
+  tag_id: undefined,
+  keyword: '',
+  user_id: undefined
 })
+
+let unsubscribeArticleBroadcast: (() => void) | null = null
+const pendingArticleReload = ref(false)
+const hasArticleRealtimeNotice = ref(false)
+
+function isViewingDefaultLatest(): boolean {
+  return (
+    query.page === 1 &&
+    (!query.sort_by || query.sort_by === 'latest') &&
+    !query.category_id &&
+    !query.tag_id &&
+    !query.keyword &&
+    !query.user_id
+  )
+}
+
+function toArticleListItemFromPayload(raw: any): ArticleListItem | null {
+  if (!raw || typeof raw !== 'object') return null
+
+  const id = Number(raw.id ?? raw.ID)
+  if (!Number.isFinite(id) || id <= 0) return null
+
+  const authorRaw = raw.author ?? raw.Author ?? {}
+  const author = {
+    id: Number(authorRaw.id ?? authorRaw.ID ?? 0),
+    username: authorRaw.username ?? authorRaw.Username ?? '',
+    nickname: authorRaw.nickname ?? authorRaw.Nickname ?? '',
+    avatar: authorRaw.avatar ?? authorRaw.Avatar ?? ''
+  }
+
+  const categoriesRaw = Array.isArray(raw.categories ?? raw.Categories)
+    ? (raw.categories ?? raw.Categories)
+    : []
+  const categories = (categoriesRaw as any[]).map(item => ({
+    id: Number(item?.id ?? item?.ID ?? 0),
+    name: item?.name ?? item?.Name ?? '',
+    slug: item?.slug ?? item?.Slug ?? '',
+    description: item?.description ?? item?.Description ?? '',
+    parent_id: Number(item?.parent_id ?? item?.ParentID ?? 0),
+    article_count: Number(item?.article_count ?? item?.ArticleCount ?? 0),
+    sort_order: Number(item?.sort_order ?? item?.SortOrder ?? 0),
+    created_at: item?.created_at ?? item?.CreatedAt ?? ''
+  })) as ArticleCategory[]
+
+  const tagsRaw = Array.isArray(raw.tags ?? raw.Tags) ? (raw.tags ?? raw.Tags) : []
+  const tags = (tagsRaw as any[]).map(item => ({
+    id: Number(item?.id ?? item?.ID ?? 0),
+    name: item?.name ?? item?.Name ?? '',
+    slug: item?.slug ?? item?.Slug ?? '',
+    article_count: Number(item?.article_count ?? item?.ArticleCount ?? 0),
+    created_at: item?.created_at ?? item?.CreatedAt ?? ''
+  })) as ArticleTag[]
+
+  const createdAt = raw.created_at ?? raw.CreatedAt ?? new Date().toISOString()
+  const updatedAt = raw.updated_at ?? raw.UpdatedAt ?? createdAt
+
+  return {
+    id,
+    title: raw.title ?? raw.Title ?? '',
+    description: raw.description ?? raw.Description ?? '',
+    author,
+    categories,
+    tags,
+    view_count: Number(raw.view_count ?? raw.ViewCount ?? 0),
+    like_count: Number(raw.like_count ?? raw.LikeCount ?? 0),
+    comment_count: Number(raw.comment_count ?? raw.CommentCount ?? 0),
+    created_at: createdAt,
+    updated_at: updatedAt
+  }
+}
+
+function insertArticleAtTop(item: ArticleListItem): void {
+  const existingIndex = articles.value.findIndex(article => article.id === item.id)
+  if (existingIndex !== -1) {
+    articles.value.splice(existingIndex, 1)
+  } else {
+    total.value += 1
+  }
+
+  articles.value.unshift(item)
+
+  const limit = query.page_size || pageSize.value || 12
+  if (articles.value.length > limit) {
+    articles.value = articles.value.slice(0, limit)
+  }
+}
 
 // 加载数据
 async function loadArticles() {
@@ -287,6 +378,13 @@ async function loadArticles() {
     toast.error(error.message || '加载文章失败')
   } finally {
     loading.value = false
+    if (isViewingDefaultLatest()) {
+      hasArticleRealtimeNotice.value = false
+    }
+    if (pendingArticleReload.value) {
+      pendingArticleReload.value = false
+      void loadArticles()
+    }
   }
 }
 
@@ -374,9 +472,78 @@ function formatDate(dateString: string): string {
   return date.toLocaleDateString('zh-CN')
 }
 
+function handleRealtimeArticle(payload: ContentBroadcastPayload<ArticleListItem>): void {
+  if (!payload || payload.action !== 'created') {
+    return
+  }
+
+  const normalized = payload.data ? toArticleListItemFromPayload(payload.data) : null
+
+  if (isViewingDefaultLatest()) {
+    if (normalized) {
+      insertArticleAtTop(normalized)
+      toast.success(`新文章发布：${normalized.title}`)
+    } else if (loading.value) {
+      pendingArticleReload.value = true
+    } else {
+      void loadArticles()
+    }
+    return
+  }
+
+  if (!hasArticleRealtimeNotice.value) {
+    toast.info('有新的文章发布，切换到“最新上传”第一页即可查看最新内容')
+    hasArticleRealtimeNotice.value = true
+  }
+}
+
+function subscribeToRealtimeArticles() {
+  if (unsubscribeArticleBroadcast) {
+    unsubscribeArticleBroadcast()
+  }
+  unsubscribeArticleBroadcast = globalChatService.onArticleBroadcast(handleRealtimeArticle)
+
+  if (globalChatService.connectionStatus.value !== 'connected') {
+    globalChatService.connect()
+  }
+}
+
+function cleanupRealtimeArticles() {
+  if (unsubscribeArticleBroadcast) {
+    unsubscribeArticleBroadcast()
+    unsubscribeArticleBroadcast = null
+  }
+}
+
+watch(
+  () => [
+    query.page,
+    query.sort_by,
+    query.category_id,
+    query.tag_id,
+    query.keyword,
+    query.user_id
+  ],
+  () => {
+    if (hasArticleRealtimeNotice.value && isViewingDefaultLatest()) {
+      hasArticleRealtimeNotice.value = false
+      if (loading.value) {
+        pendingArticleReload.value = true
+      } else {
+        void loadArticles()
+      }
+    }
+  }
+)
+
 onMounted(() => {
   loadMetadata()
   loadArticles()
+  subscribeToRealtimeArticles()
+})
+
+onUnmounted(() => {
+  cleanupRealtimeArticles()
 })
 </script>
 

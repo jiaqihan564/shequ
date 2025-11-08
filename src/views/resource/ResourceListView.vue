@@ -234,13 +234,14 @@ import {
   DataAnalysis,
   Picture
 } from '@element-plus/icons-vue'
-import { ref, onMounted, reactive } from 'vue'
+import { ref, onMounted, reactive, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import SkeletonLoader from '@/components/shared/SkeletonLoader.vue'
-import type { ResourceListItem, ResourceCategory } from '@/types/resource'
+import type { ResourceListItem, ResourceCategory, ResourceAuthor } from '@/types/resource'
 import { getResources, getResourceCategories } from '@/utils/api'
 import toast from '@/utils/ui/toast'
+import { globalChatService, type ContentBroadcastPayload } from '@/services/globalChatService'
 
 const router = useRouter()
 
@@ -260,6 +261,81 @@ const query = reactive({
   keyword: '' as string
 })
 
+let unsubscribeResourceBroadcast: (() => void) | null = null
+const pendingResourceReload = ref(false)
+const hasResourceRealtimeNotice = ref(false)
+
+function isViewingDefaultResourceLatest(): boolean {
+  return (
+    query.page === 1 &&
+    (!query.sort_by || query.sort_by === 'latest') &&
+    !query.category_id &&
+    !query.keyword
+  )
+}
+
+function toResourceListItemFromPayload(raw: any): ResourceListItem | null {
+  if (!raw || typeof raw !== 'object') return null
+
+  const id = Number(raw.id ?? raw.ID)
+  if (!Number.isFinite(id) || id <= 0) return null
+
+  const authorRaw = raw.author ?? raw.Author ?? {}
+  const author: ResourceAuthor = {
+    id: Number(authorRaw.id ?? authorRaw.ID ?? 0),
+    username: authorRaw.username ?? authorRaw.Username ?? '',
+    nickname: authorRaw.nickname ?? authorRaw.Nickname ?? '',
+    avatar: authorRaw.avatar ?? authorRaw.Avatar ?? ''
+  }
+
+  const categoryRaw = raw.category ?? raw.Category ?? null
+  const category = categoryRaw
+    ? ({
+        id: Number(categoryRaw.id ?? categoryRaw.ID ?? 0),
+        name: categoryRaw.name ?? categoryRaw.Name ?? '',
+        slug: categoryRaw.slug ?? categoryRaw.Slug ?? '',
+        description: categoryRaw.description ?? categoryRaw.Description ?? '',
+        resource_count: Number(categoryRaw.resource_count ?? categoryRaw.ResourceCount ?? 0),
+        created_at: categoryRaw.created_at ?? categoryRaw.CreatedAt ?? ''
+      } as ResourceCategory)
+    : undefined
+
+  const createdAt = raw.created_at ?? raw.CreatedAt ?? new Date().toISOString()
+
+  return {
+    id,
+    title: raw.title ?? raw.Title ?? '',
+    description: raw.description ?? raw.Description ?? '',
+    author,
+    category,
+    cover_image: raw.cover_image ?? raw.CoverImage ?? '',
+    file_name: raw.file_name ?? raw.FileName ?? '',
+    file_size: Number(raw.file_size ?? raw.FileSize ?? 0),
+    file_extension: raw.file_extension ?? raw.FileExtension ?? '',
+    file_hash: raw.file_hash ?? raw.FileHash ?? '',
+    download_count: Number(raw.download_count ?? raw.DownloadCount ?? 0),
+    view_count: Number(raw.view_count ?? raw.ViewCount ?? 0),
+    like_count: Number(raw.like_count ?? raw.LikeCount ?? 0),
+    created_at: createdAt
+  }
+}
+
+function insertResourceAtTop(item: ResourceListItem): void {
+  const existingIndex = resources.value.findIndex(resource => resource.id === item.id)
+  if (existingIndex !== -1) {
+    resources.value.splice(existingIndex, 1)
+  } else {
+    total.value += 1
+  }
+
+  resources.value.unshift(item)
+
+  const limit = query.page_size || pageSize.value || 12
+  if (resources.value.length > limit) {
+    resources.value = resources.value.slice(0, limit)
+  }
+}
+
 async function loadResources() {
   loading.value = true
   try {
@@ -272,6 +348,13 @@ async function loadResources() {
     toast.error(error.message || '加载资源失败')
   } finally {
     loading.value = false
+    if (isViewingDefaultResourceLatest()) {
+      hasResourceRealtimeNotice.value = false
+    }
+    if (pendingResourceReload.value) {
+      pendingResourceReload.value = false
+      void loadResources()
+    }
   }
 }
 
@@ -334,9 +417,71 @@ function formatFileSize(bytes: number): string {
   return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i]
 }
 
+function handleRealtimeResource(payload: ContentBroadcastPayload<ResourceListItem>): void {
+  if (!payload || payload.action !== 'created') {
+    return
+  }
+
+  const normalized = payload.data ? toResourceListItemFromPayload(payload.data) : null
+
+  if (isViewingDefaultResourceLatest()) {
+    if (normalized) {
+      insertResourceAtTop(normalized)
+      toast.success(`新资源发布：${normalized.title}`)
+    } else if (loading.value) {
+      pendingResourceReload.value = true
+    } else {
+      void loadResources()
+    }
+    return
+  }
+
+  if (!hasResourceRealtimeNotice.value) {
+    toast.info('有新资源发布，切换到“最新上传”第一页即可查看最新内容')
+    hasResourceRealtimeNotice.value = true
+  }
+}
+
+function subscribeToRealtimeResources() {
+  if (unsubscribeResourceBroadcast) {
+    unsubscribeResourceBroadcast()
+  }
+  unsubscribeResourceBroadcast = globalChatService.onResourceBroadcast(handleRealtimeResource)
+
+  if (globalChatService.connectionStatus.value !== 'connected') {
+    globalChatService.connect()
+  }
+}
+
+function cleanupRealtimeResources() {
+  if (unsubscribeResourceBroadcast) {
+    unsubscribeResourceBroadcast()
+    unsubscribeResourceBroadcast = null
+  }
+}
+
+watch(
+  () => [query.page, query.sort_by, query.category_id, query.keyword],
+  () => {
+    if (hasResourceRealtimeNotice.value && isViewingDefaultResourceLatest()) {
+      hasResourceRealtimeNotice.value = false
+      if (loading.value) {
+        pendingResourceReload.value = true
+      } else {
+        void loadResources()
+      }
+    }
+  }
+)
+
 onMounted(() => {
   loadCategories()
   loadResources()
+  subscribeToRealtimeResources()
+})
+
+onUnmounted(() => {
+  cleanupRealtimeResources()
 })
 </script>
 
