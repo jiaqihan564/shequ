@@ -39,7 +39,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/',
     redirect: () => {
-      // 动态重定向：管理员跳转到个人资料页，普通用户跳转到首页
+      // 动态重定向：管理员跳转到全站累计页，普通用户跳转到首页
       const token = getStoredToken()
       if (token && !isTokenExpired(token)) {
         const userInfo =
@@ -49,7 +49,7 @@ const routes: RouteRecordRaw[] = [
           try {
             const user = JSON.parse(userInfo)
             if (user.role === 'admin') {
-              return '/profile'
+              return '/cumulative-stats'
             }
           } catch (error) {
             logger.error('[Router] 解析用户信息失败:', error)
@@ -83,145 +83,145 @@ const routes: RouteRecordRaw[] = [
         path: 'home',
         name: 'home',
         component: HomeView,
-        meta: { title: '首页', requiresAuth: true, userOnly: true }
+        meta: { title: '首页', userOnly: true }
       },
       {
         path: 'profile',
         name: 'profile',
         component: ProfileView,
-        meta: { title: '个人资料', requiresAuth: true }
+        meta: { title: '个人资料', userOnly: true }
       },
       {
         path: 'cumulative-stats',
         name: 'cumulative-stats',
         component: CumulativeStatsView,
-        meta: { title: '全站累计', requiresAuth: true, requiresAdmin: true }
+        meta: { title: '全站累计', requiresAdmin: true }
       },
       {
         path: 'daily-metrics',
         name: 'daily-metrics',
         component: DailyMetricsView,
-        meta: { title: '每日指标', requiresAuth: true, requiresAdmin: true }
+        meta: { title: '每日指标', requiresAdmin: true }
       },
       {
         path: 'realtime-metrics',
         name: 'realtime-metrics',
         component: RealtimeMetricsView,
-        meta: { title: '实时监控', requiresAuth: true, requiresAdmin: true }
+        meta: { title: '实时监控', requiresAdmin: true }
       },
       {
         path: 'user-stats',
         name: 'user-stats',
         component: UserStatsView,
-        meta: { title: '用户统计', requiresAuth: true, requiresAdmin: true }
+        meta: { title: '用户统计', requiresAdmin: true }
       },
       {
         path: 'api-stats',
         name: 'api-stats',
         component: ApiStatsView,
-        meta: { title: 'API统计', requiresAuth: true, requiresAdmin: true }
+        meta: { title: 'API统计', requiresAdmin: true }
       },
       {
         path: 'login-history',
         name: 'login-history',
         component: LoginHistoryView,
-        meta: { title: '登录历史', requiresAuth: true }
+        meta: { title: '登录历史' }
       },
       {
         path: 'operation-history',
         name: 'operation-history',
         component: OperationHistoryView,
-        meta: { title: '操作历史', requiresAuth: true }
+        meta: { title: '操作历史' }
       },
       {
         path: 'profile-history',
         name: 'profile-history',
         component: ProfileChangeHistoryView,
-        meta: { title: '资料修改历史', requiresAuth: true }
+        meta: { title: '资料修改历史' }
       },
       {
         path: 'location-distribution',
         name: 'location-distribution',
         component: LocationDistributionView,
-        meta: { title: '地区分布', requiresAuth: true, requiresAdmin: true }
+        meta: { title: '地区分布', requiresAdmin: true }
       },
       {
         path: 'articles',
         name: 'articles',
         component: ArticleListView,
-        meta: { title: '技术文章', requiresAuth: true, userOnly: true }
+        meta: { title: '技术文章', userOnly: true }
       },
       {
         path: 'articles/create',
         name: 'article-create',
         component: ArticleEditorView,
-        meta: { title: '发布文章', requiresAuth: true, userOnly: true }
+        meta: { title: '发布文章', userOnly: true }
       },
       {
         path: 'articles/:id/edit',
         name: 'article-edit',
         component: ArticleEditorView,
-        meta: { title: '编辑文章', requiresAuth: true, userOnly: true }
+        meta: { title: '编辑文章', userOnly: true }
       },
       {
         path: 'articles/:id',
         name: 'article-detail',
         component: ArticleDetailView,
-        meta: { title: '文章详情', requiresAuth: true, userOnly: true }
+        meta: { title: '文章详情', userOnly: true }
       },
       {
         path: 'users/:id',
         name: 'user-detail',
         component: UserDetailView,
-        meta: { title: '用户详情', requiresAuth: true, userOnly: true }
+        meta: { title: '用户详情', userOnly: true }
       },
       {
         path: 'messages',
         name: 'messages',
         component: MessageListView,
-        meta: { title: '私信', requiresAuth: true, userOnly: true }
+        meta: { title: '私信', userOnly: true }
       },
       {
         path: 'messages/:userId',
         name: 'message-chat',
         component: MessageChatView,
-        meta: { title: '对话', requiresAuth: true, userOnly: true }
+        meta: { title: '对话', userOnly: true }
       },
       {
         path: 'resources',
         name: 'resources',
         component: ResourceListView,
-        meta: { title: '资源中心', requiresAuth: true, userOnly: true }
+        meta: { title: '资源中心', userOnly: true }
       },
       {
         path: 'resources/upload',
         name: 'resource-upload',
         component: ResourceUploadView,
-        meta: { title: '上传资源', requiresAuth: true, userOnly: true }
+        meta: { title: '上传资源', userOnly: true }
       },
       {
         path: 'resources/:id',
         name: 'resource-detail',
         component: ResourceDetailView,
-        meta: { title: '资源详情', requiresAuth: true, userOnly: true }
+        meta: { title: '资源详情', userOnly: true }
       },
       {
         path: 'code-editor',
         name: 'code-editor',
         component: CodeEditorView,
-        meta: { title: '在线编程', requiresAuth: true, userOnly: true }
+        meta: { title: '在线编程', userOnly: true }
       },
       {
         path: 'code-square',
         name: 'code-square',
         component: CodeSquareView,
-        meta: { title: '代码广场', requiresAuth: true, userOnly: true }
+        meta: { title: '代码广场', userOnly: true }
       },
       {
         path: 'code-history',
         name: 'code-history',
         component: CodeHistoryView,
-        meta: { title: '代码历史', requiresAuth: true, userOnly: true }
+        meta: { title: '代码历史', userOnly: true }
       }
     ]
   },
@@ -284,11 +284,11 @@ router.beforeEach((to, _from, next) => {
       try {
         const user = JSON.parse(userInfo)
         if (user.role !== 'admin') {
-          logger.warn('[Router] 普通用户尝试访问管理员页面，已拦截并重定向到个人资料页', {
+          logger.warn('[Router] 普通用户尝试访问管理员页面，已拦截并重定向到首页', {
             path: to.path,
             userRole: user.role
           })
-          next({ path: '/profile', replace: true })
+          next({ path: '/home', replace: true })
           return
         }
       } catch (error) {
@@ -313,11 +313,11 @@ router.beforeEach((to, _from, next) => {
       try {
         const user = JSON.parse(userInfo)
         if (user.role === 'admin') {
-          logger.warn('[Router] 管理员尝试访问普通用户专属页面，已拦截并重定向到个人资料页', {
+          logger.warn('[Router] 管理员尝试访问普通用户专属页面，已拦截并重定向到全站累计页', {
             path: to.path,
             userRole: user.role
           })
-          next({ path: '/profile', replace: true })
+          next({ path: '/cumulative-stats', replace: true })
           return
         }
       } catch (error) {
@@ -328,7 +328,7 @@ router.beforeEach((to, _from, next) => {
     }
   }
 
-  // 已登录用户访问登录/注册页面，重定向到首页（普通用户）或个人资料页（管理员）
+  // 已登录用户访问登录/注册页面，重定向到首页（普通用户）或全站累计页（管理员）
   if ((to.path === '/login' || to.path === '/register') && hasValidToken) {
     const userInfo =
       localStorage.getItem(STORAGE_KEYS.USER_INFO) || sessionStorage.getItem(STORAGE_KEYS.USER_INFO)
@@ -337,8 +337,8 @@ router.beforeEach((to, _from, next) => {
       try {
         const user = JSON.parse(userInfo)
         if (user.role === 'admin') {
-          logger.info('[Router] 已登录的管理员访问登录页，重定向到个人资料页')
-          next('/profile')
+          logger.info('[Router] 已登录的管理员访问登录页，重定向到全站累计页')
+          next('/cumulative-stats')
           return
         }
       } catch (error) {

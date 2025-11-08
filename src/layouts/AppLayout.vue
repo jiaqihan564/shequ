@@ -6,14 +6,11 @@
           <!-- 仅普通用户可见：首页 -->
           <template v-if="!isUserAdmin">
             <RouterLink to="/home" class="nav-item" active-class="active">📱 首页</RouterLink>
-            <div class="nav-divider"></div>
+            <RouterLink to="/profile" class="nav-item" active-class="active">👤 个人资料</RouterLink>
           </template>
-
-          <RouterLink to="/profile" class="nav-item" active-class="active">👤 个人资料</RouterLink>
 
           <!-- 仅管理员可见：统计分析模块 -->
           <template v-if="isUserAdmin">
-            <div class="nav-divider"></div>
             <div class="nav-section-title">数据中心</div>
             <RouterLink to="/cumulative-stats" class="nav-item" active-class="active">
               🌐 全站累计
