@@ -83,19 +83,11 @@ export async function uploadFileWithChunks(
   file: File,
   onProgress?: (progress: number) => void,
   onChunkComplete?: (chunkIndex: number, total: number) => void
-): Promise<{ storagePath: string; totalChunks: number }> {
+): Promise<{ storagePath: string; totalChunks: number; fileHash: string }> {
   // 1. 计算文件MD5（作为upload_id）
   const uploadId = await calculateFileMD5(file)
 
-  // 2. 文件切片
-  const chunks: Blob[] = []
   const totalChunks = Math.ceil(file.size / CHUNK_SIZE)
-
-  for (let i = 0; i < totalChunks; i++) {
-    const start = i * CHUNK_SIZE
-    const end = Math.min(start + CHUNK_SIZE, file.size)
-    chunks.push(file.slice(start, end))
-  }
 
   // 3. 初始化上传
   const initResponse = await initChunkUpload({
@@ -106,6 +98,15 @@ export async function uploadFileWithChunks(
   })
 
   const uploadedChunks = new Set(initResponse.uploaded_chunks || [])
+  const alreadyUploaded = uploadedChunks.size === totalChunks && totalChunks > 0
+
+  if (alreadyUploaded) {
+    logger.info(`检测到文件已存在，跳过分片上传`, {
+      uploadId,
+      totalChunks
+    })
+    onProgress?.(95)
+  }
 
   // 4. 并行上传未上传的分片（受限并发，支持重试）
   let completed = uploadedChunks.size
@@ -140,7 +141,11 @@ export async function uploadFileWithChunks(
             logger.debug(`上传分片 ${chunkIndex + 1}/${totalChunks}`)
           }
 
-          await apiUploadChunk(uploadId, chunkIndex, chunks[chunkIndex])
+          const start = chunkIndex * CHUNK_SIZE
+          const end = Math.min(start + CHUNK_SIZE, file.size)
+          const chunkBlob = file.slice(start, end)
+
+          await apiUploadChunk(uploadId, chunkIndex, chunkBlob)
 
           // 上传成功
           completed++
@@ -197,7 +202,8 @@ export async function uploadFileWithChunks(
     logger.info('分片信息保存成功', mergeResponse)
     return {
       storagePath: mergeResponse.storage_path,
-      totalChunks: mergeResponse.total_chunks
+      totalChunks: mergeResponse.total_chunks,
+      fileHash: uploadId
     }
   } catch (error) {
     logger.error('保存分片信息失败:', error)

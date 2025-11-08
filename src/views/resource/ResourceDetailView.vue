@@ -6,48 +6,95 @@
       <!-- 资源信息卡片 -->
       <el-card class="info-card" shadow="never">
         <div class="resource-header">
-          <div>
-            <h1 class="resource-title">{{ resource.title }}</h1>
-            <p class="resource-description">{{ resource.description }}</p>
+          <div class="resource-basic">
+            <div class="title-line">
+              <el-tag v-if="resource.category" size="small" type="success" effect="light" class="category-tag">
+                {{ resource.category.name }}
+              </el-tag>
+              <h1 class="resource-title">{{ resource.title }}</h1>
+            </div>
+
+            <div class="resource-meta" v-if="authorInfo">
+              <div class="author-info">
+                <el-avatar
+                  class="author-avatar"
+                  :size="48"
+                  :src="hasValidAvatar(authorInfo.avatar) ? authorInfo.avatar : undefined"
+                  :alt="authorInfo.nickname"
+                  :style="{
+                    backgroundColor: getAvatarColor(authorInfo.id),
+                    fontSize: '20px',
+                    fontWeight: '600',
+                    cursor: authorInfo.id ? 'pointer' : 'default'
+                  }"
+                  @click="handleAuthorClick"
+                >
+                  {{ getAvatarInitial(authorInfo.nickname) }}
+                </el-avatar>
+                <div class="author-details">
+                  <div class="author-name">{{ authorInfo.nickname }}</div>
+                  <div class="publish-time" v-if="resource.created_at">
+                    <el-icon><Clock /></el-icon>
+                    {{ formatRelativeTime(resource.created_at) }}
+                  </div>
+                  <div class="publish-time publish-time--fallback" v-else>时间未知</div>
+                </div>
+              </div>
+            </div>
           </div>
+
           <div class="resource-actions">
-            <el-button type="primary" :icon="Download" size="large" @click="handleDownload">
-              下载资源
+            <el-button
+              type="primary"
+              :icon="Download"
+              size="large"
+              :loading="downloading"
+              @click="handleDownload"
+            >
+              {{ downloadButtonText }}
             </el-button>
-            <el-button :icon="resource.is_liked ? StarFilled : Star" @click="handleLike">
-              {{ resource.is_liked ? '已点赞' : '点赞' }} ({{ resource.like_count }})
-            </el-button>
+
+            <div v-if="downloading" class="download-progress">
+              <el-progress
+                :percentage="Math.min(downloadProgress, 100)"
+                :stroke-width="4"
+              />
+            </div>
           </div>
         </div>
 
-        <el-divider />
+        <p v-if="resource.description" class="resource-description">
+          {{ resource.description }}
+        </p>
 
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <div class="info-item">
-              <span class="label">文件名：</span>
-              <span class="value">{{ resource.file_name }}</span>
+        <div v-if="resource.tags && resource.tags.length" class="resource-tags">
+          <el-tag v-for="tag in resource.tags" :key="tag" size="small" effect="plain" round>
+            #{{ tag }}
+          </el-tag>
+        </div>
+
+        <div class="resource-metrics" v-if="overviewMetrics.length">
+          <div class="metric-item" v-for="metric in overviewMetrics" :key="metric.key">
+            <div class="metric-icon">
+              <el-icon><component :is="metric.icon" /></el-icon>
             </div>
-          </el-col>
-          <el-col :span="12">
-            <div class="info-item">
-              <span class="label">文件大小：</span>
-              <span class="value">{{ formatFileSize(resource.file_size) }}</span>
+            <div class="metric-content">
+              <div class="metric-value">{{ metric.value }}</div>
+              <div class="metric-label">{{ metric.label }}</div>
             </div>
-          </el-col>
-          <el-col :span="12">
-            <div class="info-item">
-              <span class="label">下载次数：</span>
-              <span class="value">{{ resource.download_count }}</span>
-            </div>
-          </el-col>
-          <el-col :span="12">
-            <div class="info-item">
-              <span class="label">浏览次数：</span>
-              <span class="value">{{ resource.view_count }}</span>
-            </div>
-          </el-col>
-        </el-row>
+          </div>
+        </div>
+
+        <el-divider v-if="baseInfoItems.length" />
+
+        <div class="resource-info-grid" v-if="baseInfoItems.length">
+          <div class="info-item" v-for="item in baseInfoItems" :key="item.label">
+            <span class="info-label">{{ item.label }}</span>
+            <span class="info-value" :class="{ 'is-clip': item.clip }" :title="item.value">
+              {{ item.value }}
+            </span>
+          </div>
+        </div>
       </el-card>
 
       <!-- 预览图轮播 -->
@@ -253,20 +300,23 @@ import {
   Share,
   CopyDocument,
   Link,
-  Picture
+  Picture,
+  Clock,
+  View
 } from '@element-plus/icons-vue'
 import QRCode from 'qrcode'
 import { ref, onMounted, computed, nextTick, onUnmounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import ResourceCommentItem from '@/components/resource/ResourceCommentItem.vue'
 import { STORAGE_KEYS } from '@/config/storage-keys'
 import { globalChatService, type CommentNotification } from '@/services/globalChatService'
 import type { Resource, ResourceComment } from '@/types/resource'
+import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/ui/avatar'
 import {
   getResourceDetail,
   toggleResourceLike,
-  getResourceProxyDownloadUrl,
+  getResourceChunkDownloadInfo,
   postResourceComment,
   getResourceComments
 } from '@/utils/api'
@@ -277,10 +327,12 @@ import {
   upsertRootComment
 } from '@/utils/commentTree'
 import { renderMarkdown } from '@/utils/data/markdown'
+import { downloadAndMergeChunks } from '@/utils/download/chunk-download'
 import toast from '@/utils/ui/toast'
 import { logger } from '@/utils/ui/logger'
 
 const route = useRoute()
+const router = useRouter()
 
 const loading = ref(true)
 const resource = ref<Resource | null>(null)
@@ -292,6 +344,8 @@ const qrcodeCanvas = ref<HTMLCanvasElement | null>(null)
 const commentCount = ref(0)
 const showImageViewer = ref(false)
 const currentImageUrl = ref('')
+const downloading = ref(false)
+const downloadProgress = ref(0)
 
 let unsubscribeComment: (() => void) | null = null
 
@@ -324,6 +378,140 @@ const shareLink = computed(() => {
   }
   return ''
 })
+
+const downloadButtonText = computed(() => {
+  if (!downloading.value) {
+    return '下载资源'
+  }
+
+  if (downloadProgress.value >= 100) {
+    return '处理中...'
+  }
+
+  return `下载中 ${downloadProgress.value}%`
+})
+
+const authorInfo = computed(() => {
+  if (!resource.value) return null
+  const author = resource.value.author
+  if (!author) {
+    return {
+      id: 0,
+      nickname: '匿名作者',
+      avatar: ''
+    }
+  }
+
+  return {
+    id: author.id ?? 0,
+    nickname: author.nickname || author.username || '匿名作者',
+    avatar: author.avatar || ''
+  }
+})
+
+const overviewMetrics = computed(() => {
+  if (!resource.value) return []
+  return [
+    {
+      key: 'downloads',
+      label: '下载',
+      value: formatMetricValue(resource.value.download_count),
+      icon: Download
+    },
+    {
+      key: 'views',
+      label: '浏览',
+      value: formatMetricValue(resource.value.view_count),
+      icon: View
+    },
+    {
+      key: 'likes',
+      label: '点赞',
+      value: formatMetricValue(resource.value.like_count),
+      icon: StarFilled
+    },
+    {
+      key: 'comments',
+      label: '评论',
+      value: formatMetricValue(commentCount.value),
+      icon: ChatDotRound
+    }
+  ]
+})
+
+const baseInfoItems = computed(() => {
+  if (!resource.value) return []
+
+  const extension = resource.value.file_extension
+    ? resource.value.file_extension.replace(/^\./, '')
+    : ''
+
+  const items: Array<{ label: string; value: string; clip?: boolean }> = [
+    { label: '文件名', value: resource.value.file_name || '-' },
+    { label: '文件大小', value: formatFileSize(resource.value.file_size) },
+    {
+      label: '文件类型',
+      value: resource.value.file_type || extension.toUpperCase() || '-'
+    }
+  ]
+
+  if (extension) {
+    items.push({ label: '文件后缀', value: `.${extension}` })
+  }
+
+  return items
+})
+
+function handleAuthorClick() {
+  if (!authorInfo.value || !authorInfo.value.id) return
+  router.push(`/users/${authorInfo.value.id}`)
+}
+
+function formatRelativeTime(dateString: string | undefined | null): string {
+  if (!dateString) return '刚刚'
+  const date = new Date(dateString)
+  if (Number.isNaN(date.getTime())) {
+    return dateString
+  }
+
+  const now = new Date()
+  const diff = now.getTime() - date.getTime()
+  const minutes = Math.floor(diff / (1000 * 60))
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+
+  if (days >= 7) {
+    return date.toLocaleDateString('zh-CN', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  if (days >= 1) {
+    return `${days}天前`
+  }
+
+  if (hours >= 1) {
+    return `${hours}小时前`
+  }
+
+  if (minutes >= 1) {
+    return `${minutes}分钟前`
+  }
+
+  return '刚刚'
+}
+
+function formatMetricValue(value: number | null | undefined): string {
+  if (!value || value <= 0) return '0'
+  if (value < 1000) return `${value}`
+  if (value < 10000) return value.toLocaleString('zh-CN')
+  if (value < 100000000) {
+    return `${(value / 10000).toFixed(1).replace(/\.0$/, '')} 万`
+  }
+  return `${(value / 100000000).toFixed(1).replace(/\.0$/, '')} 亿`
+}
 
 function normalizeResourceComment(comment: ResourceComment): ResourceComment {
   const replies = Array.isArray(comment.replies)
@@ -480,28 +668,52 @@ async function loadComments(resourceId: number) {
 }
 
 async function handleDownload() {
-  if (!resource.value) return
+  if (!resource.value || downloading.value) return
+
+  downloading.value = true
+  downloadProgress.value = 0
+
+  let startedChunkDownload = false
 
   try {
     toast.info('正在准备下载...')
 
-    // 使用代理下载URL（支持大文件和断点续传）
-    const downloadUrl = getResourceProxyDownloadUrl(resource.value.id)
+    const info = await getResourceChunkDownloadInfo(resource.value.id)
 
-    // 创建隐藏的a标签触发下载
-    const link = document.createElement('a')
-    link.href = downloadUrl
-    link.download = resource.value.file_name
-    link.style.display = 'none'
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    if (!info.total_chunks || info.total_chunks <= 0) {
+      throw new Error('资源分片信息缺失，请稍后重试')
+    }
 
-    // 更新下载次数显示
-    resource.value.download_count++
-    toast.success('下载已开始')
+    const baseUrl =
+      info.chunk_base_url ||
+      (info.chunk_urls && info.chunk_urls.length > 0
+        ? info.chunk_urls[0].replace(/\/chunk_\d+$/, '')
+        : '')
+
+    if (!baseUrl) {
+      throw new Error('未找到可用的资源下载链接')
+    }
+
+    const targetFileName = info.file_name || resource.value.file_name
+
+    startedChunkDownload = true
+    await downloadAndMergeChunks(baseUrl, info.total_chunks, targetFileName, progress => {
+      downloadProgress.value = Math.min(100, Math.max(0, Math.round(progress)))
+    })
+
+    if (resource.value) {
+      resource.value.download_count++
+    }
   } catch (error: any) {
-    toast.error(error.message || '下载失败')
+    logger.error('[资源下载] 下载失败', error)
+    if (!startedChunkDownload) {
+      toast.error(error?.message || '下载失败，请稍后重试')
+    }
+  } finally {
+    setTimeout(() => {
+      downloadProgress.value = 0
+    }, 800)
+    downloading.value = false
   }
 }
 
@@ -774,6 +986,58 @@ onUnmounted(() => {
   gap: 20px;
 }
 
+.resource-basic {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+
+.title-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.category-tag {
+  font-weight: 600;
+}
+
+.resource-meta {
+  margin-top: 4px;
+}
+
+.author-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.author-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.author-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+}
+
+.publish-time {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: #909399;
+}
+
+.publish-time--fallback {
+  color: #c0c4cc;
+}
+
 .resource-title {
   font-size: 28px;
   font-weight: bold;
@@ -784,24 +1048,128 @@ onUnmounted(() => {
 .resource-description {
   font-size: 16px;
   color: #606266;
-  margin: 0;
+  margin: 16px 0 0;
+  line-height: 1.6;
+}
+
+.resource-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .resource-actions {
   display: flex;
+  flex-direction: column;
+  align-items: flex-end;
   gap: 12px;
   flex-shrink: 0;
 }
 
-.info-item {
-  padding: 8px 0;
-  display: flex;
-  gap: 8px;
+.resource-metrics {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
 }
 
-.info-item .label {
+.metric-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #ebeef5;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f9fbff 0%, #ffffff 100%);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.metric-item:hover {
+  border-color: #cfd8f6;
+  box-shadow: 0 6px 18px rgba(64, 158, 255, 0.12);
+}
+
+.metric-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(64, 158, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #409eff;
+}
+
+.metric-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metric-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #303133;
+  line-height: 1.2;
+}
+
+.metric-label {
+  font-size: 13px;
+  color: #909399;
+}
+
+.resource-info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px 20px;
+  margin-top: 12px;
+}
+
+.info-item {
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid #ebeef5;
+  background: #f9fafc;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.info-label {
+  font-size: 13px;
+  color: #909399;
+}
+
+.info-value {
+  font-size: 16px;
   font-weight: 600;
-  color: #606266;
+  color: #303133;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.info-value.is-clip {
+  cursor: default;
+}
+
+@media (max-width: 992px) {
+  .resource-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .resource-actions {
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 600px) {
+  .resource-metrics {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
 }
 
 .markdown-body {
@@ -873,6 +1241,10 @@ onUnmounted(() => {
   padding: 16px;
   border-radius: 8px;
   overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
   margin-bottom: 16px;
 }
 
@@ -882,6 +1254,9 @@ onUnmounted(() => {
   color: #abb2bf;
   font-size: 14px;
   line-height: 1.5;
+  white-space: inherit;
+  word-break: inherit;
+  overflow-wrap: inherit;
 }
 
 /* Markdown 引用 */
@@ -961,6 +1336,11 @@ onUnmounted(() => {
   display: flex;
   gap: 12px;
   justify-content: center;
+  flex-wrap: wrap;
+}
+
+.download-progress {
+  margin-top: 12px;
 }
 
 /* 评论区 */

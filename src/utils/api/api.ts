@@ -1185,7 +1185,8 @@ import type {
   CreateResourceRequest,
   InitUploadRequest,
   InitUploadResponse,
-  MergeChunksResponse
+  MergeChunksResponse,
+  ResourceChunkDownloadInfo
 } from '@/types/resource'
 
 /**
@@ -1289,6 +1290,31 @@ export function getResourceProxyDownloadUrl(id: number): string {
     sessionStorage.getItem(STORAGE_KEYS.AUTH_TOKEN) ||
     ''
   return `${baseURL}/resources/${id}/proxy-download?token=${encodeURIComponent(token)}`
+}
+
+/**
+ * 获取资源分片下载信息
+ */
+export async function getResourceChunkDownloadInfo(
+  id: number
+): Promise<ResourceChunkDownloadInfo> {
+  const response = await api.get<ApiResponse<ResourceChunkDownloadInfo>>(
+    `/resources/${id}/proxy-download`
+  )
+
+  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
+    const data = response.data.data
+    if (!data.chunk_base_url && Array.isArray(data.chunk_urls) && data.chunk_urls.length > 0) {
+      const first = data.chunk_urls[0]
+      data.chunk_base_url = first.replace(/\/chunk_\d+$/, '')
+    }
+    return data
+  }
+
+  throw createAppError(
+    'GET_RESOURCE_CHUNK_INFO_FAILED',
+    response.data.message || '获取资源下载信息失败'
+  )
 }
 
 /**

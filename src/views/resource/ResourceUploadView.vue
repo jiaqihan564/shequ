@@ -485,6 +485,7 @@ async function handleSubmit() {
       file_name: selectedFile.value.name,
       file_size: selectedFile.value.size,
       file_type: selectedFile.value.type,
+      file_hash: uploadResult.fileHash,
       storage_path: uploadResult.storagePath,
       total_chunks: uploadResult.totalChunks, // 保存分片总数
       image_urls: imageUrls,
@@ -768,6 +769,10 @@ onMounted(() => {
   padding: 16px;
   border-radius: 8px;
   overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
   margin-bottom: 16px;
 }
 
@@ -777,6 +782,9 @@ onMounted(() => {
   color: #abb2bf;
   font-size: 14px;
   line-height: 1.5;
+  white-space: inherit;
+  word-break: inherit;
+  overflow-wrap: inherit;
 }
 
 .markdown-preview :deep(blockquote) {

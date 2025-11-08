@@ -862,12 +862,19 @@ onMounted(() => {
   padding: 16px;
   border-radius: 8px;
   overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
   margin: 16px 0;
 }
 
 .markdown-preview :deep(pre code) {
   background: transparent;
   color: #abb2bf;
+  white-space: inherit;
+  word-break: inherit;
+  overflow-wrap: inherit;
 }
 
 .markdown-preview :deep(img) {

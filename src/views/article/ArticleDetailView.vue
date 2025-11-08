@@ -38,21 +38,6 @@
               </div>
             </div>
           </div>
-
-          <div class="article-stats">
-            <el-tag type="info" effect="plain">
-              <el-icon><View /></el-icon>
-              {{ article.view_count }}
-            </el-tag>
-            <el-tag type="success" effect="plain">
-              <el-icon><Star /></el-icon>
-              {{ article.like_count }}
-            </el-tag>
-            <el-tag type="warning" effect="plain">
-              <el-icon><ChatDotRound /></el-icon>
-              {{ article.comment_count }}
-            </el-tag>
-          </div>
         </div>
 
         <div class="article-tags">
@@ -63,6 +48,24 @@
             #{{ tag.name }}
           </el-tag>
         </div>
+
+        <p v-if="article.description" class="article-description">
+          {{ article.description }}
+        </p>
+
+        <div class="article-metrics" v-if="overviewMetrics.length">
+          <div class="metric-item" v-for="metric in overviewMetrics" :key="metric.key">
+            <div class="metric-icon">
+              <el-icon><component :is="metric.icon" /></el-icon>
+            </div>
+            <div class="metric-content">
+              <div class="metric-value">{{ metric.value }}</div>
+              <div class="metric-label">{{ metric.label }}</div>
+            </div>
+          </div>
+        </div>
+
+        <el-divider v-if="overviewMetrics.length" />
       </el-card>
 
       <!-- 文章正文 -->
@@ -359,6 +362,30 @@ const renderedContent = computed(() => {
   return renderMarkdown(article.value.content)
 })
 
+const overviewMetrics = computed(() => {
+  if (!article.value) return []
+  return [
+    {
+      key: 'views',
+      label: '浏览',
+      value: formatMetricValue(article.value.view_count),
+      icon: View
+    },
+    {
+      key: 'likes',
+      label: '点赞',
+      value: formatMetricValue(article.value.like_count),
+      icon: StarFilled
+    },
+    {
+      key: 'comments',
+      label: '评论',
+      value: formatMetricValue(article.value.comment_count),
+      icon: ChatDotRound
+    }
+  ]
+})
+
 async function loadArticle() {
   loading.value = true
   try {
@@ -551,6 +578,17 @@ async function copyCode(code: string) {
     }
     document.body.removeChild(textArea)
   }
+}
+
+function formatMetricValue(value: number | null | undefined): string {
+  const numeric = typeof value === 'number' ? value : 0
+  if (numeric <= 0) return '0'
+  if (numeric < 1000) return `${numeric}`
+  if (numeric < 10000) return numeric.toLocaleString('zh-CN')
+  if (numeric < 100000000) {
+    return `${(numeric / 10000).toFixed(1).replace(/\.0$/, '')} 万`
+  }
+  return `${(numeric / 100000000).toFixed(1).replace(/\.0$/, '')} 亿`
 }
 
 // 跳转到用户详情
@@ -770,23 +808,69 @@ onUnmounted(() => {
   gap: 4px;
 }
 
-.article-stats {
-  display: flex;
-  gap: 12px;
-}
-
-.article-stats .el-tag {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 16px;
-  font-size: 14px;
-}
-
 .article-tags {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+}
+
+.article-description {
+  font-size: 16px;
+  color: #606266;
+  margin: 16px 0 0;
+  line-height: 1.6;
+}
+
+.article-metrics {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.metric-item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #ebeef5;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f9fbff 0%, #ffffff 100%);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.metric-item:hover {
+  border-color: #cfd8f6;
+  box-shadow: 0 6px 18px rgba(64, 158, 255, 0.12);
+}
+
+.metric-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(64, 158, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #409eff;
+}
+
+.metric-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.metric-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: #303133;
+  line-height: 1.2;
+}
+
+.metric-label {
+  font-size: 13px;
+  color: #909399;
 }
 
 .markdown-body {
@@ -858,6 +942,10 @@ onUnmounted(() => {
   padding: 16px;
   border-radius: 8px;
   overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
   margin-bottom: 16px;
 }
 
@@ -867,6 +955,9 @@ onUnmounted(() => {
   color: #abb2bf;
   font-size: 14px;
   line-height: 1.5;
+  white-space: inherit;
+  word-break: inherit;
+  overflow-wrap: inherit;
 }
 
 /* Markdown 引用 */
@@ -1089,6 +1180,12 @@ onUnmounted(() => {
 
   .share-methods {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .article-metrics {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   }
 }
 </style>
