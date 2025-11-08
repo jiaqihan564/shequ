@@ -131,6 +131,15 @@ export const uploadConfig = {
   /** 分片上传：每片大小（字节） */
   chunkSize: getEnvNumber('VITE_UPLOAD_CHUNK_SIZE_MB', 2) * 1024 * 1024,
 
+  /** 分片并发上传数量（建议3-5） */
+  chunkConcurrency: getEnvNumber('VITE_UPLOAD_CHUNK_CONCURRENCY', 3),
+
+  /** 分片上传最大重试次数 */
+  chunkMaxRetries: getEnvNumber('VITE_UPLOAD_CHUNK_MAX_RETRIES', 3),
+
+  /** 分片上传重试延迟基数（毫秒） */
+  chunkRetryBaseDelay: getEnvNumber('VITE_UPLOAD_CHUNK_RETRY_BASE_DELAY_MS', 1000),
+
   /** 图片最大大小（字节） */
   imageMaxSize: getEnvNumber('VITE_IMAGE_MAX_SIZE_MB', 5) * 1024 * 1024,
 

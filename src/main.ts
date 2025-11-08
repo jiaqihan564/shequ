@@ -10,6 +10,7 @@ import './style.css'
 import './styles/lazy-load.css'
 import { lazyLoad } from './directives/lazyLoad'
 import { globalChatService } from './services/globalChatService'
+import { contentNotificationService } from './services/contentNotificationService'
 import { authManager } from './utils/auth/authManager'
 import { getStoredToken } from './utils/tokenValidator'
 import { logger } from './utils/ui/logger'
@@ -123,9 +124,21 @@ router.afterEach(() => {
   const isAuthenticated = !!token
 
   // 如果用户未认证且 WebSocket 已连接，则断开
-  if (!isAuthenticated && globalChatService.connectionStatus.value !== 'disconnected') {
-    logger.info('[Main] User not authenticated, disconnecting WebSocket')
-    globalChatService.disconnect()
+  if (!isAuthenticated) {
+    if (globalChatService.connectionStatus.value !== 'disconnected') {
+      logger.info('[Main] User not authenticated, disconnecting chat WebSocket')
+      globalChatService.disconnect()
+    }
+    if (contentNotificationService.isConnected) {
+      logger.info('[Main] User not authenticated, disconnecting content notification WebSocket')
+      contentNotificationService.disconnect()
+    }
+  } else {
+    // 用户已认证，自动连接内容通知服务
+    if (!contentNotificationService.isConnected) {
+      logger.info('[Main] User authenticated, connecting content notification WebSocket')
+      contentNotificationService.connect()
+    }
   }
 })
 
@@ -145,13 +158,26 @@ window.addEventListener('user:logout', (event: Event) => {
     timestamp: detail.timestamp
   })
 
-  // 断开 WebSocket 连接
+  // 断开所有 WebSocket 连接
   globalChatService.disconnect()
+  contentNotificationService.disconnect()
+  contentNotificationService.clearAllHandlers()
 
   // 如果是自动登出（token过期），记录额外信息
   if (detail.automatic) {
     logger.info('[Main] 自动登出（token过期）')
   }
+})
+
+// 监听登录成功事件
+window.addEventListener('user:login', () => {
+  logger.info('[Main] 收到登录事件，连接内容通知服务')
+  // 延迟一点确保token已保存
+  setTimeout(() => {
+    if (!contentNotificationService.isConnected) {
+      contentNotificationService.connect()
+    }
+  }, 100)
 })
 
 // 注册 Service Worker（仅生产环境）

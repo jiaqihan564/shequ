@@ -15,12 +15,24 @@
           <div class="item-change">
             <div class="change-row">
               <span class="change-label">修改前:</span>
-              <span class="change-value old">{{ item.old_value || '（空）' }}</span>
+              <img 
+                v-if="item.field_name === 'avatar' && item.old_value" 
+                :src="item.old_value" 
+                class="avatar-preview old"
+                alt="修改前头像"
+              />
+              <span v-else class="change-value old">{{ item.old_value || '（空）' }}</span>
             </div>
             <div class="change-arrow">→</div>
             <div class="change-row">
               <span class="change-label">修改后:</span>
-              <span class="change-value new">{{ item.new_value || '（空）' }}</span>
+              <img 
+                v-if="item.field_name === 'avatar' && item.new_value" 
+                :src="item.new_value" 
+                class="avatar-preview new"
+                alt="修改后头像"
+              />
+              <span v-else class="change-value new">{{ item.new_value || '（空）' }}</span>
             </div>
           </div>
           <div class="item-meta">
@@ -196,6 +208,22 @@ onMounted(() => {
 .change-value.new {
   background: #d1fae5;
   color: #065f46;
+}
+
+.avatar-preview {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid transparent;
+}
+
+.avatar-preview.old {
+  border-color: #f87171;
+}
+
+.avatar-preview.new {
+  border-color: #34d399;
 }
 
 .change-arrow {

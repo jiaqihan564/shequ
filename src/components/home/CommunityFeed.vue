@@ -6,6 +6,14 @@
         <button class="tab-btn active">
           💻 热门代码
         </button>
+        <button 
+          v-if="hasNewContent" 
+          class="refresh-btn"
+          @click="refreshContent"
+          title="点击刷新查看新内容"
+        >
+          🔄 有{{ newContentCount }}条新内容
+        </button>
       </div>
     </div>
 
@@ -65,20 +73,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { RouterLink } from 'vue-router'
+import { ElNotification } from 'element-plus'
 
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import type { CodeSnippetWithUser } from '@/types/code'
 import { getPublicSnippets } from '@/utils/code-api'
 import { getAvatarInitial, getAvatarColor } from '@/utils/avatar'
+import { contentNotificationService } from '@/services/contentNotificationService'
 
 const codeSnippets = ref<CodeSnippetWithUser[]>([])
 const isLoading = ref(false)
 const error = ref('')
+const hasNewContent = ref(false)
+const newContentCount = ref(0)
+
+// WebSocket事件处理器的清理函数
+let unsubscribeNewCode: (() => void) | null = null
+let unsubscribeNewArticle: (() => void) | null = null
+let unsubscribeNewResource: (() => void) | null = null
 
 onMounted(() => {
   loadData()
+  setupWebSocketListeners()
 })
 
 async function loadData() {
@@ -115,6 +133,73 @@ function getCodePreview(code: string): string {
   const lines = code.split('\n').slice(0, 5)
   return lines.join('\n') + (code.split('\n').length > 5 ? '\n...' : '')
 }
+
+// 设置WebSocket监听器
+function setupWebSocketListeners() {
+  // 监听新代码片段
+  unsubscribeNewCode = contentNotificationService.on('new_code', (data) => {
+    console.log('收到新代码片段通知:', data)
+    
+    // 显示通知
+    ElNotification({
+      title: '新代码发布',
+      message: `${data.snippet?.username || '某用户'} 分享了新代码`,
+      type: 'info',
+      duration: 3000,
+      position: 'top-right'
+    })
+    
+    // 标记有新内容
+    hasNewContent.value = true
+    newContentCount.value++
+  })
+
+  // 监听新文章
+  unsubscribeNewArticle = contentNotificationService.on('new_article', (data) => {
+    console.log('收到新文章通知:', data)
+    
+    ElNotification({
+      title: '新文章发布',
+      message: `${data.article?.author?.username || '某用户'} 发布了新文章`,
+      type: 'info',
+      duration: 3000,
+      position: 'top-right'
+    })
+    
+    hasNewContent.value = true
+    newContentCount.value++
+  })
+
+  // 监听新资源
+  unsubscribeNewResource = contentNotificationService.on('new_resource', (data) => {
+    console.log('收到新资源通知:', data)
+    
+    ElNotification({
+      title: '新资源发布',
+      message: `${data.resource?.author?.username || '某用户'} 发布了新资源`,
+      type: 'info',
+      duration: 3000,
+      position: 'top-right'
+    })
+    
+    hasNewContent.value = true
+    newContentCount.value++
+  })
+}
+
+// 刷新内容
+async function refreshContent() {
+  hasNewContent.value = false
+  newContentCount.value = 0
+  await loadData()
+}
+
+// 清理WebSocket监听器
+onUnmounted(() => {
+  if (unsubscribeNewCode) unsubscribeNewCode()
+  if (unsubscribeNewArticle) unsubscribeNewArticle()
+  if (unsubscribeNewResource) unsubscribeNewResource()
+})
 </script>
 
 <style scoped>
@@ -155,6 +240,35 @@ function getCodePreview(code: string): string {
   font-size: 14px;
   font-weight: 600;
   cursor: default;
+}
+
+.refresh-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #10b981;
+  background: #ecfdf5;
+  color: #10b981;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.refresh-btn:hover {
+  background: #d1fae5;
+  border-color: #059669;
+  color: #059669;
+  transform: translateY(-1px);
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+  }
 }
 
 .feed-loading,

@@ -40,6 +40,7 @@
             :auto-upload="false"
             :limit="1"
             :on-change="handleFileChange"
+            :on-remove="handleFileRemove"
             drag
             style="width: 100%"
           >
@@ -216,6 +217,14 @@ function handleFileChange(file: UploadFile) {
     const nameWithoutExtension = lastDotIndex > 0 ? fileName.substring(0, lastDotIndex) : fileName
     form.title = nameWithoutExtension
   }
+}
+
+function handleFileRemove() {
+  // 清除选中的文件
+  selectedFile.value = null
+  uploadedStoragePath.value = ''
+  uploadProgress.value = 0
+  uploadStatus.value = ''
 }
 
 function beforeImageUpload(file: File) {
