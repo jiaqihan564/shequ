@@ -241,7 +241,7 @@ import {
   Message,
   DataAnalysis
 } from '@element-plus/icons-vue'
-import { ref, onMounted, reactive, onUnmounted, watch } from 'vue'
+import { ref, onMounted, reactive, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 import SkeletonLoader from '@/components/shared/SkeletonLoader.vue'
@@ -264,7 +264,6 @@ const tags = ref<ArticleTag[]>([])
 const total = ref(0)
 const page = ref(1)
 const pageSize = ref(12)
-const totalPages = ref(0)
 const searchKeyword = ref('')
 
 const query = reactive<ArticleListQuery>({
@@ -278,8 +277,6 @@ const query = reactive<ArticleListQuery>({
 })
 
 let unsubscribeArticleBroadcast: (() => void) | null = null
-const pendingArticleReload = ref(false)
-const hasArticleRealtimeNotice = ref(false)
 
 function isViewingDefaultLatest(): boolean {
   return (
@@ -373,18 +370,10 @@ async function loadArticles() {
     total.value = response.total
     page.value = response.page
     pageSize.value = response.page_size
-    totalPages.value = response.total_pages
   } catch (error: any) {
     toast.error(error.message || '加载文章失败')
   } finally {
     loading.value = false
-    if (isViewingDefaultLatest()) {
-      hasArticleRealtimeNotice.value = false
-    }
-    if (pendingArticleReload.value) {
-      pendingArticleReload.value = false
-      void loadArticles()
-    }
   }
 }
 
@@ -483,18 +472,13 @@ function handleRealtimeArticle(payload: ContentBroadcastPayload<ArticleListItem>
     if (normalized) {
       insertArticleAtTop(normalized)
       toast.success(`新文章发布：${normalized.title}`)
-    } else if (loading.value) {
-      pendingArticleReload.value = true
     } else {
       void loadArticles()
     }
     return
   }
 
-  if (!hasArticleRealtimeNotice.value) {
-    toast.info('有新的文章发布，切换到“最新上传”第一页即可查看最新内容')
-    hasArticleRealtimeNotice.value = true
-  }
+  toast.info('有新的文章发布，切换到“最新上传”第一页即可查看最新内容')
 }
 
 function subscribeToRealtimeArticles() {
@@ -514,27 +498,6 @@ function cleanupRealtimeArticles() {
     unsubscribeArticleBroadcast = null
   }
 }
-
-watch(
-  () => [
-    query.page,
-    query.sort_by,
-    query.category_id,
-    query.tag_id,
-    query.keyword,
-    query.user_id
-  ],
-  () => {
-    if (hasArticleRealtimeNotice.value && isViewingDefaultLatest()) {
-      hasArticleRealtimeNotice.value = false
-      if (loading.value) {
-        pendingArticleReload.value = true
-      } else {
-        void loadArticles()
-      }
-    }
-  }
-)
 
 onMounted(() => {
   loadMetadata()

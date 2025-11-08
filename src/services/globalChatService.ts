@@ -56,12 +56,6 @@ interface WSMessage {
     | 'comment_deleted'
     | 'new_article'
     | 'new_resource'
-    | 'article_created'
-    | 'article_updated'
-    | 'article_deleted'
-    | 'resource_created'
-    | 'resource_updated'
-    | 'resource_deleted'
   data: unknown
 }
 
@@ -684,40 +678,20 @@ class GlobalChatService {
         break
       }
 
-      case 'article_created':
-      case 'article_updated':
-      case 'article_deleted':
       case 'new_article': {
-        const actionMap: Record<string, ContentUpdateAction> = {
-          article_created: 'created',
-          article_updated: 'updated',
-          article_deleted: 'deleted',
-          new_article: 'created'
-        }
-
         this.emitContentBroadcast<ArticleListItem>(
           this.articleBroadcastCallbacks,
-          actionMap[wsMsg.type],
+          'created',
           wsMsg.data,
           ['article', 'data']
         )
         break
       }
 
-      case 'resource_created':
-      case 'resource_updated':
-      case 'resource_deleted':
       case 'new_resource': {
-        const actionMap: Record<string, ContentUpdateAction> = {
-          resource_created: 'created',
-          resource_updated: 'updated',
-          resource_deleted: 'deleted',
-          new_resource: 'created'
-        }
-
         this.emitContentBroadcast<ResourceListItem>(
           this.resourceBroadcastCallbacks,
-          actionMap[wsMsg.type],
+          'created',
           wsMsg.data,
           ['resource', 'data']
         )

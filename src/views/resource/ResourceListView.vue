@@ -234,7 +234,7 @@ import {
   DataAnalysis,
   Picture
 } from '@element-plus/icons-vue'
-import { ref, onMounted, reactive, onUnmounted, watch } from 'vue'
+import { ref, onMounted, reactive, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 import SkeletonLoader from '@/components/shared/SkeletonLoader.vue'
@@ -262,8 +262,6 @@ const query = reactive({
 })
 
 let unsubscribeResourceBroadcast: (() => void) | null = null
-const pendingResourceReload = ref(false)
-const hasResourceRealtimeNotice = ref(false)
 
 function isViewingDefaultResourceLatest(): boolean {
   return (
@@ -348,13 +346,6 @@ async function loadResources() {
     toast.error(error.message || '加载资源失败')
   } finally {
     loading.value = false
-    if (isViewingDefaultResourceLatest()) {
-      hasResourceRealtimeNotice.value = false
-    }
-    if (pendingResourceReload.value) {
-      pendingResourceReload.value = false
-      void loadResources()
-    }
   }
 }
 
@@ -428,18 +419,13 @@ function handleRealtimeResource(payload: ContentBroadcastPayload<ResourceListIte
     if (normalized) {
       insertResourceAtTop(normalized)
       toast.success(`新资源发布：${normalized.title}`)
-    } else if (loading.value) {
-      pendingResourceReload.value = true
     } else {
       void loadResources()
     }
     return
   }
 
-  if (!hasResourceRealtimeNotice.value) {
-    toast.info('有新资源发布，切换到“最新上传”第一页即可查看最新内容')
-    hasResourceRealtimeNotice.value = true
-  }
+  toast.info('有新资源发布，切换到“最新上传”第一页即可查看最新内容')
 }
 
 function subscribeToRealtimeResources() {
@@ -459,20 +445,6 @@ function cleanupRealtimeResources() {
     unsubscribeResourceBroadcast = null
   }
 }
-
-watch(
-  () => [query.page, query.sort_by, query.category_id, query.keyword],
-  () => {
-    if (hasResourceRealtimeNotice.value && isViewingDefaultResourceLatest()) {
-      hasResourceRealtimeNotice.value = false
-      if (loading.value) {
-        pendingResourceReload.value = true
-      } else {
-        void loadResources()
-      }
-    }
-  }
-)
 
 onMounted(() => {
   loadCategories()
