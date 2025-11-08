@@ -376,7 +376,13 @@ export default defineConfig({
       'element-plus/es/components/alert/style/css',          // 新增
       'element-plus/es/components/backtop/style/css',        // 新增
       'element-plus/es/components/calendar/style/css',       // 新增
-      'element-plus/es/components/autocomplete/style/css'    // 新增
+      'element-plus/es/components/autocomplete/style/css',   // 新增
+      'element-plus/es/components/footer/style/css',         // 新增 - 页脚组件
+      'element-plus/es/components/main/style/css',           // 新增 - 主体区域组件
+      'element-plus/es/components/scrollbar/style/css',      // 新增 - 滚动条组件
+      'element-plus/es/components/header/style/css',         // 新增 - 页头组件
+      'element-plus/es/components/carousel/style/css',       // 新增 - 轮播图组件
+      'element-plus/es/components/carousel-item/style/css'   // 新增 - 轮播图子项组件
     ]
   },
   worker: {

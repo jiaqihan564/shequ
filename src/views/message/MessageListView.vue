@@ -25,7 +25,7 @@
           v-for="conv in conversations"
           :key="conv.id"
           class="conversation-item"
-          @click="openConversation(conv)"
+          @click.stop="openConversation(conv)"
         >
           <el-badge :value="conv.unread_count" :hidden="conv.unread_count === 0" type="danger">
             <el-avatar
@@ -111,6 +111,10 @@ async function loadConversations() {
 }
 
 function openConversation(conv: Conversation) {
+  // 防止重复点击
+  if (loading.value) return
+  
+  logger.info('[MessageList] Opening conversation with user:', conv.other_user.id)
   router.push(`/messages/${conv.other_user.id}`)
 }
 
@@ -319,6 +323,12 @@ onUnmounted(() => {
   border-bottom: 1px solid #ebeef5;
   cursor: pointer;
   transition: all 0.3s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.conversation-item * {
+  pointer-events: none;
 }
 
 .conversation-item:last-child {
