@@ -37,17 +37,17 @@ export const apiConfig = {
   /** API 基础 URL */
   baseURL: getEnvString('VITE_API_BASE_URL', '/api'),
 
-  /** API 请求超时时间（毫秒） */
-  timeout: getEnvNumber('VITE_API_TIMEOUT', 10000),
+  /** API 请求超时时间（毫秒） - 增加到10分钟以支持大文件上传 */
+  timeout: getEnvNumber('VITE_API_TIMEOUT', 600000),
 
   /** API 最大重定向次数 */
   maxRedirects: getEnvNumber('VITE_API_MAX_REDIRECTS', 3),
 
-  /** API 最大内容大小（字节） */
-  maxContentLength: getEnvNumber('VITE_API_MAX_CONTENT_SIZE_MB', 10) * 1024 * 1024,
+  /** API 最大内容大小（字节） - 增加到100MB以支持大文件传输 */
+  maxContentLength: getEnvNumber('VITE_API_MAX_CONTENT_SIZE_MB', 100) * 1024 * 1024,
 
-  /** API 最大请求体大小（字节） */
-  maxBodyLength: getEnvNumber('VITE_API_MAX_BODY_SIZE_MB', 10) * 1024 * 1024,
+  /** API 最大请求体大小（字节） - 增加到50MB以支持大文件分片上传 */
+  maxBodyLength: getEnvNumber('VITE_API_MAX_BODY_SIZE_MB', 50) * 1024 * 1024,
 
   /** API 响应缓存时长（毫秒） */
   cacheDuration: getEnvNumber('VITE_API_CACHE_DURATION_MS', 300000),
@@ -128,17 +128,20 @@ export const authConfig = {
 // ==================== 文件上传配置 ====================
 
 export const uploadConfig = {
-  /** 分片上传：每片大小（字节） */
-  chunkSize: getEnvNumber('VITE_UPLOAD_CHUNK_SIZE_MB', 2) * 1024 * 1024,
+  /** 分片上传：每片大小（字节） - 增加到5MB以减少大文件的分片数量并提高上传效率 */
+  chunkSize: getEnvNumber('VITE_UPLOAD_CHUNK_SIZE_MB', 5) * 1024 * 1024,
 
   /** 分片并发上传数量（建议3-5） */
   chunkConcurrency: getEnvNumber('VITE_UPLOAD_CHUNK_CONCURRENCY', 3),
 
   /** 分片上传最大重试次数 */
-  chunkMaxRetries: getEnvNumber('VITE_UPLOAD_CHUNK_MAX_RETRIES', 3),
+  chunkMaxRetries: getEnvNumber('VITE_UPLOAD_CHUNK_MAX_RETRIES', 5),
 
   /** 分片上传重试延迟基数（毫秒） */
   chunkRetryBaseDelay: getEnvNumber('VITE_UPLOAD_CHUNK_RETRY_BASE_DELAY_MS', 1000),
+
+  /** 资源文件最大大小（字节） - 限制为100MB */
+  resourceMaxSize: getEnvNumber('VITE_RESOURCE_MAX_SIZE_MB', 100) * 1024 * 1024,
 
   /** 图片最大大小（字节） */
   imageMaxSize: getEnvNumber('VITE_IMAGE_MAX_SIZE_MB', 5) * 1024 * 1024,

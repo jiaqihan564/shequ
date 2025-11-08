@@ -36,6 +36,7 @@ export interface Resource {
   file_type: string
   file_extension: string
   storage_path: string
+  total_chunks: number      // 分片总数（用于前端下载合并）
   download_count: number
   view_count: number
   like_count: number
@@ -82,6 +83,7 @@ export interface CreateResourceRequest {
   file_size: number
   file_type: string
   storage_path: string
+  total_chunks: number  // 分片总数（用于前端下载合并）
   image_urls: string[]
   tags: string[]
 }
@@ -101,8 +103,9 @@ export interface InitUploadResponse {
 }
 
 export interface MergeChunksResponse {
-  storage_path: string
-  file_url: string
+  storage_path: string  // 分片路径前缀
+  file_url: string      // 分片基础URL
+  total_chunks: number  // 总分片数
 }
 
 // 资源评论相关类型

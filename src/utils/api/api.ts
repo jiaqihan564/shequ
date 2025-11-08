@@ -1545,17 +1545,24 @@ export async function uploadChunk(
 
 /**
  * 合并分片
+ * 注意：合并大文件可能需要较长时间，使用更长的超时时间
  */
 export async function mergeChunks(uploadId: string): Promise<MergeChunksResponse> {
-  const response = await api.post<ApiResponse<MergeChunksResponse>>('/upload/merge', {
-    upload_id: uploadId
-  })
+  const response = await api.post<ApiResponse<MergeChunksResponse>>(
+    '/upload/merge',
+    {
+      upload_id: uploadId
+    },
+    {
+      timeout: 900000 // 15分钟超时，适用于大文件合并（100MB文件可能需要5-10分钟）
+    }
+  )
 
   if (response.data.code === HTTP_STATUS.OK && response.data.data) {
     return response.data.data
   }
 
-  throw createAppError('MERGE_CHUNKS_FAILED', response.data.message || '合并分片失败')
+  throw createAppError('MERGE_CHUNKS_FAILED', response.data.message || '文件处理失败，请稍后重试')
 }
 
 /**

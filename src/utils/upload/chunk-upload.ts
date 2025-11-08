@@ -83,7 +83,7 @@ export async function uploadFileWithChunks(
   file: File,
   onProgress?: (progress: number) => void,
   onChunkComplete?: (chunkIndex: number, total: number) => void
-): Promise<string> {
+): Promise<{ storagePath: string; totalChunks: number }> {
   // 1. 计算文件MD5（作为upload_id）
   const uploadId = await calculateFileMD5(file)
 
@@ -169,8 +169,8 @@ export async function uploadFileWithChunks(
 
       // 所有重试都失败
       if (lastError) {
-        const errorMsg = `分片 ${chunkIndex + 1} 上传失败（已重试${MAX_RETRIES}次）: ${lastError.message || '网络连接失败'}`
-        logger.error(errorMsg)
+        const errorMsg = `上传失败，请检查网络连接后重试`
+        logger.error(`分片 ${chunkIndex + 1} 上传失败（已重试${MAX_RETRIES}次）: ${lastError.message || '网络连接失败'}`)
         throw new Error(errorMsg)
       }
     })
@@ -187,8 +187,20 @@ export async function uploadFileWithChunks(
     throw error
   }
 
-  // 5. 合并分片
-  const mergeResponse = await mergeChunks(uploadId)
-
-  return mergeResponse.storage_path
+  // 5. 保存分片信息（新方案：不合并，直接返回分片信息）
+  logger.info('保存分片信息...')
+  onProgress?.(99) // 显示99%，表示正在处理
+  
+  try {
+    const mergeResponse = await mergeChunks(uploadId)
+    onProgress?.(100) // 信息保存完成，显示100%
+    logger.info('分片信息保存成功', mergeResponse)
+    return {
+      storagePath: mergeResponse.storage_path,
+      totalChunks: mergeResponse.total_chunks
+    }
+  } catch (error) {
+    logger.error('保存分片信息失败:', error)
+    throw new Error('文件处理失败，请稍后重试')
+  }
 }

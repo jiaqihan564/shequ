@@ -50,7 +50,7 @@
               <em>点击选择</em>
             </div>
             <template #tip>
-              <div class="el-upload__tip">支持任意文件类型，单个文件最大5GB</div>
+              <div class="el-upload__tip">支持任意文件类型，单个文件最大100MB</div>
             </template>
           </el-upload>
 
@@ -172,12 +172,14 @@ import { compressAndConvertToPNG } from '@/utils/image-compress'
 
 const router = useRouter()
 
+const uploadRef = ref()
 const uploading = ref(false)
 const submitting = ref(false)
 const uploadProgress = ref(0)
 const uploadStatus = ref<'success' | 'exception' | ''>('')
 const selectedFile = ref<File | null>(null)
 const uploadedStoragePath = ref('')
+const uploadedTotalChunks = ref(0)
 const imageFileList = ref<UploadFiles>([])
 const categories = ref<ResourceCategory[]>([])
 const docMdFileInput = ref<HTMLInputElement | null>(null)
@@ -208,6 +210,19 @@ async function loadCategories() {
 }
 
 function handleFileChange(file: UploadFile) {
+  // 验证文件大小（最大200MB）
+  const maxSize = uploadConfig.resourceMaxSize
+  if (file.raw && file.raw.size > maxSize) {
+    const maxSizeMB = Math.round(maxSize / (1024 * 1024))
+    const fileSizeMB = (file.raw.size / (1024 * 1024)).toFixed(2)
+    toast.error(`文件过大！当前文件 ${fileSizeMB}MB，最大支持 ${maxSizeMB}MB`)
+    // 清空文件选择
+    if (uploadRef.value) {
+      uploadRef.value.clearFiles()
+    }
+    return
+  }
+
   selectedFile.value = file.raw as File
 
   // 如果标题为空，自动设置为文件名（去掉扩展名）
@@ -416,10 +431,21 @@ async function handleSubmit() {
   try {
     // 1. 上传文件（使用分片上传）
     toast.info('正在上传文件，请稍候...')
-    const storagePath = await uploadFileWithChunks(selectedFile.value, progress => {
+    let lastToastMessage = ''
+    const uploadResult = await uploadFileWithChunks(selectedFile.value, progress => {
       uploadProgress.value = progress
+      
+      // 根据进度显示不同提示
+      if (progress >= 99 && progress < 100 && lastToastMessage !== 'saving') {
+        toast.info('文件上传完成，正在保存信息...')
+        lastToastMessage = 'saving'
+      } else if (progress === 100 && lastToastMessage !== 'complete') {
+        toast.success('保存完成！')
+        lastToastMessage = 'complete'
+      }
     })
-    uploadedStoragePath.value = storagePath
+    uploadedStoragePath.value = uploadResult.storagePath
+    uploadedTotalChunks.value = uploadResult.totalChunks
 
     // 2. 压缩并上传预览图到资源专用桶
     const imageUrls: string[] = []
@@ -459,7 +485,8 @@ async function handleSubmit() {
       file_name: selectedFile.value.name,
       file_size: selectedFile.value.size,
       file_type: selectedFile.value.type,
-      storage_path: storagePath,
+      storage_path: uploadResult.storagePath,
+      total_chunks: uploadResult.totalChunks, // 保存分片总数
       image_urls: imageUrls,
       tags: form.tags
     })
@@ -475,7 +502,23 @@ async function handleSubmit() {
   } catch (error: any) {
     uploadStatus.value = 'exception'
     console.error('上传失败:', error)
-    toast.error(error.message || '上传失败，请重试')
+    
+    // 优化错误提示，给用户友好的提示
+    let errorMessage = '上传失败，请重试'
+    if (error.message) {
+      const msg = error.message.toLowerCase()
+      if (msg.includes('timeout') || msg.includes('超时')) {
+        errorMessage = '上传超时，请检查网络连接后重试'
+      } else if (msg.includes('network') || msg.includes('网络')) {
+        errorMessage = '网络连接失败，请检查网络后重试'
+      } else if (msg.includes('文件过大') || msg.includes('too large')) {
+        errorMessage = '文件过大，请选择小于100MB的文件'
+      } else if (!msg.includes('分片') && !msg.includes('chunk')) {
+        // 只显示不包含技术细节的错误信息
+        errorMessage = error.message
+      }
+    }
+    toast.error(errorMessage)
   } finally {
     submitting.value = false
   }
