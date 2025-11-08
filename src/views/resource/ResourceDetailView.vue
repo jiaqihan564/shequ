@@ -276,8 +276,8 @@ import {
   removeCommentById,
   upsertRootComment
 } from '@/utils/commentTree'
-import { renderMarkdown } from '@/utils/markdown'
-import toast from '@/utils/toast'
+import { renderMarkdown } from '@/utils/data/markdown'
+import toast from '@/utils/ui/toast'
 import { logger } from '@/utils/ui/logger'
 
 const route = useRoute()
@@ -332,8 +332,8 @@ function normalizeResourceComment(comment: ResourceComment): ResourceComment {
 
   return {
     ...comment,
-    user: comment.user ? { ...comment.user } : undefined,
-    reply_to_user: comment.reply_to_user ? { ...comment.reply_to_user } : undefined,
+    user: comment.user || { id: 0, username: '', nickname: '', avatar: '' },
+    reply_to_user: comment.reply_to_user,
     replies,
     reply_count: typeof comment.reply_count === 'number' ? comment.reply_count : replies.length
   }

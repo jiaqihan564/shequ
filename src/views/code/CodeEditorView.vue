@@ -131,8 +131,8 @@ import MonacoEditor from '@/components/code/MonacoEditor.vue'
 import OutputPanel from '@/components/code/OutputPanel.vue'
 import { codeExamples } from '@/data/code-examples'
 import type { LanguageInfo, CodeExample } from '@/types/code'
-import { executeCode, saveSnippet, generateShareLink, getSnippetById } from '@/utils/code-api'
-import { toast } from '@/utils/toast'
+import { executeCode, saveSnippet, generateShareLink, getSnippetById } from '@/utils/api/code-api'
+import { toast } from '@/utils/ui/toast'
 import { logger } from '@/utils/ui/logger'
 
 const router = useRouter()

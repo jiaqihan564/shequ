@@ -3,26 +3,26 @@
     <el-avatar
       :size="isReply ? 32 : 40"
       :src="
-        hasValidAvatar(comment.user?.avatar || comment.author?.avatar)
-          ? comment.user?.avatar || comment.author?.avatar
+        hasValidAvatar(comment.author?.avatar)
+          ? comment.author.avatar
           : undefined
       "
-      :alt="comment.user?.nickname || comment.author?.nickname"
+      :alt="comment.author?.nickname"
       :style="{
-        backgroundColor: getAvatarColor(comment.user?.id || comment.author?.id || comment.user_id),
+        backgroundColor: getAvatarColor(comment.author?.id || comment.user_id),
         cursor: 'pointer',
         fontSize: isReply ? '14px' : '18px',
         fontWeight: '600'
       }"
       @click="goToUserDetail"
     >
-      {{ getAvatarInitial(comment.user?.nickname || comment.author?.nickname) }}
+      {{ getAvatarInitial(comment.author?.nickname) }}
     </el-avatar>
     <div class="comment-content">
       <div class="comment-header">
         <div class="commenter-info">
           <span class="commenter-name">
-            {{ comment.user?.nickname || comment.author?.nickname }}
+            {{ comment.author?.nickname }}
           </span>
           <span v-if="comment.reply_to_user" class="reply-to">
             回复 @{{ comment.reply_to_user.nickname }}
@@ -44,7 +44,7 @@
           v-model="replyContent"
           type="textarea"
           :rows="3"
-          :placeholder="`回复 @${comment.user?.nickname || comment.author?.nickname}...`"
+          :placeholder="`回复 @${comment.author?.nickname}...`"
           maxlength="500"
           show-word-limit
           @keydown="handleReplyKeydown"
@@ -87,8 +87,8 @@ import { useRouter } from 'vue-router'
 
 import type { ArticleComment } from '@/types'
 import { postComment } from '@/utils/api'
-import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
-import toast from '@/utils/toast'
+import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/ui/avatar'
+import toast from '@/utils/ui/toast'
 
 interface Props {
   comment: ArticleComment
@@ -144,7 +144,7 @@ async function submitReply() {
     await postComment(props.articleId, {
       content: replyContent.value,
       parent_id: props.comment.id,
-      reply_to_user_id: props.comment.user_id || props.comment.user?.id
+      reply_to_user_id: props.comment.user_id
     })
 
     replyContent.value = ''
@@ -159,7 +159,7 @@ async function submitReply() {
 }
 
 function goToUserDetail() {
-  const userId = props.comment.user?.id || props.comment.author?.id || props.comment.user_id
+  const userId = props.comment.author?.id || props.comment.user_id
   if (userId) {
     router.push(`/users/${userId}`)
   }

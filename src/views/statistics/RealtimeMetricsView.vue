@@ -141,7 +141,7 @@ import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { pollingConfig } from '@/config'
 import { getRealtimeMetrics } from '@/utils/api'
 import echarts from '@/utils/echarts'
-import toast from '@/utils/toast'
+import toast from '@/utils/ui/toast'
 
 const loading = ref(false)
 const autoRefresh = ref(true)

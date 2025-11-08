@@ -248,9 +248,9 @@ import ImagePreview from '@/shared/ui/ImagePreview.vue'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import type { User, UserProfile, AvatarHistoryItem } from '@/types'
 import { getCurrentUser, updateUser, uploadImage, getAvatarHistory } from '@/utils/api'
-import { readDetectedRegion, detectCurrentRegion } from '@/utils/geo'
-import { ensureRegionsLoaded, useRegions } from '@/utils/regions'
-import { toast as toastQueue } from '@/utils/toast'
+import { readDetectedRegion, detectCurrentRegion } from '@/utils/data/geo'
+import { ensureRegionsLoaded, useRegions } from '@/utils/data/regions'
+import { toast as toastQueue } from '@/utils/ui/toast'
 
 type ToastType = 'success' | 'error' | 'warning' | 'info'
 
@@ -424,22 +424,13 @@ async function onCropConfirm(blob: Blob) {
     const croppedFile = new File([blob], 'avatar.jpg', { type: 'image/jpeg' })
 
     // 压缩裁剪后的图片到5KB以下
-    const { compressImage, formatFileSize } = await import('@/utils/image-compress')
+    const { compressImage } = await import('@/utils/image-compress')
     const compressed = await compressImage(croppedFile, {
       targetSizeKB: 4.8, // 目标4.8KB（留余量）
       maxDimension: 384, // 384px（裁剪已经是384x384）
       outputFormat: 'image/jpeg', // JPEG格式
       initialQuality: 0.7, // 降低初始质量
       minQuality: 0.01 // 最低质量
-    })
-
-    // 在控制台输出详细信息（供开发调试）
-    const compressedKB = (compressed.compressedSize / 1024).toFixed(2)
-    console.log('📊 图片压缩详情:', {
-      裁剪后大小: formatFileSize(blob.size),
-      压缩后大小: formatFileSize(compressed.compressedSize) + ` (${compressedKB}KB)`,
-      压缩后尺寸: `${compressed.width}x${compressed.height}`,
-      压缩率: `${compressed.compressionRatio.toFixed(1)}%`
     })
 
     // 上传压缩后的文件

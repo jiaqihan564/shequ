@@ -13,7 +13,7 @@
 import { ref, onMounted } from 'vue'
 
 import type { LanguageInfo } from '@/types/code'
-import { getSupportedLanguages } from '@/utils/code-api'
+import { getSupportedLanguages } from '@/utils/api/code-api'
 
 interface Props {
   modelValue: string

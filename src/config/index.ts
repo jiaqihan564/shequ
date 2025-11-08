@@ -22,14 +22,6 @@ function getEnvNumber(key: string, defaultValue: number): number {
   return isNaN(num) ? defaultValue : num
 }
 
-/**
- * 获取环境变量（布尔值）
- */
-function getEnvBoolean(key: string, defaultValue: boolean): boolean {
-  const value = import.meta.env[key]
-  if (value === undefined || value === '') return defaultValue
-  return value === 'true' || value === '1'
-}
 
 // ==================== API 配置 ====================
 
@@ -64,26 +56,6 @@ export const appConfig = {
 
   /** 应用描述 */
   description: getEnvString('VITE_APP_DESCRIPTION', '现代化的技术交流社区平台')
-}
-
-// ==================== 功能开关 ====================
-
-export const featureFlags = {
-  /** 启用分析统计 */
-  enableAnalytics: getEnvBoolean('VITE_ENABLE_ANALYTICS', false),
-
-  /** 启用 PWA */
-  enablePWA: getEnvBoolean('VITE_ENABLE_PWA', false)
-}
-
-// ==================== 第三方服务配置 ====================
-
-export const thirdPartyConfig = {
-  /** Google Analytics ID */
-  googleAnalyticsId: getEnvString('VITE_GOOGLE_ANALYTICS_ID', ''),
-
-  /** Sentry DSN */
-  sentryDSN: getEnvString('VITE_SENTRY_DSN', '')
 }
 
 // ==================== 代码执行配置 ====================
@@ -328,8 +300,6 @@ export const apiDefaultsConfig = {
 export const config = {
   api: apiConfig,
   app: appConfig,
-  features: featureFlags,
-  thirdParty: thirdPartyConfig,
   codeExecution: codeExecutionConfig,
   geo: geoConfig,
   auth: authConfig,

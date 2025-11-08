@@ -157,8 +157,8 @@ import {
   getSnippetById,
   deleteSnippet,
   generateShareLink
-} from '@/utils/code-api'
-import { toast } from '@/utils/toast'
+} from '@/utils/api/code-api'
+import { toast } from '@/utils/ui/toast'
 
 const router = useRouter()
 const route = useRoute()

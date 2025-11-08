@@ -75,7 +75,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import { getLocationDistribution } from '@/utils/api'
 import echarts from '@/utils/echarts'
-import { toast } from '@/utils/toast'
+import { toast } from '@/utils/ui/toast'
 
 const loading = ref(false)
 const data = ref<any>({
@@ -102,11 +102,6 @@ const loadData = async () => {
     const result = await getLocationDistribution()
     data.value = result || {}
 
-    console.log('地区分布数据:', {
-      省份数量: data.value.province_stats?.length,
-      省份数据: data.value.province_stats
-    })
-
     renderCharts()
   } catch (error: any) {
     toast.error(error?.message || '加载地区分布失败')
@@ -121,15 +116,9 @@ const renderCharts = async () => {
 
   const provinceStats = data.value.province_stats || []
 
-  console.log('开始渲染图表，数据量:', {
-    省份: provinceStats.length,
-    完整数据: data.value
-  })
-
   // 渲染世界地图（独立错误处理）
   if (worldMapChart.value && provinceStats.length > 0) {
     try {
-      console.log('渲染世界地图')
       renderWorldMap()
     } catch (error) {
       console.error('世界地图渲染失败:', error)
@@ -139,7 +128,6 @@ const renderCharts = async () => {
   // 渲染省份柱状图（Top 10）
   if (provinceChart.value && provinceStats.length > 0) {
     try {
-      console.log('渲染省份柱状图')
       const topProvinces = provinceStats.slice(0, 10)
       const provinceNames = topProvinces.map((p: any) => p.province)
       const provinceValues = topProvinces.map((p: any) => p.user_count)
@@ -198,7 +186,6 @@ const renderCharts = async () => {
           }
         ]
       })
-      console.log('省份柱状图渲染成功')
     } catch (error) {
       console.error('省份柱状图渲染失败:', error)
     }
@@ -212,7 +199,6 @@ const renderCharts = async () => {
   // 渲染省份分布饼图
   if (provincePieChart.value && provinceStats.length > 0) {
     try {
-      console.log('渲染省份分布饼图')
       const provincePieData = provinceStats.map((p: any) => ({
         name: p.province,
         value: p.user_count
@@ -259,7 +245,6 @@ const renderCharts = async () => {
           }
         ]
       })
-      console.log('省份分布饼图渲染成功')
     } catch (error) {
       console.error('省份分布饼图渲染失败:', error)
     }
@@ -276,8 +261,6 @@ const renderWorldMap = async () => {
   if (!worldMapChart.value) return
 
   const provinceStats = data.value.province_stats || []
-
-  console.log('地图 - 原始省份数据:', provinceStats)
 
   // 省份名称映射（数据库名称 -> 地图名称）
   const provinceNameMap: any = {
@@ -323,8 +306,6 @@ const renderWorldMap = async () => {
     value: p.user_count
   }))
 
-  console.log('地图 - 转换后的地图数据:', mapData)
-
   const chart = echarts.init(worldMapChart.value)
 
   try {
@@ -335,7 +316,6 @@ const renderWorldMap = async () => {
 
     // 注册中国地图
     echarts.registerMap('china', chinaJson)
-    console.log('地图注册成功')
 
     chart.setOption({
       backgroundColor: '#f3f4f6',
@@ -401,7 +381,6 @@ const renderWorldMap = async () => {
         }
       ]
     })
-    console.log('地图配置完成')
   } catch (error) {
     console.error('加载中国地图失败:', error)
     chart.setOption({

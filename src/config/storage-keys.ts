@@ -10,9 +10,6 @@ export const AUTH_STORAGE_KEYS = {
   /** JWT访问令牌 */
   AUTH_TOKEN: 'auth_token',
 
-  /** JWT刷新令牌 */
-  REFRESH_TOKEN: 'refresh_token',
-
   /** 用户信息 */
   USER_INFO: 'user_info',
 

@@ -2,22 +2,11 @@ import { ref, watch, type Ref } from 'vue'
 
 import { websocketConfig } from '@/config'
 import { messageCache } from '@/services/messageCache'
-import type { ArticleComment } from '@/types'
+import type { ArticleComment, ChatMessage } from '@/types'
 import { getChatMessages } from '@/utils/api'
-import { toast } from '@/utils/toast'
+import { toast } from '@/utils/ui/toast'
 import { getStoredToken, isTokenExpired } from '@/utils/tokenValidator'
 import { logger } from '@/utils/ui/logger'
-
-interface ChatMessage {
-  id: number
-  user_id: number
-  username: string
-  nickname?: string
-  avatar?: string
-  content: string
-  send_time: string
-  message_type: number
-}
 
 interface CommentNotification {
   type: 'new_comment' | 'new_reply' | 'comment_deleted'

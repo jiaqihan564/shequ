@@ -14,7 +14,6 @@ import type {
   LoginForm,
   RegisterForm,
   RegisterResponse,
-  RefreshTokenResponse,
   User,
   AppError,
   AvatarHistoryItem,
@@ -100,15 +99,6 @@ api.interceptors.request.use(
     return Promise.reject(createAppError('REQUEST_ERROR', '请求配置错误', error))
   }
 )
-
-/**
- * @deprecated 使用 authManager.handleTokenExpiration() 替代
- * 保留此函数以保持向后兼容
- */
-export function handleTokenExpired(reason: string = '登录已过期'): void {
-  logger.warn('[handleTokenExpired] 此函数已废弃，请使用 authManager.handleTokenExpiration()')
-  authManager.handleTokenExpiration(reason)
-}
 
 // 响应拦截器
 api.interceptors.response.use(
@@ -234,14 +224,9 @@ function getActiveStorage(): Storage {
   return localStorage
 }
 
-function setAuthTokens(
-  token: string,
-  refreshToken: string,
-  scope: 'local' | 'session' = 'local'
-): void {
+function setAuthTokens(token: string, scope: 'local' | 'session' = 'local'): void {
   const store = scope === 'local' ? localStorage : sessionStorage
   store.setItem(STORAGE_KEYS.AUTH_TOKEN, token)
-  store.setItem(STORAGE_KEYS.REFRESH_TOKEN, refreshToken)
 }
 
 function setUserInfo(user: User, scope: 'local' | 'session' = 'local'): void {
@@ -257,7 +242,6 @@ function setUserInfo(user: User, scope: 'local' | 'session' = 'local'): void {
 function clearAuthTokens(): void {
   for (const store of [localStorage, sessionStorage]) {
     store.removeItem(STORAGE_KEYS.AUTH_TOKEN)
-    store.removeItem(STORAGE_KEYS.REFRESH_TOKEN)
     store.removeItem(STORAGE_KEYS.USER_INFO)
   }
 }
@@ -307,7 +291,6 @@ function normalizeUserData(user: Partial<User>): User {
     nextVal === undefined || nextVal === null || nextVal === '' ? (prevVal ?? '') : nextVal
   mergedProfile.province = preferPrev(mergedProfile.province, prevProfile.province) as string
   mergedProfile.city = preferPrev(mergedProfile.city, prevProfile.city) as string
-  mergedProfile.location = preferPrev(mergedProfile.location, prevProfile.location) as string
 
   merged.profile = mergedProfile
 
@@ -392,7 +375,7 @@ export async function login(loginData: LoginForm): Promise<LoginResponse> {
 
     // 存储认证信息
     const scope = loginData.rememberMe ? 'local' : 'session'
-    setAuthTokens(token, '', scope) // 新API可能没有refreshToken
+    setAuthTokens(token, scope)
     setUserInfo(normalizedUser, scope)
     emitUserUpdated(normalizedUser)
 
@@ -414,7 +397,7 @@ export async function register(registerData: RegisterForm): Promise<RegisterResp
       const normalizedUser = normalizeUserData(user)
 
       // 存储认证信息
-      setAuthTokens(token, '') // 新API可能没有refreshToken
+      setAuthTokens(token)
       localStorage.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(normalizedUser))
       emitUserUpdated(normalizedUser)
 
@@ -467,31 +450,6 @@ export async function logout(navigateToLogin: boolean = true): Promise<void> {
       }, 300) // 短暂延迟，确保清理完成
     }
   }
-}
-
-/**
- * 刷新访问令牌
- */
-export async function refreshToken(): Promise<string> {
-  const refreshTokenValue =
-    localStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN) ||
-    sessionStorage.getItem(STORAGE_KEYS.REFRESH_TOKEN)
-  if (!refreshTokenValue) {
-    throw createAppError('NO_REFRESH_TOKEN', '没有刷新令牌')
-  }
-
-  const response = await api.post<ApiResponse<RefreshTokenResponse>>('/auth/refresh', {
-    refreshToken: refreshTokenValue
-  })
-
-  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
-    const { token } = response.data.data
-    const store = getActiveStorage()
-    store.setItem(STORAGE_KEYS.AUTH_TOKEN, token)
-    return token
-  }
-
-  throw createAppError('REFRESH_FAILED', '刷新令牌失败')
 }
 
 /**
@@ -578,29 +536,13 @@ export async function resetPassword(data: { token: string; newPassword: string }
 export async function uploadImage(file: File): Promise<string> {
   const form = new FormData()
   form.append('file', file)
-  // 优先尝试 /upload，其次 /files/upload
-  try {
-    const res = await api.post<ApiResponse<{ url?: string; path?: string }>>('/upload', form, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
-    if (res.data.code === HTTP_STATUS.OK && res.data.data) {
-      return res.data.data.url || (res.data.data.path as string)
-    }
-    throw new Error(res.data.message || '上传失败')
-  } catch (e) {
-    void e
-    const fallback = await api.post<ApiResponse<{ url?: string; path?: string }>>(
-      '/files/upload',
-      form,
-      {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      }
-    )
-    if (fallback.data.code === HTTP_STATUS.OK && fallback.data.data) {
-      return fallback.data.data.url || (fallback.data.data.path as string)
-    }
-    throw createAppError('UPLOAD_FAILED', fallback.data.message || '上传失败')
+  const res = await api.post<ApiResponse<{ url?: string; path?: string }>>('/upload', form, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  })
+  if (res.data.code === HTTP_STATUS.OK && res.data.data) {
+    return res.data.data.url || (res.data.data.path as string)
   }
+  throw createAppError('UPLOAD_FAILED', res.data.message || '上传失败')
 }
 
 /**
@@ -651,55 +593,29 @@ export async function uploadDocumentImage(file: File): Promise<string> {
  * 更新用户头像
  */
 export async function updateUserAvatar(avatarUrl: string): Promise<User> {
-  try {
-    const res = await api.put<ApiResponse<User>>('/auth/me/avatar', { avatar: avatarUrl })
-    if (res.data.code === HTTP_STATUS.OK && res.data.data) {
-      const user = res.data.data
-      const normalizedUser: any = normalizeUserData(user)
-      // 头像更新成功，刷新版本号以破缓存
-      normalizedUser.avatar_version = Date.now()
-      const store = getActiveStorage()
-      store.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(normalizedUser))
-      emitUserUpdated(normalizedUser)
-      return normalizedUser
-    }
-    throw new Error(res.data.message || '更新头像失败')
-  } catch (e) {
-    void e
-    // 兼容没有独立头像接口的后端
-    const res = await api.put<ApiResponse<User>>('/auth/me', { avatar: avatarUrl })
-    if (res.data.code === HTTP_STATUS.OK && res.data.data) {
-      const user = res.data.data
-      const normalizedUser: any = normalizeUserData(user)
-      normalizedUser.avatar_version = Date.now()
-      const store = getActiveStorage()
-      store.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(normalizedUser))
-      emitUserUpdated(normalizedUser)
-      return normalizedUser
-    }
-    throw createAppError('UPDATE_AVATAR_FAILED', res.data.message || '更新头像失败')
+  const res = await api.put<ApiResponse<User>>('/auth/me', { avatar: avatarUrl })
+  if (res.data.code === HTTP_STATUS.OK && res.data.data) {
+    const user = res.data.data
+    const normalizedUser: any = normalizeUserData(user)
+    // 头像更新成功，刷新版本号以破缓存
+    normalizedUser.avatar_version = Date.now()
+    const store = getActiveStorage()
+    store.setItem(STORAGE_KEYS.USER_INFO, JSON.stringify(normalizedUser))
+    emitUserUpdated(normalizedUser)
+    return normalizedUser
   }
+  throw createAppError('UPDATE_AVATAR_FAILED', res.data.message || '更新头像失败')
 }
 
 /**
  * 获取历史头像列表（时间倒序，最多50条）
- * 优先 /user/avatar/history，兼容别名 /avatar/history
  */
 export async function getAvatarHistory(): Promise<AvatarHistoryItem[]> {
-  try {
-    const res = await api.get<ApiResponse<AvatarHistoryList>>('/user/avatar/history')
-    if (res.data.code === HTTP_STATUS.OK && res.data.data) {
-      return Array.isArray(res.data.data.items) ? res.data.data.items : []
-    }
-    throw new Error(res.data.message || '获取历史头像失败')
-  } catch (e) {
-    void e
-    const fallback = await api.get<ApiResponse<AvatarHistoryList>>('/avatar/history')
-    if (fallback.data.code === HTTP_STATUS.OK && fallback.data.data) {
-      return Array.isArray(fallback.data.data.items) ? fallback.data.data.items : []
-    }
-    throw createAppError('GET_AVATAR_HISTORY_FAILED', fallback.data.message || '获取历史头像失败')
+  const res = await api.get<ApiResponse<AvatarHistoryList>>('/user/avatar/history')
+  if (res.data.code === HTTP_STATUS.OK && res.data.data) {
+    return Array.isArray(res.data.data.items) ? res.data.data.items : []
   }
+  throw createAppError('GET_AVATAR_HISTORY_FAILED', res.data.message || '获取历史头像失败')
 }
 
 // 通用API方法
@@ -982,23 +898,6 @@ export async function getChatMessages(limit: number = 50, beforeId: number = 0):
 }
 
 /**
- * 获取新聊天消息（轮询）
- * @deprecated Use WebSocket (useChatWebSocket composable) for real-time messages
- * Kept for backward compatibility only
- */
-export async function getNewChatMessages(afterId: number): Promise<any> {
-  const response = await api.get<ApiResponse<any>>('/chat/messages/new', {
-    params: { after_id: afterId }
-  })
-
-  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
-    return response.data.data
-  }
-
-  throw createAppError('GET_NEW_MESSAGES_FAILED', response.data.message || '获取新消息失败')
-}
-
-/**
  * 删除聊天消息
  */
 export async function deleteChatMessage(messageId: number): Promise<void> {
@@ -1007,31 +906,6 @@ export async function deleteChatMessage(messageId: number): Promise<void> {
   if (response.data.code !== HTTP_STATUS.OK) {
     throw createAppError('DELETE_MESSAGE_FAILED', response.data.message || '删除消息失败')
   }
-}
-
-/**
- * 获取在线用户数
- * @deprecated Use WebSocket (useChatWebSocket composable) for real-time online count
- * Kept for backward compatibility only
- */
-export async function getOnlineCount(): Promise<number> {
-  const response = await api.get<ApiResponse<{ count: number }>>('/chat/online-count')
-
-  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
-    return response.data.data.count
-  }
-
-  throw createAppError('GET_ONLINE_COUNT_FAILED', response.data.message || '获取在线用户数失败')
-}
-
-/**
- * 用户下线
- * @deprecated WebSocket automatically handles disconnections
- * This function is no longer needed and does nothing
- */
-export async function userOffline(): Promise<void> {
-  // No-op: WebSocket handles disconnections automatically
-  console.info('userOffline() is deprecated - WebSocket handles disconnections automatically')
 }
 
 // ========================================

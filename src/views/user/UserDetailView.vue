@@ -127,8 +127,8 @@ import type { User } from '@/types'
 import type { ArticleListItem } from '@/types/article'
 import { get } from '@/utils/api'
 import { getArticles, startConversation } from '@/utils/api'
-import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
-import toast from '@/utils/toast'
+import { getAvatarInitial, getAvatarColor } from '@/utils/ui/avatar'
+import toast from '@/utils/ui/toast'
 
 const route = useRoute()
 const router = useRouter()
@@ -180,15 +180,6 @@ async function loadUser() {
   loading.value = true
   try {
     user.value = await get<User>(`/user/${userId}`)
-
-    // 调试：查看后端返回的实际数据
-    console.log('用户详情数据:', user.value)
-    console.log('头像字段:', {
-      avatar: user.value.avatar,
-      avatar_url: user.value.avatar_url,
-      profile_avatar: user.value.profile?.avatar_url
-    })
-    console.log('hasValidAvatar结果:', hasValidAvatar(user.value.avatar))
 
     // 加载用户文章
     await loadArticles()

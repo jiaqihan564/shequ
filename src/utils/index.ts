@@ -1,7 +1,6 @@
-// Utils 工具函数统一导出（向后兼容）
-// 这个文件保持向后兼容，使现有的 import 语句继续工作
+// Utils 工具函数统一导出
 
-// API相关 - 重新导出所有API函数
+// API相关
 export * from './api/api'
 export * from './api/code-api'
 

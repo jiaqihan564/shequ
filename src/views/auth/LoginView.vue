@@ -9,9 +9,9 @@
 import { useRouter } from 'vue-router'
 
 import LoginForm from '@/components/auth/LoginForm.vue'
-import { detectCurrentRegion } from '@/utils/geo'
-import { ensureRegionsLoaded } from '@/utils/regions'
-import { toast } from '@/utils/toast'
+import { detectCurrentRegion } from '@/utils/data/geo'
+import { ensureRegionsLoaded } from '@/utils/data/regions'
+import { toast } from '@/utils/ui/toast'
 
 const router = useRouter()
 // 移除 locked，避免残留锁定

@@ -73,56 +73,6 @@ export function isTokenExpired(token: string | null, bufferSeconds: number = 60)
 }
 
 /**
- * Get remaining time before token expires
- * @param token - JWT token string
- * @returns Remaining time in seconds, or 0 if expired/invalid
- */
-export function getTokenRemainingTime(token: string | null): number {
-  if (!token) {
-    return 0
-  }
-
-  const payload = decodeToken(token)
-  if (!payload || !payload.exp) {
-    return 0
-  }
-
-  const currentTime = Math.floor(Date.now() / 1000)
-  const remaining = payload.exp - currentTime
-
-  return Math.max(0, remaining)
-}
-
-/**
- * Format remaining time to human-readable string
- * @param seconds - Time in seconds
- * @returns Formatted string (e.g., "2小时15分钟")
- */
-export function formatRemainingTime(seconds: number): string {
-  if (seconds <= 0) {
-    return '已过期'
-  }
-
-  const hours = Math.floor(seconds / 3600)
-  const minutes = Math.floor((seconds % 3600) / 60)
-  const secs = seconds % 60
-
-  const parts: string[] = []
-
-  if (hours > 0) {
-    parts.push(`${hours}小时`)
-  }
-  if (minutes > 0) {
-    parts.push(`${minutes}分钟`)
-  }
-  if (hours === 0 && secs > 0) {
-    parts.push(`${secs}秒`)
-  }
-
-  return parts.length > 0 ? parts.join('') : '少于1秒'
-}
-
-/**
  * Get token from storage (checks both localStorage and sessionStorage)
  * @returns Token string or null if not found
  */

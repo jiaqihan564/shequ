@@ -210,8 +210,8 @@ import {
   getArticleTags,
   uploadDocumentImage
 } from '@/utils/api'
-import { renderMarkdown } from '@/utils/markdown'
-import toast from '@/utils/toast'
+import { renderMarkdown } from '@/utils/data/markdown'
+import toast from '@/utils/ui/toast'
 import { compressAndConvertToPNG } from '@/utils/image-compress'
 
 const route = useRoute()

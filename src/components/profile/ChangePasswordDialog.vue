@@ -151,7 +151,7 @@ import {
   checkPasswordStrength,
   debounce,
   validatePassword as validatePasswordUtil
-} from '@/utils/validation'
+} from '@/utils/auth/validation'
 
 defineProps<{
   show: boolean

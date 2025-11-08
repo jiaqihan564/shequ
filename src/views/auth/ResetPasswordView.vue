@@ -125,12 +125,12 @@ import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import { resetPassword } from '@/utils/api'
-import { toast } from '@/utils/toast'
+import { toast } from '@/utils/ui/toast'
 import {
   checkPasswordStrength,
   debounce,
   validatePassword as validatePasswordUtil
-} from '@/utils/validation'
+} from '@/utils/auth/validation'
 
 const route = useRoute()
 const router = useRouter()

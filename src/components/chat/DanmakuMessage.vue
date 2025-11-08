@@ -39,17 +39,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-
-interface ChatMessage {
-  id: number
-  user_id: number
-  username: string
-  nickname?: string
-  avatar?: string
-  content: string
-  send_time: string
-  message_type: number
-}
+import type { ChatMessage } from '@/types'
 
 interface Props {
   message: ChatMessage

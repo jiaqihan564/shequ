@@ -277,15 +277,15 @@ import { STORAGE_KEYS } from '@/config/storage-keys'
 import { globalChatService, type CommentNotification } from '@/services/globalChatService'
 import type { ArticleDetail, ArticleComment, CommentAuthor } from '@/types'
 import { getArticleDetail, toggleArticleLike, postComment, getArticleComments } from '@/utils/api'
-import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
+import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/ui/avatar'
 import {
   countComments,
   insertReplyIntoTree,
   removeCommentById,
   upsertRootComment
 } from '@/utils/commentTree'
-import { renderMarkdown } from '@/utils/markdown'
-import toast from '@/utils/toast'
+import { renderMarkdown } from '@/utils/data/markdown'
+import toast from '@/utils/ui/toast'
 
 const route = useRoute()
 const router = useRouter()
@@ -309,15 +309,11 @@ function normalizeCommentData(comment: ArticleComment): ArticleComment {
     avatar: ''
   }
 
-  const author = comment.author ?? comment.user
-  const authorData = author ? { ...author } : { ...fallbackAuthor }
-  const userData = comment.user ?? comment.author
-  const userDataNormalized = userData ? { ...userData } : { ...authorData }
+  const authorData = comment.author ? { ...comment.author } : { ...fallbackAuthor }
 
   return {
     ...comment,
     author: authorData,
-    user: userDataNormalized,
     replies,
     reply_to_user: comment.reply_to_user ? { ...comment.reply_to_user } : undefined,
     like_count: typeof comment.like_count === 'number' ? comment.like_count : 0,
@@ -385,14 +381,6 @@ async function loadComments(articleId: number) {
     const list = response.comments || []
     comments.value = list.map(normalizeCommentData)
     syncArticleCommentCount()
-
-    // 调试日志：检查评论数据结构
-    console.log('[评论] 加载评论成功:', {
-      articleId,
-      total: response.total,
-      commentsCount: comments.value.length,
-      timestamp: new Date().toLocaleTimeString()
-    })
   } catch (error) {
     console.error('[评论] 加载评论失败:', error)
     // 确保即使加载失败也能显示空的评论区
@@ -429,19 +417,8 @@ function subscribeToComments(articleId: number) {
 
   // 订阅评论通知
   unsubscribeComment = globalChatService.onComment((notification: CommentNotification) => {
-    console.log('[评论] 收到 WebSocket 通知:', {
-      type: notification.type,
-      entity: notification.entity,
-      article_id: notification.article_id,
-      current_article: articleId,
-      user_id: notification.user_id,
-      current_user: currentUserId.value,
-      is_self: notification.user_id === currentUserId.value
-    })
-
     // 只处理文章评论，且是当前文章
     if (notification.entity !== 'article' || notification.article_id !== articleId) {
-      console.log('[评论] 忽略其他实体或文章的通知')
       return
     }
 
@@ -459,23 +436,11 @@ function subscribeToComments(articleId: number) {
         break
     }
   })
-
-  console.log(
-    '[评论] 已订阅文章评论实时更新:',
-    articleId,
-    'WebSocket 状态:',
-    globalChatService.connectionStatus.value
-  )
 }
 
 // 处理新评论
 function handleNewComment(notification: CommentNotification) {
   if (!article.value) return
-
-  console.log(
-    '[评论] 处理新评论通知:',
-    notification.user_id === currentUserId.value ? '自己' : '别人'
-  )
 
   if (notification.comment) {
     const normalized = normalizeCommentData(notification.comment as ArticleComment)
@@ -489,7 +454,6 @@ function handleNewComment(notification: CommentNotification) {
     return
   }
 
-  console.warn('[评论] 通知缺少 comment 数据，回退到重新加载')
   loadComments(article.value.id)
 }
 
@@ -497,16 +461,10 @@ function handleNewComment(notification: CommentNotification) {
 function handleNewReply(notification: CommentNotification) {
   if (!article.value) return
 
-  console.log(
-    '[评论] 处理新回复通知:',
-    notification.user_id === currentUserId.value ? '自己' : '别人'
-  )
-
   if (notification.comment) {
     const normalized = normalizeCommentData(notification.comment as ArticleComment)
     const [nextComments, inserted] = insertReplyIntoTree(comments.value, normalized)
     if (!inserted) {
-      console.warn('[评论] 找不到回复所属的父评论，回退到重新加载')
       loadComments(article.value.id)
     } else {
       comments.value = nextComments
@@ -518,7 +476,6 @@ function handleNewReply(notification: CommentNotification) {
     return
   }
 
-  console.warn('[评论] 回复通知缺少 comment 数据，回退到重新加载')
   loadComments(article.value.id)
 }
 
@@ -532,11 +489,9 @@ function handleCommentDeleted(notification: CommentNotification) {
       comments.value = nextComments
       syncArticleCommentCount()
     } else {
-      console.warn('[评论] 未能本地删除评论，回退到重新加载')
       loadComments(article.value.id)
     }
   } else {
-    console.warn('[评论] 未能本地删除评论，回退到重新加载')
     loadComments(article.value.id)
   }
 
@@ -550,18 +505,14 @@ async function handlePostComment() {
   }
 
   try {
-    console.log('[评论] 发表评论开始')
     await postComment(article.value.id, { content: newComment.value })
     newComment.value = ''
     toast.success('评论成功')
-    console.log('[评论] 评论发表成功，等待 WebSocket 推送')
 
     if (globalChatService.connectionStatus.value !== 'connected') {
-      console.warn('[评论] WebSocket 未连接，回退到手动刷新评论列表')
       await loadComments(article.value.id)
     }
   } catch (error: any) {
-    console.error('[评论] 评论发表失败:', error)
     toast.error(error.message || '评论失败')
   }
 }
@@ -570,7 +521,6 @@ async function handleCommentPosted() {
   if (!article.value) return
 
   if (globalChatService.connectionStatus.value !== 'connected') {
-    console.warn('[评论] WebSocket 未连接，子组件请求刷新评论列表')
     await loadComments(article.value.id)
   }
 }
@@ -720,7 +670,6 @@ onMounted(() => {
 
   // 确保 WebSocket 已连接
   if (globalChatService.connectionStatus.value !== 'connected') {
-    console.log('WebSocket 未连接，正在连接...')
     globalChatService.connect()
   }
 })
@@ -729,7 +678,6 @@ onMounted(() => {
 onUnmounted(() => {
   if (unsubscribeComment) {
     unsubscribeComment()
-    console.log('已取消评论订阅')
   }
 })
 </script>

@@ -79,8 +79,8 @@ import { ElNotification } from 'element-plus'
 
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import type { CodeSnippetWithUser } from '@/types/code'
-import { getPublicSnippets } from '@/utils/code-api'
-import { getAvatarInitial, getAvatarColor } from '@/utils/avatar'
+import { getPublicSnippets } from '@/utils/api/code-api'
+import { getAvatarInitial, getAvatarColor } from '@/utils/ui/avatar'
 import { contentNotificationService } from '@/services/contentNotificationService'
 
 const codeSnippets = ref<CodeSnippetWithUser[]>([])
@@ -138,7 +138,6 @@ function getCodePreview(code: string): string {
 function setupWebSocketListeners() {
   // 监听新代码片段
   unsubscribeNewCode = contentNotificationService.on('new_code', (data) => {
-    console.log('收到新代码片段通知:', data)
     
     // 显示通知
     ElNotification({
@@ -156,7 +155,6 @@ function setupWebSocketListeners() {
 
   // 监听新文章
   unsubscribeNewArticle = contentNotificationService.on('new_article', (data) => {
-    console.log('收到新文章通知:', data)
     
     ElNotification({
       title: '新文章发布',
@@ -172,7 +170,6 @@ function setupWebSocketListeners() {
 
   // 监听新资源
   unsubscribeNewResource = contentNotificationService.on('new_resource', (data) => {
-    console.log('收到新资源通知:', data)
     
     ElNotification({
       title: '新资源发布',

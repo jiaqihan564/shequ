@@ -81,8 +81,8 @@ import { useRouter } from 'vue-router'
 
 import type { ResourceComment } from '@/types/resource'
 import { postResourceComment } from '@/utils/api'
-import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
-import toast from '@/utils/toast'
+import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/ui/avatar'
+import toast from '@/utils/ui/toast'
 
 interface Props {
   comment: ResourceComment

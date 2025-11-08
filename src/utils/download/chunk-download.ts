@@ -4,7 +4,7 @@
  */
 
 import { logger } from '../ui/logger'
-import toast from '../toast'
+import toast from '../ui/toast'
 
 /**
  * 下载并合并分片文件

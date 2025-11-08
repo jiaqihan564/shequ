@@ -84,7 +84,6 @@ class AuthManager {
   private clearAllAuthData(): void {
     const keysToRemove = [
       STORAGE_KEYS.AUTH_TOKEN,
-      STORAGE_KEYS.REFRESH_TOKEN,
       STORAGE_KEYS.USER_INFO
     ]
 

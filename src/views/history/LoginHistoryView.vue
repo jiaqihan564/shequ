@@ -35,7 +35,7 @@ import { ref, onMounted } from 'vue'
 
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import { getLoginHistory } from '@/utils/api'
-import { toast } from '@/utils/toast'
+import { toast } from '@/utils/ui/toast'
 
 const loading = ref(false)
 const history = ref<any[]>([])

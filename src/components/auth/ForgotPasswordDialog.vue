@@ -62,7 +62,7 @@ import EyeIcon from '@/components/icons/EyeIcon.vue'
 import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
 import { forgotPassword } from '@/utils/api'
 import { logger } from '@/utils/ui/logger'
-import { validateEmail as validateEmailUtil } from '@/utils/validation'
+import { validateEmail as validateEmailUtil } from '@/utils/auth/validation'
 
 defineProps<{
   show: boolean

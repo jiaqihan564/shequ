@@ -60,7 +60,7 @@ import { RouterLink } from 'vue-router'
 import CommunityFeed from '@/components/home/CommunityFeed.vue'
 import { STORAGE_KEYS } from '@/config/storage-keys'
 import type { User } from '@/types'
-import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
+import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/ui/avatar'
 
 const user = ref<User | null>(null)
 

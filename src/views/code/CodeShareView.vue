@@ -48,7 +48,7 @@ import { useRoute, useRouter } from 'vue-router'
 import MonacoEditor from '@/components/code/MonacoEditor.vue'
 import { STORAGE_KEYS } from '@/config/storage-keys'
 import type { CodeSnippet } from '@/types/code'
-import { getSharedSnippet } from '@/utils/code-api'
+import { getSharedSnippet } from '@/utils/api/code-api'
 
 const route = useRoute()
 const router = useRouter()

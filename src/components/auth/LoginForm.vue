@@ -149,14 +149,14 @@ import { STORAGE_KEYS } from '@/config/storage-keys'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import type { LoginForm, FormErrors } from '@/types'
 import { login } from '@/utils/api'
-import { detectCurrentRegion } from '@/utils/geo'
+import { detectCurrentRegion } from '@/utils/data/geo'
 import { logger } from '@/utils/ui/logger'
 import {
   validateUsernameOrEmail,
   validatePassword as validatePasswordUtil,
   checkPasswordStrength,
   debounce
-} from '@/utils/validation'
+} from '@/utils/auth/validation'
 
 const props = withDefaults(defineProps<{ locked?: boolean }>(), { locked: false })
 

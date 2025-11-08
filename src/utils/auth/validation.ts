@@ -1,5 +1,18 @@
 import { VALIDATION_CONSTANTS } from '@/config/validation-constants'
-import type { ValidationRule, ValidationRules } from '@/types'
+
+// 验证规则类型
+export interface ValidationRule {
+  required?: boolean
+  minLength?: number
+  maxLength?: number
+  pattern?: RegExp
+  custom?: (value: any) => string | null
+  message?: string
+}
+
+export interface ValidationRules {
+  [key: string]: ValidationRule[]
+}
 
 // 常用正则表达式（使用配置常量动态生成）
 export const REGEX_PATTERNS = {

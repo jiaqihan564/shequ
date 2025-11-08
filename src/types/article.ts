@@ -120,8 +120,7 @@ export interface ArticleComment {
   status: number
   created_at: string
   updated_at: string
-  author?: CommentAuthor // 兼容不同API响应
-  user?: CommentAuthor // 兼容不同API响应
+  author: CommentAuthor
   reply_to_user?: CommentAuthor
   replies?: ArticleComment[]
   is_liked?: boolean

@@ -87,25 +87,15 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
+import type { ChatMessage } from '@/types'
 import DanmakuMessage from '@/components/chat/DanmakuMessage.vue'
 import { danmakuConfig, formLimitsConfig } from '@/config'
 import { globalChatService } from '@/services/globalChatService'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
-import { toast } from '@/utils/toast'
+import { toast } from '@/utils/ui/toast'
 import { logger } from '@/utils/ui/logger'
 
 const router = useRouter()
-
-interface ChatMessage {
-  id: number
-  user_id: number
-  username: string
-  nickname?: string
-  avatar?: string
-  content: string
-  send_time: string
-  message_type: number
-}
 
 interface Danmaku {
   id: number

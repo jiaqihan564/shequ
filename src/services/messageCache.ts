@@ -3,18 +3,8 @@
  * 用于在页面刷新后快速恢复消息，提升用户体验
  */
 
+import type { ChatMessage } from '@/types'
 import { logger } from '@/utils/ui/logger'
-
-interface ChatMessage {
-  id: number
-  user_id: number
-  username: string
-  nickname?: string
-  avatar?: string
-  content: string
-  send_time: string
-  message_type: number
-}
 
 export class MessageCache {
   private readonly CACHE_KEY = 'chat_messages_cache'

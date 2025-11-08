@@ -74,7 +74,7 @@ import { ref, onMounted } from 'vue'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import { getUserStatistics, getStatisticsOverview } from '@/utils/api'
 import echarts from '@/utils/echarts'
-import { toast } from '@/utils/toast'
+import { toast } from '@/utils/ui/toast'
 
 const chartRef = ref<HTMLElement>()
 const loading = ref(false)

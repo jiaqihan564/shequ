@@ -9,7 +9,7 @@
 import { useRouter } from 'vue-router'
 
 import RegisterForm from '@/components/auth/RegisterForm.vue'
-import { toast } from '@/utils/toast'
+import { toast } from '@/utils/ui/toast'
 
 const router = useRouter()
 

@@ -168,8 +168,8 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 
 import type { CodeSnippetWithUser, ExecuteCodeResponse } from '@/types/code'
-import { getPublicSnippets, executeCode } from '@/utils/code-api'
-import { toast } from '@/utils/toast'
+import { getPublicSnippets, executeCode } from '@/utils/api/code-api'
+import { toast } from '@/utils/ui/toast'
 
 const router = useRouter()
 

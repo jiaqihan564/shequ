@@ -252,8 +252,8 @@ import type {
   ArticleListQuery
 } from '@/types/article'
 import { getArticles, getArticleCategories, getArticleTags } from '@/utils/api'
-import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
-import toast from '@/utils/toast'
+import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/ui/avatar'
+import toast from '@/utils/ui/toast'
 
 const router = useRouter()
 const loading = ref(false)

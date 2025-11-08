@@ -23,9 +23,7 @@ export function hasPermission(user: User | null, permission?: string): boolean {
   // 管理员拥有所有权限
   if (user.role === 'admin') return true
 
-  // TODO: 实现基于 permission 字符串的细粒度权限检查
-  // 例如：检查用户是否有特定的操作权限（edit, delete, create等）
-
+  // 细粒度权限检查（未实现）
   return false
 }
 

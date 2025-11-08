@@ -80,8 +80,8 @@ import { useRouter } from 'vue-router'
 import { globalChatService } from '@/services/globalChatService'
 import type { Conversation } from '@/types/message'
 import { getConversations } from '@/utils/api'
-import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/avatar'
-import toast from '@/utils/toast'
+import { getAvatarInitial, getAvatarColor, hasValidAvatar } from '@/utils/ui/avatar'
+import toast from '@/utils/ui/toast'
 import { logger } from '@/utils/ui/logger'
 
 const router = useRouter()

@@ -1,5 +1,17 @@
 // 私信系统类型定义
 
+// 聊天消息类型（公共聊天室）
+export interface ChatMessage {
+  id: number
+  user_id: number
+  username: string
+  nickname?: string
+  avatar?: string
+  content: string
+  send_time: string
+  message_type: number
+}
+
 export interface ConversationUser {
   id: number
   username: string

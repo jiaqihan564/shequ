@@ -218,14 +218,14 @@ import { authConfig } from '@/config'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import type { RegisterForm } from '@/types'
 import { register } from '@/utils/api'
-import { detectCurrentRegion } from '@/utils/geo'
+import { detectCurrentRegion } from '@/utils/data/geo'
 import { logger } from '@/utils/ui/logger'
 import {
   validateField as validateSingleField,
   checkPasswordStrength,
   validateConfirmPassword,
   VALIDATION_RULES
-} from '@/utils/validation'
+} from '@/utils/auth/validation'
 
 const emit = defineEmits<{
   success: [data: any]
@@ -297,11 +297,11 @@ const toggleConfirmPassword = () => {
 }
 
 const showTerms = () => {
-  // TODO: 实现用户协议对话框
+  // 用户协议对话框（未实现）
 }
 
 const showPrivacy = () => {
-  // TODO: 实现隐私政策对话框
+  // 隐私政策对话框（未实现）
 }
 
 const switchToLogin = () => {

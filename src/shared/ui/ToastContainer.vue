@@ -40,7 +40,7 @@ import CloseIcon from '@/components/icons/CloseIcon.vue'
 import ErrorIcon from '@/components/icons/ErrorIcon.vue'
 import InfoIcon from '@/components/icons/InfoIcon.vue'
 import WarningIcon from '@/components/icons/WarningIcon.vue'
-import { subscribe, remove, type ToastItem } from '@/utils/toast'
+import { subscribe, remove, type ToastItem } from '@/utils/ui/toast'
 
 withDefaults(
   defineProps<{

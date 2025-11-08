@@ -165,9 +165,9 @@ import {
   uploadDocumentImage,
   getResourceCategories
 } from '@/utils/api'
-import { uploadFileWithChunks } from '@/utils/chunk-upload'
-import { renderMarkdown } from '@/utils/markdown'
-import toast from '@/utils/toast'
+import { uploadFileWithChunks } from '@/utils/upload/chunk-upload'
+import { renderMarkdown } from '@/utils/data/markdown'
+import toast from '@/utils/ui/toast'
 import { compressAndConvertToPNG } from '@/utils/image-compress'
 
 const router = useRouter()

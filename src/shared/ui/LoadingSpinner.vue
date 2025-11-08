@@ -11,9 +11,9 @@
 </template>
 
 <script setup lang="ts">
-import type { LoadingProps } from '@/types'
-
-interface Props extends LoadingProps {
+interface Props {
+  size?: 'small' | 'medium' | 'large'
+  color?: string
   text?: string
   inline?: boolean
   ariaLabel?: string

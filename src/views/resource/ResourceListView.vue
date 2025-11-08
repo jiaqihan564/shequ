@@ -240,7 +240,7 @@ import { useRouter } from 'vue-router'
 import SkeletonLoader from '@/components/shared/SkeletonLoader.vue'
 import type { ResourceListItem, ResourceCategory } from '@/types/resource'
 import { getResources, getResourceCategories } from '@/utils/api'
-import toast from '@/utils/toast'
+import toast from '@/utils/ui/toast'
 
 const router = useRouter()
 
