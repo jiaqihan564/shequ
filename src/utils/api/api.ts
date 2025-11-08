@@ -503,33 +503,6 @@ export async function changePassword(data: {
 }
 
 /**
- * 忘记密码
- */
-export async function forgotPassword(email: string): Promise<{ token: string; message: string }> {
-  const response = await api.post<ApiResponse<{ token: string; message: string }>>(
-    '/auth/forgot-password',
-    { email }
-  )
-
-  if (response.data.code === HTTP_STATUS.OK && response.data.data) {
-    return response.data.data
-  }
-
-  throw createAppError('FORGOT_PASSWORD_FAILED', response.data.message || '发送重置邮件失败')
-}
-
-/**
- * 重置密码
- */
-export async function resetPassword(data: { token: string; newPassword: string }): Promise<void> {
-  const response = await api.post<ApiResponse>('/auth/reset-password', data)
-
-  if (response.data.code !== HTTP_STATUS.OK) {
-    throw createAppError('RESET_PASSWORD_FAILED', response.data.message || '重置密码失败')
-  }
-}
-
-/**
  * 上传图片（通用）
  * 返回图片的可访问 URL
  */

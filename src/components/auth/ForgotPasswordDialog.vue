@@ -7,152 +7,66 @@
       </header>
 
       <div class="forgot-content">
+        <div class="info-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+        </div>
+
+        <h4 class="contact-title">需要重置密码？</h4>
         <p class="forgot-description">
-          请输入您注册时使用的邮箱地址，我们将为您生成重置密码的链接。
+          为了您的账号安全，密码重置需要联系管理员处理。
         </p>
 
-        <form class="forgot-form" @submit.prevent="handleSubmit">
-          <div class="form-field">
-            <label for="email" class="form-label">邮箱地址</label>
-            <div class="input-wrapper">
-              <input
-                id="email"
-                v-model="email"
-                :type="showEmail ? 'text' : 'password'"
-                class="form-input"
-                :class="{ error: error }"
-                placeholder="请输入完整邮箱地址"
-                autocomplete="email"
-                :disabled="isSubmitting"
-                @blur="validateEmail"
-                @focus="clearError"
-              />
-              <button
-                type="button"
-                class="email-toggle-btn"
-                :aria-label="showEmail ? '隐藏邮箱' : '显示邮箱'"
-                @click="showEmail = !showEmail"
-              >
-                <EyeIcon v-if="!showEmail" />
-                <EyeOffIcon v-else />
-              </button>
-            </div>
-            <span v-if="error" class="error-text">{{ error }}</span>
+        <div class="contact-box">
+          <div class="contact-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+              <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"></path>
+            </svg>
           </div>
+          <div class="contact-info">
+            <div class="contact-label">管理员邮箱</div>
+            <div class="contact-value">admin@example.com</div>
+          </div>
+        </div>
 
-          <div class="dialog-actions">
-            <button type="button" class="btn btn-secondary" :disabled="isSubmitting" @click="close">
-              取消
-            </button>
-            <button type="submit" class="btn btn-primary" :disabled="!canSubmit">
-              {{ isSubmitting ? '验证中…' : '下一步' }}
-            </button>
-          </div>
-        </form>
+        <div class="tips-box">
+          <p class="tips-title">温馨提示</p>
+          <ul class="tips-list">
+            <li>联系管理员时，请提供您的用户名或注册邮箱</li>
+            <li>为了账号安全，可能需要您提供身份验证信息</li>
+            <li>密码重置申请通常会在24小时内处理完成</li>
+          </ul>
+        </div>
+
+        <div class="dialog-actions">
+          <button type="button" class="btn btn-primary" @click="close">
+            我知道了
+          </button>
+        </div>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-
-import EyeIcon from '@/components/icons/EyeIcon.vue'
-import EyeOffIcon from '@/components/icons/EyeOffIcon.vue'
-import { forgotPassword } from '@/utils/api'
-import { logger } from '@/utils/ui/logger'
-import { validateEmail as validateEmailUtil } from '@/utils/auth/validation'
-
 defineProps<{
   show: boolean
 }>()
 
 const emit = defineEmits<{
   close: []
-  error: [error: { message: string }]
 }>()
 
-const router = useRouter()
-
-const email = ref('')
-const error = ref('')
-const isSubmitting = ref(false)
-const resetToken = ref('')
-const showEmail = ref(false)
-
-const canSubmit = computed(() => {
-  return !isSubmitting.value && email.value.trim() && !error.value
-})
-
-const validateEmail = () => {
-  const emailValue = email.value.trim()
-  if (!emailValue) {
-    error.value = '请输入邮箱地址'
-    return false
-  }
-  const emailError = validateEmailUtil(emailValue)
-  if (emailError) {
-    error.value = emailError
-    return false
-  }
-  error.value = ''
-  return true
-}
-
-const clearError = () => {
-  error.value = ''
-}
-
 const handleOverlayClick = () => {
-  if (!isSubmitting.value) {
-    close()
-  }
+  close()
 }
 
 const close = () => {
-  if (!isSubmitting.value) {
-    resetForm()
-    emit('close')
-  }
-}
-
-const resetForm = () => {
-  email.value = ''
-  error.value = ''
-}
-
-const handleSubmit = async () => {
-  if (!canSubmit.value) return
-
-  if (!validateEmail()) {
-    return
-  }
-
-  isSubmitting.value = true
-
-  try {
-    const response = await forgotPassword(email.value.trim())
-    // API返回包含token的响应
-    if (response && response.token) {
-      resetToken.value = response.token
-      // 直接跳转到重置密码页面，不显示token
-      goToResetPassword()
-    }
-  } catch (err: any) {
-    logger.error('忘记密码失败:', err)
-    emit('error', err)
-  } finally {
-    isSubmitting.value = false
-  }
-}
-
-const goToResetPassword = () => {
-  // 导航到重置密码页面，带上token参数（用户无需看到token）
-  const token = resetToken.value
-  resetForm()
   emit('close')
-  router.push(`/reset-password?token=${encodeURIComponent(token)}`)
 }
 </script>
 
@@ -167,7 +81,7 @@ const goToResetPassword = () => {
 }
 
 .forgot-dialog {
-  width: min(500px, 92vw);
+  width: min(540px, 92vw);
   background: #fff;
   border-radius: 14px;
   border: 1px solid #e5e7eb;
@@ -208,113 +122,139 @@ const goToResetPassword = () => {
 }
 
 .forgot-content {
-  padding: 20px;
+  padding: 24px;
+  text-align: center;
 }
 
-.forgot-description {
-  margin: 0 0 20px 0;
-  font-size: 14px;
-  color: #6b7280;
-  line-height: 1.6;
-}
-
-.forgot-form {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.form-field {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-label {
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #374151;
-}
-
-.input-wrapper {
-  position: relative;
-}
-
-.form-input {
-  width: 100%;
-  padding: 10px 40px 10px 12px;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 14px;
-  transition: all 0.2s;
-  letter-spacing: 0;
-}
-
-.form-input:focus {
-  outline: none;
-  border-color: #667eea;
-  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-}
-
-.form-input.error {
-  border-color: #ef4444;
-}
-
-.form-input:disabled {
-  background: #f9fafb;
-  cursor: not-allowed;
-}
-
-.email-toggle-btn {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  padding: 6px;
-  background: transparent;
-  border: none;
-  cursor: pointer;
-  color: #9ca3af;
-  transition: all 0.2s;
+.info-icon {
+  margin: 0 auto 20px;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea, #764ba2);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 10;
-  border-radius: 4px;
+  color: #fff;
 }
 
-.email-toggle-btn:hover {
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+.info-icon svg {
+  width: 32px;
+  height: 32px;
+  stroke-width: 2.5;
 }
 
-.email-toggle-btn:active {
-  transform: translateY(-50%) scale(0.95);
+.contact-title {
+  margin: 0 0 12px 0;
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
 }
 
-.email-toggle-btn svg {
+.forgot-description {
+  margin: 0 0 24px 0;
+  font-size: 14px;
+  color: #6b7280;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.contact-box {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 18px;
+  margin-bottom: 24px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+  text-align: left;
+  transition: all 0.2s;
+}
+
+.contact-box:hover {
+  border-color: #667eea;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+}
+
+.contact-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.contact-icon svg {
   width: 20px;
   height: 20px;
-  display: block;
+  stroke-width: 2;
 }
 
-.error-text {
-  margin-top: 6px;
+.contact-info {
+  flex: 1;
+}
+
+.contact-label {
   font-size: 12px;
-  color: #ef4444;
+  color: #9ca3af;
+  margin-bottom: 2px;
+}
+
+.contact-value {
+  font-size: 15px;
+  font-weight: 600;
+  color: #374151;
+  user-select: all;
+}
+
+.tips-box {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+  padding: 14px 18px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.tips-title {
+  margin: 0 0 8px 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.tips-list {
+  margin: 0;
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.tips-list li {
+  font-size: 13px;
+  color: #78350f;
+  line-height: 1.6;
+  margin-bottom: 4px;
+}
+
+.tips-list li:last-child {
+  margin-bottom: 0;
 }
 
 .dialog-actions {
   display: flex;
-  gap: 12px;
-  justify-content: flex-end;
-  margin-top: 24px;
-  padding-top: 20px;
-  border-top: 1px solid #f3f4f6;
+  justify-content: center;
+  padding-top: 0;
 }
 
 .btn {
-  padding: 10px 20px;
+  min-width: 120px;
+  padding: 11px 24px;
   border-radius: 8px;
   font-size: 14px;
   font-weight: 600;
@@ -323,28 +263,13 @@ const goToResetPassword = () => {
   border: none;
 }
 
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: #fff;
-  color: #374151;
-  border: 1px solid #d1d5db;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #f9fafb;
-}
-
 .btn-primary {
   background: linear-gradient(135deg, #667eea, #764ba2);
   color: #fff;
   box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
 }
 
-.btn-primary:hover:not(:disabled) {
+.btn-primary:hover {
   transform: translateY(-1px);
   box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
 }

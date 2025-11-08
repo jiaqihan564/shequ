@@ -8,7 +8,6 @@ import { logger } from '@/utils/ui/logger'
 
 const LoginView = () => import('@/views/auth/LoginView.vue')
 const RegisterView = () => import('@/views/auth/RegisterView.vue')
-const ResetPasswordView = () => import('@/views/auth/ResetPasswordView.vue')
 const HomeView = () => import('@/views/HomeView.vue')
 const ProfileView = () => import('@/views/ProfileView.vue')
 const UserStatsView = () => import('@/views/statistics/UserStatsView.vue')
@@ -62,12 +61,6 @@ const routes: RouteRecordRaw[] = [
   },
   { path: '/login', name: 'login', component: LoginView, meta: { title: '登录' } },
   { path: '/register', name: 'register', component: RegisterView, meta: { title: '注册' } },
-  {
-    path: '/reset-password',
-    name: 'reset-password',
-    component: ResetPasswordView,
-    meta: { title: '重置密码' }
-  },
   // 聊天室全屏路由（不使用 AppLayout）
   {
     path: '/chatroom',
