@@ -50,7 +50,45 @@
     </div>
 
     <div class="chart-section">
-      <h3 class="section-title">热门接口排行 Top 10</h3>
+      <div class="section-header">
+        <h3 class="section-title">热门接口排行</h3>
+        <div class="controls">
+          <el-select
+            v-model="sortBy"
+            placeholder="排序字段"
+            size="small"
+            @change="handleSortChange"
+          >
+            <el-option label="调用次数" value="total_count" />
+            <el-option label="成功率" value="success_rate" />
+            <el-option label="平均响应时间" value="avg_latency_ms" />
+          </el-select>
+          <el-select
+            v-model="order"
+            placeholder="排序方向"
+            size="small"
+            @change="handleSortChange"
+          >
+            <el-option label="降序" value="desc" />
+            <el-option label="升序" value="asc" />
+          </el-select>
+          <el-select
+            v-model="limit"
+            placeholder="展示数量"
+            size="small"
+            allow-create
+            filterable
+            @change="handleLimitChange"
+          >
+            <el-option label="展示全部数据" value="all" />
+            <el-option label="5条" :value="5" />
+            <el-option label="10条" :value="10" />
+            <el-option label="20条" :value="20" />
+            <el-option label="50条" :value="50" />
+            <el-option label="100条" :value="100" />
+          </el-select>
+        </div>
+      </div>
       <div class="ranking-table">
         <table>
           <thead>
@@ -73,13 +111,11 @@
               <td class="count">{{ item.total_count }}</td>
               <td class="success-rate">
                 <span
-                  :class="
-                    item.success_rate >= 95
-                      ? 'rate-good'
-                      : item.success_rate >= 80
-                        ? 'rate-ok'
-                        : 'rate-bad'
-                  "
+                  :class="{
+                    'rate-good': item.success_rate >= 95,
+                    'rate-ok': item.success_rate >= 80 && item.success_rate < 95,
+                    'rate-bad': item.success_rate < 80
+                  }"
                 >
                   {{ item.success_rate?.toFixed(1) }}%
                 </span>
@@ -110,6 +146,11 @@ const overview = ref<any>({})
 const rankings = ref<any[]>([])
 const apiStats = ref<any>({ total: {} })
 
+// 排序和数量控制
+const sortBy = ref('total_count')
+const order = ref('desc')
+const limit = ref(10) // 默认展示10个
+
 const avgLatency = computed(() => {
   return apiStats.value.total?.avg_latency || 0
 })
@@ -124,7 +165,15 @@ const loadData = async () => {
     const endDate = new Date().toISOString().split('T')[0]
     const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-    const rankingData = await getEndpointRanking(startDate, endDate)
+    // 处理limit参数，如果是'all'则传递特殊值
+    let limitValue
+    if (limit.value === 'all') {
+      limitValue = 'all'
+    } else {
+      limitValue = limit.value
+    }
+
+    const rankingData = await getEndpointRanking(startDate, endDate, sortBy.value, order.value, limitValue)
     rankings.value = rankingData || []
 
     // 获取API统计总计
@@ -134,6 +183,30 @@ const loadData = async () => {
     toast.error(error?.message || '加载统计数据失败')
   } finally {
     loading.value = false
+  }
+}
+
+const handleSortChange = () => {
+  loadData()
+}
+
+const handleLimitChange = (value: any) => {
+  // 检查是否为"all"选项
+  if (value === 'all') {
+    limit.value = 'all'
+    loadData()
+    return
+  }
+  
+  // 确保输入的是有效数字且在1-100范围内
+  const numValue = Number(value)
+  if (!isNaN(numValue) && numValue >= 1 && numValue <= 100) {
+    limit.value = numValue
+    loadData()
+  } else {
+    // 如果输入无效，重置为之前的值
+    limit.value = limit.value
+    toast.error('请输入1-100之间的数字')
   }
 }
 
@@ -235,11 +308,24 @@ onMounted(() => {
   margin-bottom: 24px;
 }
 
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
 .section-title {
   font-size: 18px;
   font-weight: 600;
   color: #111827;
-  margin: 0 0 20px 0;
+  margin: 0;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
 }
 
 .ranking-table {

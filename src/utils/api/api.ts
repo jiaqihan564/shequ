@@ -695,10 +695,13 @@ export async function getApiStatistics(startDate?: string, endDate?: string): Pr
 /**
  * 获取接口排行
  */
-export async function getEndpointRanking(startDate?: string, endDate?: string): Promise<any> {
+export async function getEndpointRanking(startDate?: string, endDate?: string, sortBy?: string, order?: string, limit?: number | 'all'): Promise<any> {
   const params: any = {}
   if (startDate) params.start = startDate
   if (endDate) params.end = endDate
+  if (sortBy) params.sort_by = sortBy
+  if (order) params.order = order
+  if (limit !== undefined) params.limit = limit
 
   const response = await api.get<ApiResponse<any>>('/statistics/ranking', { params })
 
