@@ -80,7 +80,7 @@
         </template>
         <el-row :gutter="20">
           <el-col
-            v-for="item in data.security.filter((i: any) => i.stat_key !== 'blocked_ips' && i.stat_key !== 'security_alerts')"
+            v-for="item in data.security"
             :key="item.stat_key"
             :xs="24"
             :sm="12"
