@@ -149,7 +149,7 @@ const apiStats = ref<any>({ total: {} })
 // 排序和数量控制
 const sortBy = ref('total_count')
 const order = ref('desc')
-const limit = ref(10) // 默认展示10个
+const limit = ref<number | 'all'>(10) // 默认展示10个
 
 const avgLatency = computed(() => {
   return apiStats.value.total?.avg_latency || 0
@@ -165,12 +165,12 @@ const loadData = async () => {
     const endDate = new Date().toISOString().split('T')[0]
     const startDate = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
 
-    // 处理limit参数，如果是'all'则传递特殊值
-    let limitValue
+    // 处理limit参数，确保类型正确
+    let limitValue: number | 'all' | undefined
     if (limit.value === 'all') {
       limitValue = 'all'
     } else {
-      limitValue = limit.value
+      limitValue = Number(limit.value) || undefined
     }
 
     const rankingData = await getEndpointRanking(startDate, endDate, sortBy.value, order.value, limitValue)
@@ -190,7 +190,7 @@ const handleSortChange = () => {
   loadData()
 }
 
-const handleLimitChange = (value: any) => {
+const handleLimitChange = (value: number | 'all') => {
   // 检查是否为"all"选项
   if (value === 'all') {
     limit.value = 'all'
