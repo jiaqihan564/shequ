@@ -196,6 +196,14 @@ const dateShortcuts = [
   }
 ]
 
+function formatDateLocal(date: Date) {
+  // 使用本地时区构造 YYYY-MM-DD，避免 toISOString() 造成的日期偏移
+  const year = date.getFullYear()
+  const month = `${date.getMonth() + 1}`.padStart(2, '0')
+  const day = `${date.getDate()}`.padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function handleDateChange() {
   loadData()
 }
@@ -207,12 +215,14 @@ const loadData = async (forceRefresh: boolean = false) => {
     let endDate: string
 
     if (dateRange.value && dateRange.value.length === 2) {
-      startDate = dateRange.value[0].toISOString().split('T')[0]
-      endDate = dateRange.value[1].toISOString().split('T')[0]
+      startDate = formatDateLocal(dateRange.value[0])
+      endDate = formatDateLocal(dateRange.value[1])
     } else {
       // 默认最近30天
-      endDate = new Date().toISOString().split('T')[0]
-      startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      const end = new Date()
+      const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+      endDate = formatDateLocal(end)
+      startDate = formatDateLocal(start)
     }
 
     const data = await getDailyMetrics(startDate, endDate, forceRefresh)
