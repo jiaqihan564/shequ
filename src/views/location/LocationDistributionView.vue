@@ -62,7 +62,24 @@
     <!-- 省份分布饼图 -->
     <div class="chart-section full-width">
       <h3 class="section-title">省份用户分布</h3>
-      <div ref="provincePieChart" class="chart" style="height: 400px"></div>
+      <div class="province-pie">
+        <div ref="provincePieChart" class="province-pie__chart"></div>
+        <div class="province-pie__legend">
+          <div
+            v-for="item in provincePieLegend"
+            :key="item.name"
+            class="legend-item"
+          >
+            <span class="legend-dot" :style="{ backgroundColor: item.color }" />
+            <div class="legend-info">
+              <span class="legend-name">{{ item.name }}</span>
+              <span class="legend-value">
+                {{ item.value.toLocaleString() }}人 · {{ item.percent }}%
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <LoadingSpinner v-if="loading" />
@@ -87,6 +104,27 @@ const data = ref<any>({
 const provinceChart = ref<HTMLElement>()
 const provincePieChart = ref<HTMLElement>()
 const worldMapChart = ref<HTMLElement>()
+const provincePieLegend = ref<
+  Array<{ name: string; value: number; percent: string; color: string }>
+>([])
+
+const pieColors = [
+  '#6366F1',
+  '#A855F7',
+  '#EC4899',
+  '#F97316',
+  '#10B981',
+  '#14B8A6',
+  '#0EA5E9',
+  '#F59E0B',
+  '#8B5CF6',
+  '#EF4444',
+  '#3B82F6',
+  '#84CC16',
+  '#D946EF',
+  '#22D3EE',
+  '#FB7185'
+]
 
 const topProvince = computed(() => {
   if (data.value.province_stats && data.value.province_stats.length > 0) {
@@ -203,28 +241,33 @@ const renderCharts = async () => {
         name: p.province,
         value: p.user_count
       }))
+      const total = provincePieData.reduce(
+        (sum: number, item: { value: number }) => sum + (Number(item.value) || 0),
+        0
+      )
+      provincePieLegend.value = provincePieData.map((item: { name: string; value: number }, idx: number) => ({
+        name: item.name,
+        value: item.value,
+        percent: total ? ((item.value / total) * 100).toFixed(2) : '0.00',
+        color: pieColors[idx % pieColors.length]
+      }))
 
       const chart3 = echarts.init(provincePieChart.value)
       chart3.setOption({
+        color: pieColors,
         tooltip: {
           trigger: 'item',
           formatter: '{b}: {c}人 ({d}%)'
         },
         legend: {
-          orient: 'vertical',
-          right: '10%',
-          top: 'center',
-          formatter: (name: string) => {
-            const item = provinceStats.find((p: any) => p.province === name)
-            return `${name} - ${item?.user_count || 0}人`
-          }
+          show: false
         },
         series: [
           {
             name: '用户分布',
             type: 'pie',
-            radius: ['40%', '70%'],
-            center: ['40%', '50%'],
+            radius: ['45%', '70%'],
+            center: ['38%', '50%'],
             data: provincePieData,
             emphasis: {
               itemStyle: {
@@ -234,7 +277,7 @@ const renderCharts = async () => {
               }
             },
             label: {
-              formatter: '{b}\n{d}%',
+              formatter: '{b}\\n{d}%',
               fontWeight: 600
             },
             itemStyle: {
@@ -246,13 +289,15 @@ const renderCharts = async () => {
         ]
       })
     } catch (error) {
-      console.error('省份分布饼图渲染失败:', error)
+      console.error('省份分布图渲染失败:', error)
+      provincePieLegend.value = []
     }
   } else {
-    console.warn('省份分布饼图容器未就绪或无数据', {
+    console.warn('省份分布图未渲染，可能原因：', {
       容器存在: !!provincePieChart.value,
-      数据长度: provinceStats.length
+      数据条数: provinceStats.length
     })
+    provincePieLegend.value = []
   }
 }
 
@@ -499,5 +544,60 @@ onMounted(() => {
 
 .chart {
   width: 100%;
+}
+
+.province-pie {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  min-height: 420px;
+}
+
+.province-pie__chart {
+  flex: 0 0 55%;
+  height: 420px;
+}
+
+.province-pie__legend {
+  flex: 1;
+  max-height: 420px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-right: 8px;
+}
+
+.province-pie__legend .legend-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid #f3f4f6;
+  background: #f9fafb;
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.legend-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.legend-name {
+  font-weight: 600;
+  color: #111827;
+}
+
+.legend-value {
+  font-size: 13px;
+  color: #6b7280;
 }
 </style>
