@@ -92,6 +92,7 @@ import { ref, computed, onMounted, nextTick } from 'vue'
 import LoadingSpinner from '@/shared/ui/LoadingSpinner.vue'
 import { getLocationDistribution } from '@/utils/api'
 import echarts from '@/utils/echarts'
+import chinaMapJson from '@/assets/china.json'
 import { toast } from '@/utils/ui/toast'
 
 const loading = ref(false)
@@ -125,6 +126,8 @@ const pieColors = [
   '#22D3EE',
   '#FB7185'
 ]
+
+let chinaMapRegistered = false
 
 const topProvince = computed(() => {
   if (data.value.province_stats && data.value.province_stats.length > 0) {
@@ -302,7 +305,7 @@ const renderCharts = async () => {
 }
 
 // 渲染中国地图
-const renderWorldMap = async () => {
+const renderWorldMap = () => {
   if (!worldMapChart.value) return
 
   const provinceStats = data.value.province_stats || []
@@ -351,16 +354,15 @@ const renderWorldMap = async () => {
     value: p.user_count
   }))
 
-  const chart = echarts.init(worldMapChart.value)
+  const existingChart = echarts.getInstanceByDom(worldMapChart.value)
+  const chart = existingChart || echarts.init(worldMapChart.value)
+  chart.clear()
 
   try {
-    // 使用阿里云DataV提供的中国地图JSON
-    const chinaMapUrl = 'https://geo.datav.aliyun.com/areas_v3/bound/100000_full.json'
-    const response = await fetch(chinaMapUrl)
-    const chinaJson = await response.json()
-
-    // 注册中国地图
-    echarts.registerMap('china', chinaJson)
+    if (!chinaMapRegistered) {
+      echarts.registerMap('china', chinaMapJson as any)
+      chinaMapRegistered = true
+    }
 
     chart.setOption({
       backgroundColor: '#f3f4f6',
