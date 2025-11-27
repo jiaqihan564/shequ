@@ -277,7 +277,7 @@ const renderCharts = async () => {
               }
             },
             label: {
-              formatter: '{b}\\n{d}%',
+              formatter: '{b}\n{d}%',
               fontWeight: 600
             },
             itemStyle: {
